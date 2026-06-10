@@ -4,6 +4,7 @@ import { Footer } from "./Footer";
 import { WhatsAppButton } from "../WhatsAppButton";
 import { NotificationSystem } from "../ui/NotificationSystem";
 import { WazooAI } from "../ui/WazooAI";
+import { ThemeApplier } from "../ui/ThemeApplier";
 
 /** Layout público: header + conteúdo + footer + botão de WhatsApp. */
 export function Layout() {
@@ -17,6 +18,7 @@ export function Layout() {
       <WhatsAppButton />
       <NotificationSystem />
       <WazooAI />
+      <ThemeApplier />
     </div>
   );
 }

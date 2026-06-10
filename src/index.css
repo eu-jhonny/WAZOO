@@ -8,6 +8,93 @@
    Fontes: Fredoka (títulos) + Nunito (texto)
    ============================================================ */
 
+/* ============================================================
+   SISTEMA DE TEMAS — variáveis de cor por acento
+   Definidas fora de @layer para sobrescrever as classes utilitárias.
+   Controladas pelo painel Admin → Aparência → Cor de destaque.
+   ============================================================ */
+
+/* Padrão: laranja */
+:root {
+  --a50:   #FFF7ED;
+  --a100:  #FFEDD5;
+  --a200:  #FED7AA;
+  --a400:  #FB923C;
+  --a500:  #F97316;
+  --a600:  #EA580C;
+  --a700:  #C2410C;
+  --a-glow:rgba(249,115,22,0.45);
+  --a-ring:rgba(249,115,22,0.20);
+}
+[data-accent="teal"] {
+  --a50:   #ECFEFF; --a100: #CFFAFE; --a200: #A5F3FC;
+  --a400:  #22D3EE; --a500: #06B6D4; --a600: #0891B2; --a700: #0E7490;
+  --a-glow:rgba(6,182,212,0.45); --a-ring:rgba(6,182,212,0.20);
+}
+[data-accent="purple"] {
+  --a50:   #F5F3FF; --a100: #EDE9FE; --a200: #DDD6FE;
+  --a400:  #A78BFA; --a500: #8B5CF6; --a600: #7C3AED; --a700: #6D28D9;
+  --a-glow:rgba(139,92,246,0.45); --a-ring:rgba(139,92,246,0.20);
+}
+[data-accent="green"] {
+  --a50:   #F0FDF4; --a100: #DCFCE7; --a200: #BBF7D0;
+  --a400:  #4ADE80; --a500: #22C55E; --a600: #16A34A; --a700: #15803D;
+  --a-glow:rgba(34,197,94,0.40);  --a-ring:rgba(34,197,94,0.20);
+}
+[data-accent="pink"] {
+  --a50:   #FDF2F8; --a100: #FCE7F3; --a200: #FBCFE8;
+  --a400:  #F472B6; --a500: #EC4899; --a600: #DB2777; --a700: #BE185D;
+  --a-glow:rgba(236,72,153,0.45); --a-ring:rgba(236,72,153,0.20);
+}
+
+/* ── Overrides de componentes usando as variáveis ──────────
+   Ficam FORA de qualquer @layer, portanto têm prioridade
+   maior que regras em @layer components e @layer utilities.
+   ──────────────────────────────────────────────────────── */
+
+.btn-primary {
+  background-color: var(--a500);
+  box-shadow: 0 8px 32px -6px var(--a-glow);
+}
+.btn-primary:hover  { background-color: var(--a600); }
+.btn-primary:focus-visible { --tw-ring-color: var(--a-ring); }
+
+.btn-outline-orange {
+  border-color: var(--a400);
+  color: var(--a600);
+}
+.btn-outline-orange:hover {
+  background-color: var(--a500);
+  border-color: var(--a500);
+}
+
+.chip      { --tw-border-opacity:1; }
+.chip:hover{ border-color: var(--a300, var(--a400)); color: var(--a600); }
+.chip-active {
+  background-color: var(--a500);
+  border-color: var(--a500);
+}
+
+.eyebrow { background-color: var(--a100); color: var(--a700); }
+
+.input:focus {
+  border-color: var(--a400);
+  --tw-ring-color: var(--a100);
+  --tw-ring-shadow: 0 0 0 4px var(--a100);
+  box-shadow: var(--tw-ring-shadow);
+}
+
+.link-underline { color: var(--a600); }
+.price-sale     { color: var(--a600); }
+.badge-encomenda{ background-color: var(--a100); color: var(--a700); }
+
+/* Nav link ativo — classe .nav-active usada no Header */
+.nav-active {
+  background-color: var(--a500);
+  box-shadow: 0 8px 32px -6px var(--a-glow);
+  color: #fff;
+}
+
 @layer base {
   :root { color-scheme: light; }
 

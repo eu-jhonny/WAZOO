@@ -7,6 +7,23 @@ import { useAuth } from "@/context/AuthContext";
 import { MobileMenu } from "./MobileMenu";
 import { NotificationBell } from "../ui/NotificationSystem";
 
+/** Logo customizado salvo pelo admin (base64) ou null se não houver. */
+function useCustomLogo() {
+  const [logo, setLogo] = useState<string | null>(() =>
+    localStorage.getItem("wazoo_custom_logo"),
+  );
+  useEffect(() => {
+    const handler = () => setLogo(localStorage.getItem("wazoo_custom_logo"));
+    window.addEventListener("wazoo:config-updated", handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener("wazoo:config-updated", handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+  return logo;
+}
+
 const navItems = [
   { to: "/",             label: "Início",         end: true },
   { to: "/cachorros",    label: "🐕 Cães"                   },
@@ -22,6 +39,7 @@ export function Header() {
   const [menuOpen, setMenuOpen]  = useState(false);
   const { count }                = useCart();
   const { isLoggedIn, user }     = useAuth();
+  const customLogo               = useCustomLogo();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -43,7 +61,7 @@ export function Header() {
         {/* Logo */}
         <Link to="/" className="flex shrink-0 items-center" aria-label="Página inicial">
           <img
-            src={img.logo}
+            src={customLogo ?? img.logo}
             alt="Wazoo Pet Express"
             className="h-10 w-auto sm:h-12"
           />
@@ -59,7 +77,7 @@ export function Header() {
               className={({ isActive }) =>
                 `rounded-full px-4 py-2 text-sm font-bold transition-all duration-200 ${
                   isActive
-                    ? "bg-orange-500 text-white shadow-glow"
+                    ? "nav-active"
                     : "text-navy-600 hover:bg-orange-50 hover:text-orange-600"
                 }`
               }

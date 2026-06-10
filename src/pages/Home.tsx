@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, Heart, PawPrint, ShoppingBag, ShieldCheck,
   Sparkles, Star, Truck, Zap, Gift, Package,
 } from "lucide-react";
+import { getAdminDisplayConfig } from "@/lib/adminConfig";
 import { img } from "@/config/site";
 import { homeCategories } from "@/data/categories";
 import { kits } from "@/data/kits";
@@ -67,6 +69,19 @@ const WHY_ITEMS = [
 export function Home() {
   const { products, reviews, settings } = useStore();
 
+  /* Admin display config — reativo a mudanças do painel */
+  const [adminCfg, setAdminCfg] = useState(() => getAdminDisplayConfig());
+  useEffect(() => {
+    const update = () => setAdminCfg(getAdminDisplayConfig());
+    window.addEventListener("wazoo:config-updated", update);
+    window.addEventListener("storage", update);
+    return () => {
+      window.removeEventListener("wazoo:config-updated", update);
+      window.removeEventListener("storage", update);
+    };
+  }, []);
+  const { showBanner, showCopa, showFesta } = adminCfg;
+
   const featured   = products.filter((p) => p.active && p.featured).slice(0, 4);
   const forDogs    = products.filter((p) => p.active && (p.audience === "cachorro" || p.audience === "ambos")).slice(0, 8);
   const forCats    = products.filter((p) => p.active && (p.audience === "gato"     || p.audience === "ambos")).slice(0, 8);
@@ -81,15 +96,17 @@ export function Home() {
       <PromoStrip />
 
       {/* ══ ANNOUNCEMENT BAR ═══════════════════════════ */}
-      <div className="bg-navy-800 py-2 text-center text-xs font-bold text-cream-100 sm:text-sm">
-        <div className="container-app flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
-          <span>🚚 Entrega ou retirada em São Paulo</span>
-          <span className="hidden h-3 w-px bg-white/20 sm:block" />
-          <span>💳 Parcele em até 10x sem juros</span>
-          <span className="hidden h-3 w-px bg-white/20 sm:block" />
-          <span>🐾 Produtos 100% sob encomenda</span>
+      {showBanner && (
+        <div className="bg-navy-800 py-2 text-center text-xs font-bold text-cream-100 sm:text-sm">
+          <div className="container-app flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
+            <span>🚚 Entrega ou retirada em São Paulo</span>
+            <span className="hidden h-3 w-px bg-white/20 sm:block" />
+            <span>💳 Parcele em até 10x sem juros</span>
+            <span className="hidden h-3 w-px bg-white/20 sm:block" />
+            <span>🐾 Produtos 100% sob encomenda</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ══ BANNER CAROUSEL ════════════════════════════ */}
       <BannerCarousel />
@@ -191,68 +208,75 @@ export function Home() {
       </section>
 
       {/* ══ MINI BANNERS Copa + Festa ══════════════════ */}
+      {(showCopa || showFesta) && (
       <section className="py-6 sm:py-8">
         <div className="container-app grid gap-4 sm:grid-cols-2">
           {/* Copa 2026 */}
-          <Reveal>
-            <div className="group relative overflow-hidden rounded-3xl shadow-lg">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#001a5e] via-[#002776] to-[#004d18]" />
-              <img src="/images/banners/copa.jpg" alt="Copa dos Pets"
-                className="absolute inset-0 h-full w-full object-cover opacity-40 transition-transform duration-700 group-hover:scale-105"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-              {/* Troféu decorativo */}
-              <div className="absolute right-4 top-4 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 border-[#FFDF00]/50 bg-[#FFDF00]/15 backdrop-blur-sm">
-                <span className="text-2xl">⚽</span>
-                <span className="text-[9px] font-extrabold uppercase text-[#FFDF00] leading-none">2026</span>
+          {showCopa && (
+            <Reveal>
+              <div className="group relative overflow-hidden rounded-3xl shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#001a5e] via-[#002776] to-[#004d18]" />
+                <img src="/images/banners/copa.jpg" alt="Copa dos Pets"
+                  className="absolute inset-0 h-full w-full object-cover opacity-40 transition-transform duration-700 group-hover:scale-105"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                {/* Troféu decorativo */}
+                <div className="absolute right-4 top-4 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 border-[#FFDF00]/50 bg-[#FFDF00]/15 backdrop-blur-sm">
+                  <span className="text-2xl">⚽</span>
+                  <span className="text-[9px] font-extrabold uppercase text-[#FFDF00] leading-none">2026</span>
+                </div>
+                {/* Faixas brasileiras na base */}
+                <div className="absolute bottom-0 left-0 right-0 h-1.5 flex">
+                  <div className="flex-1 bg-[#002776]" /><div className="flex-1 bg-[#FFDF00]" />
+                  <div className="flex-1 bg-[#009C3B]" /><div className="flex-1 bg-[#FFDF00]" />
+                  <div className="flex-1 bg-[#002776]" />
+                </div>
+                <div className="relative flex min-h-[190px] flex-col justify-end p-5 sm:min-h-[220px] sm:p-7">
+                  <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#FFDF00]/30 bg-[#FFDF00]/15 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#FFDF00]">
+                    ⚽ Coleção Copa 2026
+                  </span>
+                  <h3 className="font-display text-2xl font-bold text-white drop-shadow sm:text-3xl">Torcida Animal! 🏆</h3>
+                  <p className="mt-1 text-sm text-blue-100/80">Vista seu pet com as cores do Brasil</p>
+                  <Link to="/produtos" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#FFDF00] px-5 py-2.5 text-sm font-bold text-[#002776] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-yellow-300">
+                    Ver coleção →
+                  </Link>
+                </div>
               </div>
-              {/* Faixas brasileiras na base */}
-              <div className="absolute bottom-0 left-0 right-0 h-1.5 flex">
-                <div className="flex-1 bg-[#002776]" /><div className="flex-1 bg-[#FFDF00]" />
-                <div className="flex-1 bg-[#009C3B]" /><div className="flex-1 bg-[#FFDF00]" />
-                <div className="flex-1 bg-[#002776]" />
-              </div>
-              <div className="relative flex min-h-[190px] flex-col justify-end p-5 sm:min-h-[220px] sm:p-7">
-                <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#FFDF00]/30 bg-[#FFDF00]/15 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#FFDF00]">
-                  ⚽ Coleção Copa 2026
-                </span>
-                <h3 className="font-display text-2xl font-bold text-white drop-shadow sm:text-3xl">Torcida Animal! 🏆</h3>
-                <p className="mt-1 text-sm text-blue-100/80">Vista seu pet com as cores do Brasil</p>
-                <Link to="/produtos" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#FFDF00] px-5 py-2.5 text-sm font-bold text-[#002776] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-yellow-300">
-                  Ver coleção →
-                </Link>
-              </div>
-            </div>
-          </Reveal>
+            </Reveal>
+          )}
 
           {/* Festa Junina */}
-          <Reveal delay={80}>
-            <div className="group relative overflow-hidden rounded-3xl shadow-lg">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#7c1d00] via-[#b83200] to-[#c8640a]" />
-              <img src="/images/banners/festajunina.jpg" alt="Arraiá Pet"
-                className="absolute inset-0 h-full w-full object-cover opacity-35 transition-transform duration-700 group-hover:scale-105"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-              {/* Bandeirinhas reais no topo */}
-              <div className="absolute left-0 right-0 top-0">
-                <Bunting count={14} height={52} colors={["#E63946","#FFBE0B","#2A9D8F","#ffffff","#8338EC","#F4A261","#06D6A0","#EF476F"]} />
+          {showFesta && (
+            <Reveal delay={80}>
+              <div className="group relative overflow-hidden rounded-3xl shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#7c1d00] via-[#b83200] to-[#c8640a]" />
+                <img src="/images/banners/festajunina.jpg" alt="Arraiá Pet"
+                  className="absolute inset-0 h-full w-full object-cover opacity-35 transition-transform duration-700 group-hover:scale-105"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                {/* Bandeirinhas reais no topo */}
+                <div className="absolute left-0 right-0 top-0">
+                  <Bunting count={14} height={52} colors={["#E63946","#FFBE0B","#2A9D8F","#ffffff","#8338EC","#F4A261","#06D6A0","#EF476F"]} />
+                </div>
+                <div className="relative flex min-h-[190px] flex-col justify-end p-5 pt-16 sm:min-h-[220px] sm:p-7 sm:pt-16">
+                  <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-yellow-300/40 bg-yellow-400/20 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-yellow-200">
+                    🎉 Arraiá Pet 2025
+                  </span>
+                  <h3 className="font-display text-2xl font-bold text-white drop-shadow sm:text-3xl">Festa Junina! 🌽</h3>
+                  <p className="mt-1 text-sm text-yellow-100/80">Chapéus de palha, bandanas xadrez e kits temáticos</p>
+                  <Link to="/kits" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-orange-700 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-yellow-50">
+                    Ver kits →
+                  </Link>
+                </div>
               </div>
-              <div className="relative flex min-h-[190px] flex-col justify-end p-5 pt-16 sm:min-h-[220px] sm:p-7 sm:pt-16">
-                <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-yellow-300/40 bg-yellow-400/20 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-yellow-200">
-                  🎉 Arraiá Pet 2025
-                </span>
-                <h3 className="font-display text-2xl font-bold text-white drop-shadow sm:text-3xl">Festa Junina! 🌽</h3>
-                <p className="mt-1 text-sm text-yellow-100/80">Chapéus de palha, bandanas xadrez e kits temáticos</p>
-                <Link to="/kits" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-orange-700 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-yellow-50">
-                  Ver kits →
-                </Link>
-              </div>
-            </div>
-          </Reveal>
+            </Reveal>
+          )}
         </div>
       </section>
+      )}
 
       {/* ══ COPA DOS PETS ══════════════════════════════ */}
+      {showCopa && (
       <section className="relative overflow-hidden py-14 sm:py-20" style={{ background: "linear-gradient(135deg, #071444 0%, #0A3A1A 50%, #071444 100%)" }}>
         <div className="container-app relative">
           <div className="grid items-center gap-10 lg:grid-cols-2">
@@ -294,8 +318,10 @@ export function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ══ ARRAIÁ PET ══════════════════════════════════ */}
+      {showFesta && (
       <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-yellow-50 to-cream-50 py-14 sm:py-20">
         {/* Bandeirinhas duplas no topo */}
         <div className="pointer-events-none absolute left-0 right-0 top-0" aria-hidden>
@@ -338,6 +364,7 @@ export function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ══ BANNER CONFORTO ════════════════════════════ */}
       <Reveal>

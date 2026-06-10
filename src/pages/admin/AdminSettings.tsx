@@ -24,7 +24,11 @@ function loadLS<T>(key: string, fallback: T): T {
   return fallback;
 }
 function saveLS(key: string, value: unknown) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignorar */ }
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    // Notifica ThemeApplier e Header na mesma aba
+    window.dispatchEvent(new CustomEvent("wazoo:config-updated"));
+  } catch { /* ignorar */ }
 }
 
 const ADMIN_CFG_KEY = "wazoo:admin_config:v1";
@@ -648,7 +652,10 @@ export function AdminSettings() {
                 { id: "green",  label: "Verde",   cls: "bg-green-600"  },
                 { id: "pink",   label: "Rosa",    cls: "bg-pink-500"   },
               ].map((c) => (
-                <button key={c.id} type="button" onClick={() => setCfg({ accentColor: c.id })}
+                <button key={c.id} type="button" onClick={() => {
+                    setCfg({ accentColor: c.id });
+                    document.documentElement.setAttribute("data-accent", c.id);
+                  }}
                   className={`flex items-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-bold transition-all ${cfg.accentColor === c.id ? "border-navy-700 bg-white shadow" : "border-cream-200"}`}>
                   <span className={`h-4 w-4 rounded-full ${c.cls}`} />{c.label}
                 </button>
