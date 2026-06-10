@@ -5,6 +5,7 @@ import { img } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { MobileMenu } from "./MobileMenu";
+import { NotificationBell } from "../ui/NotificationSystem";
 
 const navItems = [
   { to: "/",             label: "Início",         end: true },
@@ -81,6 +82,9 @@ export function Header() {
               {isLoggedIn ? user?.name.split(" ")[0] : "Entrar"}
             </span>
           </Link>
+
+          {/* Sino de notificações */}
+          <NotificationBell />
 
           {/* Carrinho */}
           <Link
