@@ -20,7 +20,6 @@ import { KitCard } from "@/components/product/KitCard";
 import { ReviewCard } from "@/components/product/ReviewCard";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { Decor } from "@/components/ui/Decor";
-import { Bunting } from "@/components/ui/Bunting";
 import { Confetti } from "@/components/ui/Confetti";
 import { CopaDecor } from "@/components/ui/CopaDecor";
 
@@ -257,11 +256,7 @@ export function Home() {
                   className="absolute inset-0 h-full w-full object-cover opacity-35 transition-transform duration-700 group-hover:scale-105"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
-                {/* Bandeirinhas reais no topo */}
-                <div className="absolute left-0 right-0 top-0">
-                  <Bunting count={14} height={52} colors={["#E63946","#FFBE0B","#2A9D8F","#ffffff","#8338EC","#F4A261","#06D6A0","#EF476F"]} />
-                </div>
-                <div className="relative flex min-h-[190px] flex-col justify-end p-5 pt-16 sm:min-h-[220px] sm:p-7 sm:pt-16">
+                <div className="relative flex min-h-[190px] flex-col justify-end p-5 sm:min-h-[220px] sm:p-7">
                   <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-yellow-300/40 bg-yellow-400/20 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-yellow-200">
                     🎉 Arraiá Pet 2025
                   </span>
@@ -333,15 +328,7 @@ export function Home() {
       {/* ══ ARRAIÁ PET ══════════════════════════════════ */}
       {showFesta && (
       <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-yellow-50 to-cream-50 py-14 sm:py-20">
-        {/* Bandeirinhas duplas no topo */}
-        <div className="pointer-events-none absolute left-0 right-0 top-0" aria-hidden>
-          <Bunting count={20} height={62} colors={["#E63946","#FFBE0B","#2A9D8F","#fff","#8338EC","#F4A261","#06D6A0","#EF476F","#3A86FF","#FB5607"]} />
-        </div>
-        {/* Segunda fileira com deslocamento */}
-        <div className="pointer-events-none absolute left-0 right-0 top-10" aria-hidden style={{ opacity: 0.55 }}>
-          <Bunting count={18} height={48} colors={["#FFBE0B","#E63946","#fff","#2A9D8F","#F4A261","#8338EC","#FB5607","#06D6A0"]} />
-        </div>
-        <div className="container-app pt-6">
+        <div className="container-app">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <Reveal>
               <div>
