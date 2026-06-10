@@ -87,6 +87,12 @@ export function Products() {
         title="Nossos produtos"
         subtitle="Tudo para cães e gatos, sob encomenda. Use os filtros e encontre o ideal para o seu pet."
         mascot={img.mascot.comendo}
+        chips={[
+          { label: "🐕 Cachorros" },
+          { label: "🐈 Gatos" },
+          { label: "📦 Sob encomenda" },
+          { label: "🚚 Entrega SP" },
+        ]}
       />
 
       <section className="section">

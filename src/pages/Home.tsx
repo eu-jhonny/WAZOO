@@ -18,6 +18,7 @@ import { KitCard } from "@/components/product/KitCard";
 import { ReviewCard } from "@/components/product/ReviewCard";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { Decor } from "@/components/ui/Decor";
+import { Bunting } from "@/components/ui/Bunting";
 
 /* ── Constantes ─────────────────────────────────────────────── */
 const TRUST = [
@@ -29,7 +30,6 @@ const TRUST = [
 
 const COPA_ITEMS  = ["Bandanas e lenços temáticos", "Brinquedos Copa", "Roupinhas e acessórios", "Petiscos especiais"];
 const FESTA_ITEMS = ["Chapéus de palha pet", "Bandanas xadrez", "Brinquedos e petiscos temáticos", "Kits Arraiá completos"];
-const BUNTING     = ["#F0427E", "#FFDF00", "#009C3B", "#FF7A1A", "#8B5FD0", "#18B6C4"];
 
 const MINI_BANNERS = [
   {
@@ -193,38 +193,57 @@ export function Home() {
       {/* ══ MINI BANNERS Copa + Festa ══════════════════ */}
       <section className="py-6 sm:py-8">
         <div className="container-app grid gap-4 sm:grid-cols-2">
+          {/* Copa 2026 */}
           <Reveal>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002776] to-[#009C3B] shadow-md">
+            <div className="group relative overflow-hidden rounded-3xl shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#001a5e] via-[#002776] to-[#004d18]" />
               <img src="/images/banners/copa.jpg" alt="Copa dos Pets"
-                className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-500 hover:scale-105"
+                className="absolute inset-0 h-full w-full object-cover opacity-40 transition-transform duration-700 group-hover:scale-105"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
-              <div className="relative flex min-h-[170px] flex-col justify-end p-5 sm:min-h-[210px] sm:p-7">
-                <span className="mb-1 text-xs font-extrabold uppercase tracking-widest text-[#FFDF00]">⚽ Coleção Copa 2026</span>
-                <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">Torcida Animal! 🏆</h3>
-                <p className="mt-1 text-sm text-blue-200">Vista seu pet com as cores do Brasil</p>
-                <Link to="/produtos" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#FFDF00] px-5 py-2.5 text-sm font-bold text-[#002776] transition hover:-translate-y-0.5 hover:bg-yellow-300">
+              {/* Troféu decorativo */}
+              <div className="absolute right-4 top-4 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 border-[#FFDF00]/50 bg-[#FFDF00]/15 backdrop-blur-sm">
+                <span className="text-2xl">⚽</span>
+                <span className="text-[9px] font-extrabold uppercase text-[#FFDF00] leading-none">2026</span>
+              </div>
+              {/* Faixas brasileiras na base */}
+              <div className="absolute bottom-0 left-0 right-0 h-1.5 flex">
+                <div className="flex-1 bg-[#002776]" /><div className="flex-1 bg-[#FFDF00]" />
+                <div className="flex-1 bg-[#009C3B]" /><div className="flex-1 bg-[#FFDF00]" />
+                <div className="flex-1 bg-[#002776]" />
+              </div>
+              <div className="relative flex min-h-[190px] flex-col justify-end p-5 sm:min-h-[220px] sm:p-7">
+                <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#FFDF00]/30 bg-[#FFDF00]/15 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#FFDF00]">
+                  ⚽ Coleção Copa 2026
+                </span>
+                <h3 className="font-display text-2xl font-bold text-white drop-shadow sm:text-3xl">Torcida Animal! 🏆</h3>
+                <p className="mt-1 text-sm text-blue-100/80">Vista seu pet com as cores do Brasil</p>
+                <Link to="/produtos" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#FFDF00] px-5 py-2.5 text-sm font-bold text-[#002776] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-yellow-300">
                   Ver coleção →
                 </Link>
               </div>
             </div>
           </Reveal>
+
+          {/* Festa Junina */}
           <Reveal delay={80}>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 to-yellow-500 shadow-md">
-              <div className="pointer-events-none absolute left-0 right-0 top-0 flex overflow-hidden" aria-hidden>
-                {Array.from({ length: 18 }).map((_, i) => (
-                  <div key={i} className="h-6 flex-1" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", backgroundColor: BUNTING[i % BUNTING.length] }} />
-                ))}
-              </div>
+            <div className="group relative overflow-hidden rounded-3xl shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#7c1d00] via-[#b83200] to-[#c8640a]" />
               <img src="/images/banners/festajunina.jpg" alt="Arraiá Pet"
-                className="absolute inset-0 h-full w-full object-cover opacity-40 transition-transform duration-500 hover:scale-105"
+                className="absolute inset-0 h-full w-full object-cover opacity-35 transition-transform duration-700 group-hover:scale-105"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
-              <div className="relative flex min-h-[170px] flex-col justify-end p-5 pt-8 sm:min-h-[210px] sm:p-7 sm:pt-10">
-                <span className="mb-1 text-xs font-extrabold uppercase tracking-widest text-yellow-200">🎉 Arraiá Pet</span>
-                <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">Festa Junina! 🌽</h3>
-                <p className="mt-1 text-sm text-yellow-100">Chapéus, bandanas e kits temáticos</p>
-                <Link to="/kits" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-orange-600 transition hover:-translate-y-0.5 hover:bg-cream-50">
+              {/* Bandeirinhas reais no topo */}
+              <div className="absolute left-0 right-0 top-0">
+                <Bunting count={14} height={52} colors={["#E63946","#FFBE0B","#2A9D8F","#ffffff","#8338EC","#F4A261","#06D6A0","#EF476F"]} />
+              </div>
+              <div className="relative flex min-h-[190px] flex-col justify-end p-5 pt-16 sm:min-h-[220px] sm:p-7 sm:pt-16">
+                <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-yellow-300/40 bg-yellow-400/20 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-yellow-200">
+                  🎉 Arraiá Pet 2025
+                </span>
+                <h3 className="font-display text-2xl font-bold text-white drop-shadow sm:text-3xl">Festa Junina! 🌽</h3>
+                <p className="mt-1 text-sm text-yellow-100/80">Chapéus de palha, bandanas xadrez e kits temáticos</p>
+                <Link to="/kits" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-orange-700 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-yellow-50">
                   Ver kits →
                 </Link>
               </div>
@@ -278,10 +297,13 @@ export function Home() {
 
       {/* ══ ARRAIÁ PET ══════════════════════════════════ */}
       <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-yellow-50 to-cream-50 py-14 sm:py-20">
-        <div className="pointer-events-none absolute left-0 right-0 top-0 flex overflow-hidden" aria-hidden>
-          {Array.from({ length: 26 }).map((_, i) => (
-            <div key={i} className="h-8 flex-1" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", backgroundColor: BUNTING[i % BUNTING.length] }} />
-          ))}
+        {/* Bandeirinhas duplas no topo */}
+        <div className="pointer-events-none absolute left-0 right-0 top-0" aria-hidden>
+          <Bunting count={20} height={62} colors={["#E63946","#FFBE0B","#2A9D8F","#fff","#8338EC","#F4A261","#06D6A0","#EF476F","#3A86FF","#FB5607"]} />
+        </div>
+        {/* Segunda fileira com deslocamento */}
+        <div className="pointer-events-none absolute left-0 right-0 top-10" aria-hidden style={{ opacity: 0.55 }}>
+          <Bunting count={18} height={48} colors={["#FFBE0B","#E63946","#fff","#2A9D8F","#F4A261","#8338EC","#FB5607","#06D6A0"]} />
         </div>
         <div className="container-app pt-6">
           <div className="grid items-center gap-10 lg:grid-cols-2">

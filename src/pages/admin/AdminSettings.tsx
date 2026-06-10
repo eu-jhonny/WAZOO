@@ -1,24 +1,146 @@
 import { useState, type FormEvent } from "react";
-import { Clock, Instagram, RefreshCw, Save, Store, Wallet } from "lucide-react";
+import {
+  Bell, Clock, CreditCard, Instagram, Lock, Mail, MapPin,
+  Package, PawPrint, RefreshCw, Save, Shield, Store,
+  Truck, Wallet, MessageSquare, Palette, User, Eye, EyeOff,
+  CheckCircle2, Phone,
+} from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import { useToast } from "@/context/ToastContext";
 import { whatsappLink, defaultContactMessage } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { Modal } from "@/components/ui/Modal";
 
+/* ── Tipos de aba ──────────────────────────── */
+type Tab = "perfil" | "loja" | "pagamento" | "entrega" | "notificacoes" | "aparencia" | "dados";
+
+const TABS: Array<{ id: Tab; label: string; icon: React.ElementType; badge?: string }> = [
+  { id: "perfil",       label: "Meu perfil",      icon: User      },
+  { id: "loja",         label: "Loja",             icon: Store     },
+  { id: "pagamento",    label: "Pagamento",        icon: CreditCard },
+  { id: "entrega",      label: "Entrega",          icon: Truck     },
+  { id: "notificacoes", label: "Notificações",     icon: Bell      },
+  { id: "aparencia",    label: "Aparência",        icon: Palette   },
+  { id: "dados",        label: "Dados demo",       icon: RefreshCw, badge: "!" },
+];
+
+/* ── Sub-componente: campo de formulário ────── */
+function Field({
+  label, sublabel, children,
+}: { label: string; sublabel?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      {sublabel && <p className="mb-1.5 text-xs text-navy-400">{sublabel}</p>}
+      {children}
+    </div>
+  );
+}
+
+/* ── Sub-componente: seção com título ────────── */
+function Section({ title, icon: Icon, children }: { title: string; icon?: React.ElementType; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-cream-200 bg-white p-5 space-y-4">
+      <h3 className="flex items-center gap-2 font-display font-bold text-navy-800 text-sm border-b border-cream-100 pb-3">
+        {Icon && <Icon size={16} className="text-orange-500" />}
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+/* ── Badge de "em breve" ─────────────────────── */
+function ComingSoon() {
+  return <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-600 uppercase">em breve</span>;
+}
+
+/* ══════════════════════════════════════════════
+   PÁGINA PRINCIPAL
+   ══════════════════════════════════════════════ */
 export function AdminSettings() {
   const { settings, updateSettings, resetStore } = useStore();
   const { showToast } = useToast();
+  const [tab, setTab]             = useState<Tab>("perfil");
   const [confirmReset, setConfirmReset] = useState(false);
 
+  // Loja
   const [f, setF] = useState({ ...settings });
   const set = <K extends keyof typeof f>(key: K, value: (typeof f)[K]) =>
     setF((prev) => ({ ...prev, [key]: value }));
 
-  const submit = (e: FormEvent) => {
+  // Perfil admin (local)
+  const [adminName,    setAdminName]    = useState("Administrador Wazoo");
+  const [adminEmail,   setAdminEmail]   = useState("admin@wazoo.com.br");
+  const [adminPhone,   setAdminPhone]   = useState("(11) 99999-9999");
+  const [adminPwd,     setAdminPwd]     = useState("");
+  const [adminPwdConfirm, setAdminPwdConfirm] = useState("");
+  const [showPwd,      setShowPwd]      = useState(false);
+  const [adminAvatar,  setAdminAvatar]  = useState("🐾");
+
+  // Entrega
+  const [deliveryZones] = useState([
+    { zone: "Centro (SP)",     fee: 0,  min: 0,  days: "3–5 dias úteis" },
+    { zone: "Zona Sul",        fee: 8,  min: 0,  days: "4–6 dias úteis" },
+    { zone: "Zona Norte",      fee: 8,  min: 0,  days: "4–6 dias úteis" },
+    { zone: "Zona Leste",      fee: 12, min: 0,  days: "5–7 dias úteis" },
+    { zone: "Zona Oeste",      fee: 12, min: 0,  days: "5–7 dias úteis" },
+    { zone: "ABC Paulista",    fee: 18, min: 100, days: "5–8 dias úteis" },
+    { zone: "Interior SP",     fee: 25, min: 150, days: "7–10 dias úteis" },
+  ]);
+
+  // Notificações
+  const [notifWA,      setNotifWA]      = useState(true);
+  const [notifEmail,   setNotifEmail]   = useState(true);
+  const [notifNewOrder, setNotifNewOrder] = useState(true);
+  const [notifPending, setNotifPending] = useState(true);
+  const [notifAbandoned, setNotifAbandoned] = useState(false);
+  const [notifReview,  setNotifReview]  = useState(true);
+
+  // Pagamento
+  const [payPix,       setPayPix]       = useState(true);
+  const [payCard,      setPayCard]      = useState(true);
+  const [payBoleto,    setPayBoleto]    = useState(true);
+  const [pixDiscount,  setPixDiscount]  = useState(5);
+  const [maxInstall,   setMaxInstall]   = useState(10);
+  const [minInstall,   setMinInstall]   = useState(30);
+
+  // Aparência
+  const [accentColor,  setAccentColor]  = useState("orange");
+  const [darkMode,     setDarkMode]     = useState(false);
+  const [showBanner,   setShowBanner]   = useState(true);
+  const [showCopa,     setShowCopa]     = useState(true);
+  const [showFesta,    setShowFesta]    = useState(true);
+
+  /* ── Submits ── */
+  const saveLoja = (e: FormEvent) => {
     e.preventDefault();
     updateSettings({ ...f, deliveryFee: Number(f.deliveryFee) || 0 });
-    showToast("Configurações salvas com sucesso! ✅", "success");
+    showToast("Configurações da loja salvas! ✅", "success");
+  };
+
+  const savePerfil = (e: FormEvent) => {
+    e.preventDefault();
+    if (adminPwd && adminPwd !== adminPwdConfirm) {
+      showToast("As senhas não conferem.", "error"); return;
+    }
+    showToast("Perfil atualizado com sucesso! ✅", "success");
+    setAdminPwd(""); setAdminPwdConfirm("");
+  };
+
+  const savePayment = (e: FormEvent) => {
+    e.preventDefault();
+    showToast("Configurações de pagamento salvas! ✅", "success");
+  };
+
+  const saveNotif = (e: FormEvent) => {
+    e.preventDefault();
+    showToast("Preferências de notificação salvas! ✅", "success");
+  };
+
+  const saveAparencia = (e: FormEvent) => {
+    e.preventDefault();
+    showToast("Configurações de aparência salvas! ✅", "success");
   };
 
   const doReset = () => {
@@ -28,88 +150,547 @@ export function AdminSettings() {
     showToast("Dados de demonstração restaurados.", "success");
   };
 
+  /* ── Toggle helper ── */
+  const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => (
+    <label className="flex items-center justify-between cursor-pointer gap-3">
+      <span className="text-sm font-semibold text-navy-700">{label}</span>
+      <button
+        type="button"
+        onClick={() => onChange(!value)}
+        className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${value ? "bg-orange-500" : "bg-cream-300"}`}
+      >
+        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${value ? "translate-x-5" : "translate-x-0.5"}`} />
+      </button>
+    </label>
+  );
+
   return (
-    <div>
-      <h1 className="font-display text-3xl font-bold text-navy-700">Configurações</h1>
-      <p className="mt-1 text-navy-500">Ajuste as informações da loja.</p>
-
-      <form onSubmit={submit} className="card mt-6 max-w-2xl space-y-5 p-6">
-        <div>
-          <label className="label">Nome da loja</label>
-          <input className="input" value={f.storeName} onChange={(e) => set("storeName", e.target.value)} />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">Número do WhatsApp</label>
-            <div className="relative">
-              <WhatsAppIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500" />
-              <input className="input pl-11" placeholder="5511999999999" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} />
-            </div>
-            <p className="mt-1 text-xs text-navy-400">Formato: DDI + DDD + número (só dígitos).</p>
-          </div>
-          <div>
-            <label className="label">Instagram</label>
-            <div className="relative">
-              <Instagram size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500" />
-              <input className="input pl-11" value={f.instagram} onChange={(e) => set("instagram", e.target.value)} />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">Horário de atendimento</label>
-            <div className="relative">
-              <Clock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500" />
-              <input className="input pl-11" value={f.hours} onChange={(e) => set("hours", e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <label className="label">Taxa de entrega local (R$)</label>
-            <div className="relative">
-              <Wallet size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500" />
-              <input type="number" min={0} step="0.01" className="input pl-11" value={f.deliveryFee} onChange={(e) => set("deliveryFee", Number(e.target.value))} />
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="label">Texto institucional</label>
-          <textarea className="input min-h-[120px]" value={f.institutionalText} onChange={(e) => set("institutionalText", e.target.value)} />
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button type="submit" className="btn-primary">
-            <Save size={18} /> Salvar configurações
-          </button>
-          <a href={whatsappLink(defaultContactMessage, f.whatsapp)} target="_blank" rel="noopener noreferrer" className="btn-outline">
-            <WhatsAppIcon size={18} /> Testar WhatsApp
-          </a>
-        </div>
-      </form>
-
-      {/* Zona de reset */}
-      <div className="card mt-6 max-w-2xl border-amber-200 bg-amber-50 p-6">
-        <h2 className="flex items-center gap-2 font-display text-lg font-bold text-navy-700">
-          <RefreshCw size={20} className="text-amber-600" /> Dados de demonstração
-        </h2>
-        <p className="mt-1 text-sm text-navy-600">
-          Restaura produtos, pedidos, avaliações e configurações para os valores
-          iniciais. Útil para testes e apresentações.
-        </p>
-        <button onClick={() => setConfirmReset(true)} className="btn-outline btn-sm mt-4">
-          <RefreshCw size={15} /> Restaurar dados
-        </button>
+    <div className="space-y-6">
+      {/* ── Cabeçalho ── */}
+      <div>
+        <h1 className="font-display text-2xl font-bold text-navy-800">Configurações</h1>
+        <p className="mt-1 text-sm text-navy-500">Gerencie todas as configurações da sua loja.</p>
       </div>
 
+      {/* ── Tabs ── */}
+      <div className="overflow-x-auto no-scrollbar">
+        <div className="flex gap-1 rounded-2xl border border-cream-200 bg-cream-50 p-1 min-w-max">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`relative flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold whitespace-nowrap transition-all ${
+                  active
+                    ? "bg-white text-orange-600 shadow-sm"
+                    : "text-navy-500 hover:text-navy-800"
+                }`}
+              >
+                <Icon size={14} />
+                {t.label}
+                {t.badge && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[9px] font-bold text-white">
+                    {t.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════
+          TAB: MEU PERFIL
+         ══════════════════════════════════════════ */}
+      {tab === "perfil" && (
+        <form onSubmit={savePerfil} className="space-y-5 max-w-2xl">
+          <Section title="Informações do administrador" icon={User}>
+            {/* Avatar */}
+            <div className="flex items-center gap-5">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-navy-800 text-4xl shadow-soft">
+                {adminAvatar}
+              </div>
+              <div>
+                <p className="font-bold text-navy-800">{adminName}</p>
+                <p className="text-sm text-navy-400">{adminEmail}</p>
+                <div className="mt-2 flex gap-1.5 flex-wrap">
+                  {["🐾", "🐕", "🐈", "🌟", "⚡", "🏆", "🎯"].map((em) => (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => setAdminAvatar(em)}
+                      className={`rounded-lg border px-2 py-1 text-lg transition-all ${adminAvatar === em ? "border-orange-400 bg-orange-50" : "border-cream-200 hover:border-cream-300"}`}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nome">
+                <div className="relative">
+                  <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                  <input className="input pl-9" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
+                </div>
+              </Field>
+              <Field label="E-mail de acesso">
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                  <input type="email" className="input pl-9" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+                </div>
+              </Field>
+              <Field label="Telefone">
+                <div className="relative">
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                  <input className="input pl-9" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} />
+                </div>
+              </Field>
+            </div>
+          </Section>
+
+          <Section title="Segurança" icon={Lock}>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <strong>Atenção:</strong> Para alterar a senha, preencha os dois campos abaixo. Deixe em branco para manter a senha atual.
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nova senha">
+                <div className="relative">
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                  <input
+                    type={showPwd ? "text" : "password"}
+                    className="input pl-9 pr-10"
+                    placeholder="Nova senha (mín. 6 caracteres)"
+                    value={adminPwd}
+                    onChange={(e) => setAdminPwd(e.target.value)}
+                    minLength={6}
+                  />
+                  <button type="button" onClick={() => setShowPwd((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-400">
+                    {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </Field>
+              <Field label="Confirmar nova senha">
+                <div className="relative">
+                  <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                  <input
+                    type={showPwd ? "text" : "password"}
+                    className={`input pl-9 ${adminPwd && adminPwdConfirm && adminPwd !== adminPwdConfirm ? "border-red-400" : ""}`}
+                    placeholder="Repetir nova senha"
+                    value={adminPwdConfirm}
+                    onChange={(e) => setAdminPwdConfirm(e.target.value)}
+                  />
+                  {adminPwd && adminPwdConfirm && adminPwd === adminPwdConfirm && (
+                    <CheckCircle2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
+                  )}
+                </div>
+              </Field>
+            </div>
+            <div>
+              <p className="label">Autenticação em 2 fatores <ComingSoon /></p>
+              <p className="text-xs text-navy-400">Adicione uma camada extra de segurança à sua conta com 2FA via app autenticador.</p>
+            </div>
+          </Section>
+
+          <Section title="Sessões ativas" icon={Shield}>
+            <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+              <div>
+                <p className="text-sm font-bold text-navy-800">Sessão atual</p>
+                <p className="text-xs text-navy-400">Chrome · São Paulo, SP · Agora</p>
+              </div>
+              <span className="flex items-center gap-1 text-xs font-bold text-green-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Ativa
+              </span>
+            </div>
+          </Section>
+
+          <button type="submit" className="btn-primary">
+            <Save size={16} /> Salvar perfil
+          </button>
+        </form>
+      )}
+
+      {/* ══════════════════════════════════════════
+          TAB: LOJA
+         ══════════════════════════════════════════ */}
+      {tab === "loja" && (
+        <form onSubmit={saveLoja} className="space-y-5 max-w-2xl">
+          <Section title="Informações da loja" icon={Store}>
+            <Field label="Nome da loja">
+              <input className="input" value={f.storeName} onChange={(e) => set("storeName", e.target.value)} />
+            </Field>
+            <Field label="Texto institucional" sublabel="Aparece na página Sobre.">
+              <textarea className="input min-h-[100px]" value={f.institutionalText} onChange={(e) => set("institutionalText", e.target.value)} />
+            </Field>
+          </Section>
+
+          <Section title="Contato e redes sociais" icon={MessageSquare}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="WhatsApp" sublabel="DDI + DDD + número, apenas dígitos.">
+                <div className="relative">
+                  <WhatsAppIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500" />
+                  <input className="input pl-9" placeholder="5511999999999" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} />
+                </div>
+              </Field>
+              <Field label="Instagram">
+                <div className="relative">
+                  <Instagram size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400" />
+                  <input className="input pl-9" placeholder="@wazoo.petexpress" value={f.instagram} onChange={(e) => set("instagram", e.target.value)} />
+                </div>
+              </Field>
+              <Field label="E-mail de contato">
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                  <input type="email" className="input pl-9" placeholder="contato@wazoo.com.br" />
+                </div>
+              </Field>
+              <Field label="Horário de atendimento">
+                <div className="relative">
+                  <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                  <input className="input pl-9" value={f.hours} onChange={(e) => set("hours", e.target.value)} />
+                </div>
+              </Field>
+            </div>
+          </Section>
+
+          <Section title="Endereço da loja" icon={MapPin}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Rua / Avenida">
+                <input className="input" placeholder="Av. Paulista, 1000" />
+              </Field>
+              <Field label="Complemento">
+                <input className="input" placeholder="Sala 12, Loja B..." />
+              </Field>
+              <Field label="Bairro">
+                <input className="input" placeholder="Bela Vista" />
+              </Field>
+              <Field label="Cidade">
+                <input className="input" placeholder="São Paulo" />
+              </Field>
+              <Field label="CEP">
+                <input className="input" placeholder="01310-100" />
+              </Field>
+              <Field label="Estado">
+                <select className="input">
+                  <option>SP</option><option>RJ</option><option>MG</option>
+                </select>
+              </Field>
+            </div>
+          </Section>
+
+          <div className="flex gap-3 flex-wrap">
+            <button type="submit" className="btn-primary">
+              <Save size={16} /> Salvar configurações
+            </button>
+            <a
+              href={whatsappLink(defaultContactMessage, f.whatsapp)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline"
+            >
+              <WhatsAppIcon size={16} /> Testar WhatsApp
+            </a>
+          </div>
+        </form>
+      )}
+
+      {/* ══════════════════════════════════════════
+          TAB: PAGAMENTO
+         ══════════════════════════════════════════ */}
+      {tab === "pagamento" && (
+        <form onSubmit={savePayment} className="space-y-5 max-w-2xl">
+          <Section title="Métodos aceitos" icon={CreditCard}>
+            <div className="space-y-3">
+              <Toggle value={payPix} onChange={setPayPix} label="PIX" />
+              <Toggle value={payCard} onChange={setPayCard} label="Cartão de crédito" />
+              <Toggle value={payBoleto} onChange={setPayBoleto} label="Boleto bancário" />
+            </div>
+          </Section>
+
+          <Section title="PIX" icon={Wallet}>
+            <Toggle value={payPix} onChange={setPayPix} label="Aceitar pagamentos via PIX" />
+            {payPix && (
+              <>
+                <Field label="Desconto para pagamento via PIX (%)" sublabel="0 = sem desconto.">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range" min={0} max={20} step={1}
+                      value={pixDiscount}
+                      onChange={(e) => setPixDiscount(Number(e.target.value))}
+                      className="flex-1 h-2 accent-orange-500"
+                    />
+                    <span className="w-12 text-center font-bold text-orange-600">{pixDiscount}%</span>
+                  </div>
+                </Field>
+                <Field label="Chave PIX" sublabel="CNPJ, CPF, e-mail ou telefone.">
+                  <input className="input" placeholder="Chave PIX da loja" />
+                </Field>
+              </>
+            )}
+          </Section>
+
+          <Section title="Cartão de crédito" icon={CreditCard}>
+            <Toggle value={payCard} onChange={setPayCard} label="Aceitar cartão de crédito" />
+            {payCard && (
+              <>
+                <Field label="Máximo de parcelas" sublabel="Sem juros ao cliente.">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range" min={1} max={12} step={1}
+                      value={maxInstall}
+                      onChange={(e) => setMaxInstall(Number(e.target.value))}
+                      className="flex-1 h-2 accent-orange-500"
+                    />
+                    <span className="w-16 text-center font-bold text-orange-600">até {maxInstall}x</span>
+                  </div>
+                </Field>
+                <Field label="Valor mínimo por parcela (R$)">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range" min={10} max={200} step={5}
+                      value={minInstall}
+                      onChange={(e) => setMinInstall(Number(e.target.value))}
+                      className="flex-1 h-2 accent-orange-500"
+                    />
+                    <span className="w-16 text-center font-bold text-orange-600">R$ {minInstall}</span>
+                  </div>
+                </Field>
+                <Field label="Bandeiras aceitas">
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {["Visa", "Mastercard", "Elo", "Amex", "Hipercard"].map((b) => (
+                      <span key={b} className="rounded-full border border-cream-200 bg-cream-50 px-3 py-1 text-xs font-bold text-navy-600">{b}</span>
+                    ))}
+                  </div>
+                </Field>
+              </>
+            )}
+          </Section>
+
+          <Section title="MercadoPago" icon={Shield}>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 font-semibold">
+              💡 As chaves de integração são configuradas via variáveis de ambiente no servidor. Contate o suporte técnico para alterá-las.
+            </div>
+            <Field label="Chave pública (Public Key)" sublabel="Configurada via env var VITE_MP_PUBLIC_KEY.">
+              <input className="input font-mono text-xs" value="APP_USR-xxxxxxxx..." disabled />
+            </Field>
+            <Field label="Access Token" sublabel="Configurada via env var MP_ACCESS_TOKEN no servidor.">
+              <input className="input font-mono text-xs" value="APP_USR-••••••••••••" disabled />
+            </Field>
+          </Section>
+
+          <button type="submit" className="btn-primary">
+            <Save size={16} /> Salvar configurações de pagamento
+          </button>
+        </form>
+      )}
+
+      {/* ══════════════════════════════════════════
+          TAB: ENTREGA
+         ══════════════════════════════════════════ */}
+      {tab === "entrega" && (
+        <div className="space-y-5 max-w-2xl">
+          <Section title="Taxa de entrega padrão" icon={Truck}>
+            <Field label="Taxa padrão de entrega (R$)" sublabel="Aplicada a regiões não listadas abaixo.">
+              <div className="relative">
+                <Wallet size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                <input
+                  type="number" min={0} step="0.01"
+                  className="input pl-9"
+                  value={f.deliveryFee}
+                  onChange={(e) => set("deliveryFee", Number(e.target.value))}
+                />
+              </div>
+            </Field>
+          </Section>
+
+          <Section title="Zonas de entrega" icon={MapPin}>
+            <p className="text-xs text-navy-400">Valores configurados por região. Clique para editar cada zona.</p>
+            <div className="divide-y divide-cream-100 rounded-xl border border-cream-200 overflow-hidden">
+              {deliveryZones.map((z, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-cream-50 transition-colors">
+                  <div>
+                    <p className="font-bold text-navy-700 text-sm">{z.zone}</p>
+                    <p className="text-xs text-navy-400">{z.days}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-orange-600 text-sm">
+                      {z.fee === 0 ? "Grátis" : `R$ ${z.fee.toFixed(2)}`}
+                    </p>
+                    {z.min > 0 && <p className="text-[10px] text-navy-400">Pedido mín. R$ {z.min}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Gestão de zonas em breve! 🚚", "info")}>
+              + Adicionar zona
+            </button>
+          </Section>
+
+          <Section title="Frete grátis" icon={Package}>
+            <Field label="Ativar frete grátis acima de (R$)" sublabel="0 = frete grátis desativado.">
+              <input type="number" min={0} step={10} className="input" placeholder="Ex: 200" />
+            </Field>
+            <Field label="Regiões com frete grátis ilimitado">
+              <div className="flex flex-wrap gap-2">
+                <span className="chip chip-active text-xs">Centro (SP)</span>
+                <button type="button" className="chip text-xs" onClick={() => showToast("Em breve!", "info")}>+ Adicionar</button>
+              </div>
+            </Field>
+          </Section>
+
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => showToast("Configurações de entrega salvas! ✅", "success")}
+          >
+            <Save size={16} /> Salvar entrega
+          </button>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          TAB: NOTIFICAÇÕES
+         ══════════════════════════════════════════ */}
+      {tab === "notificacoes" && (
+        <form onSubmit={saveNotif} className="space-y-5 max-w-2xl">
+          <Section title="Canais de notificação" icon={Bell}>
+            <Toggle value={notifWA} onChange={setNotifWA} label="Notificações via WhatsApp" />
+            <Toggle value={notifEmail} onChange={setNotifEmail} label="Notificações via e-mail" />
+          </Section>
+
+          <Section title="Eventos" icon={Bell}>
+            <Toggle value={notifNewOrder} onChange={setNotifNewOrder} label="Novo pedido recebido" />
+            <Toggle value={notifPending} onChange={setNotifPending} label="Pedidos aguardando confirmação" />
+            <Toggle value={notifAbandoned} onChange={setNotifAbandoned} label="Carrinho abandonado (clientes)" />
+            <Toggle value={notifReview} onChange={setNotifReview} label="Nova avaliação enviada" />
+          </Section>
+
+          <Section title="E-mail de destino" icon={Mail}>
+            <Field label="E-mail para receber alertas" sublabel="Pode ser diferente do seu e-mail de acesso.">
+              <div className="relative">
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-300" />
+                <input type="email" className="input pl-9" placeholder="alertas@wazoo.com.br" />
+              </div>
+            </Field>
+          </Section>
+
+          <button type="submit" className="btn-primary">
+            <Save size={16} /> Salvar notificações
+          </button>
+        </form>
+      )}
+
+      {/* ══════════════════════════════════════════
+          TAB: APARÊNCIA
+         ══════════════════════════════════════════ */}
+      {tab === "aparencia" && (
+        <form onSubmit={saveAparencia} className="space-y-5 max-w-2xl">
+          <Section title="Cor de destaque" icon={Palette}>
+            <p className="text-xs text-navy-400">Cor principal dos botões, links e destaques.</p>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { id: "orange", label: "Laranja", cls: "bg-orange-500" },
+                { id: "teal",   label: "Teal",    cls: "bg-teal-500"   },
+                { id: "purple", label: "Roxo",    cls: "bg-purple-500" },
+                { id: "green",  label: "Verde",   cls: "bg-green-600"  },
+                { id: "pink",   label: "Rosa",    cls: "bg-pink-500"   },
+              ].map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setAccentColor(c.id)}
+                  className={`flex items-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-bold transition-all ${accentColor === c.id ? "border-navy-700 bg-white shadow" : "border-cream-200"}`}
+                >
+                  <span className={`h-4 w-4 rounded-full ${c.cls}`} />
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Elementos visuais" icon={PawPrint}>
+            <Toggle value={showBanner} onChange={setShowBanner} label="Mostrar banner carrossel na home" />
+            <Toggle value={showCopa}   onChange={setShowCopa}   label="Mostrar seção Copa 2026" />
+            <Toggle value={showFesta}  onChange={setShowFesta}  label="Mostrar seção Festa Junina" />
+            <Toggle value={darkMode}   onChange={setDarkMode}   label={<>Modo escuro (admin) <ComingSoon /></>} />
+          </Section>
+
+          <Section title="Logo e identidade" icon={Store}>
+            <Field label="Logo da loja" sublabel="Recomendado: PNG transparente, 200×80px.">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-32 items-center justify-center rounded-xl border-2 border-dashed border-cream-300 bg-cream-50">
+                  <span className="text-xs text-navy-400">Logo atual</span>
+                </div>
+                <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Upload de logo em breve!", "info")}>
+                  Alterar logo
+                </button>
+              </div>
+            </Field>
+            <Field label="Mascote" sublabel="Personagem animado que aparece na loja.">
+              <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Customização do mascote em breve!", "info")}>
+                Personalizar mascote
+              </button>
+            </Field>
+          </Section>
+
+          <button type="submit" className="btn-primary">
+            <Save size={16} /> Salvar aparência
+          </button>
+        </form>
+      )}
+
+      {/* ══════════════════════════════════════════
+          TAB: DADOS DEMO
+         ══════════════════════════════════════════ */}
+      {tab === "dados" && (
+        <div className="max-w-2xl space-y-5">
+          <Section title="Dados de demonstração" icon={RefreshCw}>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="font-bold text-amber-800 text-sm">⚠️ Atenção</p>
+              <p className="mt-1 text-sm text-amber-700">
+                Restaura produtos, pedidos, avaliações e configurações para os valores iniciais.
+                Todos os dados reais serão substituídos. Use apenas em ambiente de testes.
+              </p>
+            </div>
+            <div className="space-y-2 text-sm text-navy-600">
+              <p className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> Dados de produtos restaurados</p>
+              <p className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> Pedidos de exemplo gerados</p>
+              <p className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> Avaliações de exemplo adicionadas</p>
+              <p className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> Configurações de loja resetadas</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfirmReset(true)}
+              className="btn flex gap-2 items-center bg-amber-500 text-white hover:bg-amber-600 btn-sm"
+            >
+              <RefreshCw size={15} /> Restaurar dados de demonstração
+            </button>
+          </Section>
+
+          <Section title="Exportar dados" icon={Package}>
+            <p className="text-sm text-navy-500">Exporte produtos, pedidos e avaliações em formato JSON ou CSV.</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Exportação em breve! 📦", "info")}>
+                Exportar produtos (JSON)
+              </button>
+              <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Exportação em breve! 📦", "info")}>
+                Exportar pedidos (CSV)
+              </button>
+            </div>
+          </Section>
+        </div>
+      )}
+
+      {/* Modal de confirmação de reset */}
       <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Restaurar dados" size="sm">
         <p className="text-navy-600">
-          Isso vai substituir todos os dados atuais pelos dados de demonstração. Deseja continuar?
+          Isso vai substituir <strong>todos</strong> os dados atuais pelos dados de demonstração. Deseja continuar?
         </p>
         <div className="mt-5 flex gap-3">
           <button onClick={() => setConfirmReset(false)} className="btn-ghost flex-1">Cancelar</button>
-          <button onClick={doReset} className="btn-primary flex-1">
+          <button onClick={doReset} className="btn flex-1 bg-amber-500 text-white hover:bg-amber-600">
             <RefreshCw size={16} /> Restaurar
           </button>
         </div>

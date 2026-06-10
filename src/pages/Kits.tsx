@@ -17,6 +17,12 @@ export function Kits() {
         title="Kits pet para facilitar"
         subtitle="Combinações montadas com carinho para cada momento do seu pet. Solicite e a gente confirma tudo com você."
         mascot={img.mascot.brincando}
+        chips={[
+          { label: "🎁 Kits completos" },
+          { label: "🌟 Curadoria especial" },
+          { label: "⚽ Copa 2026" },
+          { label: "🎉 Festa Junina" },
+        ]}
       />
 
       <section className="section">
