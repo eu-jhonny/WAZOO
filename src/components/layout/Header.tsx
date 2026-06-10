@@ -77,7 +77,15 @@ export function Header() {
             to={isLoggedIn ? "/perfil" : "/login"}
             className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-orange-600 sm:flex"
           >
-            <UserIcon size={20} />
+            {isLoggedIn && user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="h-7 w-7 rounded-full object-cover ring-2 ring-orange-200"
+              />
+            ) : (
+              <UserIcon size={20} />
+            )}
             <span className="hidden xl:inline">
               {isLoggedIn ? user?.name.split(" ")[0] : "Entrar"}
             </span>

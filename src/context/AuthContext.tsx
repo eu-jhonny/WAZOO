@@ -41,6 +41,7 @@ interface AuthContextValue {
   loginWithGoogle: (profile: GoogleProfile) => AuthResult;
   logout: () => void;
   updateProfile: (data: Partial<Omit<User, "id" | "pets">>) => void;
+  resetPassword: (email: string, newPassword: string) => AuthResult;
 
   addPet: (pet: Omit<Pet, "id">) => void;
   updatePet: (id: string, data: Partial<Pet>) => void;
@@ -142,6 +143,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
 
       logout: () => setCurrentUserId(null),
+
+      resetPassword: (email, newPassword) => {
+        const found = users.find(
+          (u) => u.email.toLowerCase() === email.trim().toLowerCase(),
+        );
+        if (!found) return { ok: false, error: "Nenhuma conta com esse e-mail." };
+        if (newPassword.length < 6) return { ok: false, error: "A senha deve ter pelo menos 6 caracteres." };
+        setUsers((prev) =>
+          prev.map((u) => (u.id === found.id ? { ...u, password: newPassword } : u)),
+        );
+        return { ok: true };
+      },
 
       updateProfile: (data) => mutateCurrent((u) => ({ ...u, ...data })),
 

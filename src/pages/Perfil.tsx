@@ -1,15 +1,16 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, Camera, Cat, Dog, Home, LogOut,
   Mail, MapPin, Pencil, Phone, PawPrint,
-  Plus, ShoppingBag, Store, Trash2,
+  Plus, ShoppingBag, Store, Trash2, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { useToast } from "@/context/ToastContext";
 import { formatBRL, formatDate } from "@/lib/format";
 import { statusStyle } from "@/lib/orderStatus";
+import { compressImage } from "@/lib/imageUtils";
 import { Modal } from "@/components/ui/Modal";
 import { PetForm } from "@/components/forms/PetForm";
 import type { Fulfillment, Pet, User } from "@/types";
@@ -21,7 +22,7 @@ const sizeLabel: Record<Pet["size"], string> = {
   todos:   "Todos",
 };
 
-/* ── Formulário de edição de dados ─────────────────────────────── */
+/* ── Formulário de edição de dados ──────────────── */
 function ProfileForm({ user, onDone }: { user: User; onDone: () => void }) {
   const { updateProfile } = useAuth();
   const { showToast }     = useToast();
@@ -45,7 +46,7 @@ function ProfileForm({ user, onDone }: { user: User; onDone: () => void }) {
       address:   { street: f.street, neighborhood: f.neighborhood, city: f.city },
       preference: f.preference as Fulfillment,
     });
-    showToast("Dados salvos com sucesso! ✅", "success");
+    showToast("Dados salvos! ✅", "success");
     onDone();
   };
 
@@ -82,18 +83,17 @@ function ProfileForm({ user, onDone }: { user: User; onDone: () => void }) {
       <div>
         <span className="label">Preferência de recebimento</span>
         <div className="grid grid-cols-2 gap-3 mt-1">
-          {([
-            { value: "entrega",  label: "🏠 Entrega",  icon: Home },
-            { value: "retirada", label: "🏪 Retirada", icon: Store },
-          ] as const).map((opt) => {
-            const sel = f.preference === opt.value;
+          {(["entrega", "retirada"] as const).map((opt) => {
+            const sel = f.preference === opt;
+            const Icon = opt === "entrega" ? Home : Store;
             return (
-              <button type="button" key={opt.value}
-                onClick={() => set("preference", opt.value)}
-                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 font-bold transition-all text-sm ${
+              <button type="button" key={opt}
+                onClick={() => set("preference", opt)}
+                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 font-bold text-sm transition-all ${
                   sel ? "border-orange-500 bg-orange-50 text-orange-600" : "border-cream-200 text-navy-600 hover:border-orange-200"
                 }`}>
-                {opt.label}
+                <Icon size={15} />
+                {opt === "entrega" ? "🏠 Entrega" : "🏪 Retirada"}
               </button>
             );
           })}
@@ -107,28 +107,80 @@ function ProfileForm({ user, onDone }: { user: User; onDone: () => void }) {
   );
 }
 
+/* ── Avatar — foto ou iniciais ────────────────────── */
+function Avatar({
+  user, size = 20, className = "",
+}: { user: User; size?: number; className?: string }) {
+  if (user.avatar) {
+    return (
+      <img
+        src={user.avatar}
+        alt={user.name}
+        className={`rounded-2xl object-cover ring-4 ring-white shadow-soft-lg ${className}`}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  const initials = user.name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return (
+    <div
+      className={`flex items-center justify-center rounded-2xl bg-navy-800 ring-4 ring-white shadow-soft-lg font-display font-bold text-white ${className}`}
+      style={{ width: size, height: size, fontSize: size * 0.3 }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════ */
 export function Perfil() {
-  const { user, logout, addPet, updatePet, removePet } = useAuth();
-  const { orders }   = useStore();
+  const { user, logout, addPet, updatePet, removePet, updateProfile } = useAuth();
+  const { orders }    = useStore();
   const { showToast } = useToast();
 
   const [editProfile, setEditProfile] = useState(false);
   const [petModal, setPetModal]       = useState<{ mode: "add" | "edit"; pet?: Pet } | null>(null);
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const myOrders = useMemo(
     () =>
       user
         ? orders.filter((o) => o.userId === user.id).sort((a, b) => b.createdAt - a.createdAt)
         : [],
-    [orders, user]
+    [orders, user],
   );
 
   if (!user) return null;
 
-  const initials = user.name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  /* ── Upload de foto ─────────────────────── */
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("Imagem muito grande. Use um arquivo menor que 10 MB.", "error");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const compressed = await compressImage(file, 320, 0.80);
+      updateProfile({ avatar: compressed });
+      showToast("Foto atualizada! 📸", "success");
+    } catch {
+      showToast("Não foi possível processar a imagem.", "error");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
+  const removeAvatar = () => {
+    updateProfile({ avatar: undefined });
+    showToast("Foto removida.", "info");
+  };
+
+  /* ── Salvar pet ─────────────────────────── */
   const savePet = (data: Omit<Pet, "id">) => {
     if (petModal?.mode === "edit" && petModal.pet) {
       updatePet(petModal.pet.id, data);
@@ -144,25 +196,49 @@ export function Perfil() {
     <div className="section bg-cream-50">
       <div className="container-app max-w-5xl">
 
-        {/* ── Hero do perfil ──────────────────────────────────── */}
+        {/* ── Hero ────────────────────────────────────────── */}
         <div className="card overflow-hidden mb-6">
-          {/* Banner decorativo */}
           <div className="h-24 bg-gradient-to-r from-orange-500 to-orange-600 relative">
-            <div className="absolute inset-0 bg-dots-light" />
+            <div className="absolute inset-0 opacity-20"
+              style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "16px 16px" }}
+            />
           </div>
 
           <div className="px-6 pb-5 relative">
-            {/* Avatar */}
+            {/* Avatar com botão de câmera */}
             <div className="relative -mt-10 mb-4 inline-block">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-navy-800 shadow-soft-lg ring-4 ring-white font-display text-2xl font-bold text-white">
-                {initials}
-              </div>
+              {/* Input oculto */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="h-20 w-20 rounded-2xl object-cover ring-4 ring-white shadow-soft-lg"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-navy-800 shadow-soft-lg ring-4 ring-white font-display text-2xl font-bold text-white">
+                  {user.name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase()}
+                </div>
+              )}
+
+              {/* Botão câmera */}
               <button
-                onClick={() => setEditProfile(true)}
-                className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-white shadow hover:bg-orange-600"
-                title="Editar perfil"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-white shadow-md hover:bg-orange-600 transition-colors disabled:opacity-60"
+                title="Alterar foto"
               >
-                <Camera size={12} />
+                {uploadingAvatar
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <Camera size={13} />
+                }
               </button>
             </div>
 
@@ -171,14 +247,29 @@ export function Perfil() {
                 <h1 className="font-display text-2xl font-bold text-navy-800">{user.name}</h1>
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-navy-500">
                   <span className="flex items-center gap-1.5"><Mail size={14} className="text-orange-400" /> {user.email}</span>
-                  <span className="flex items-center gap-1.5"><Phone size={14} className="text-orange-400" /> {user.phone}</span>
+                  {user.phone && <span className="flex items-center gap-1.5"><Phone size={14} className="text-orange-400" /> {user.phone}</span>}
                   {user.address.city && (
                     <span className="flex items-center gap-1.5"><MapPin size={14} className="text-orange-400" /> {user.address.city}</span>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {user.avatar && (
+                  <button
+                    onClick={removeAvatar}
+                    className="btn-ghost btn-sm text-red-500 border border-red-200 hover:bg-red-50"
+                  >
+                    Remover foto
+                  </button>
+                )}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="btn-outline btn-sm"
+                >
+                  <Camera size={14} /> {user.avatar ? "Alterar foto" : "Adicionar foto"}
+                </button>
                 <button onClick={() => setEditProfile(true)} className="btn-outline btn-sm">
                   <Pencil size={14} /> Editar
                 </button>
@@ -195,7 +286,7 @@ export function Perfil() {
 
         <div className="grid gap-6 lg:grid-cols-3">
 
-          {/* ── Coluna esquerda ─────────────────────────────────── */}
+          {/* ── Coluna esquerda ───────────────────────── */}
           <div className="space-y-5">
 
             {/* Endereço */}
@@ -215,7 +306,9 @@ export function Perfil() {
                   {user.address.city && <p className="font-semibold">{user.address.city}</p>}
                 </div>
               ) : (
-                <p className="text-sm text-navy-400">Endereço não informado</p>
+                <button onClick={() => setEditProfile(true)} className="text-sm text-orange-500 font-semibold hover:underline">
+                  + Adicionar endereço
+                </button>
               )}
             </div>
 
@@ -232,7 +325,7 @@ export function Perfil() {
               </div>
             </div>
 
-            {/* Stats rápidos */}
+            {/* Stats */}
             <div className="card p-5">
               <h2 className="mb-3 font-display font-bold text-navy-700">Resumo</h2>
               <div className="space-y-2">
@@ -254,7 +347,7 @@ export function Perfil() {
             </div>
           </div>
 
-          {/* ── Coluna direita ──────────────────────────────────── */}
+          {/* ── Coluna direita ────────────────────────── */}
           <div className="space-y-5 lg:col-span-2">
 
             {/* Meus pets */}
@@ -271,15 +364,15 @@ export function Perfil() {
                   <PawPrint size={28} className="text-orange-300" />
                   <p className="mt-2 text-sm font-semibold text-navy-600">Nenhum pet cadastrado</p>
                   <p className="text-xs text-navy-400">Cadastre para receber indicações personalizadas</p>
+                  <button onClick={() => setPetModal({ mode: "add" })} className="btn-primary btn-sm mt-4">
+                    <Plus size={14} /> Cadastrar pet
+                  </button>
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {user.pets.map((pet) => {
                     const Icon = pet.type === "gato" ? Cat : Dog;
-                    const petColor = pet.type === "gato"
-                      ? "bg-purple-100 text-purple-600"
-                      : "bg-orange-100 text-orange-600";
-
+                    const petColor = pet.type === "gato" ? "bg-purple-100 text-purple-600" : "bg-orange-100 text-orange-600";
                     return (
                       <div key={pet.id} className="rounded-xl border border-cream-200 bg-cream-50 p-4">
                         <div className="flex items-start justify-between">
@@ -311,12 +404,10 @@ export function Perfil() {
                         </div>
                         <div className="mt-2.5 flex flex-wrap gap-1">
                           <span className="badge-soft text-xs">{sizeLabel[pet.size]}</span>
-                          {pet.age && <span className="badge-soft text-xs">{pet.age}</span>}
+                          {pet.age    && <span className="badge-soft text-xs">{pet.age}</span>}
                           {pet.weight && <span className="badge-soft text-xs">{pet.weight}</span>}
                         </div>
-                        {pet.notes && (
-                          <p className="mt-2 text-xs text-navy-500 italic">{pet.notes}</p>
-                        )}
+                        {pet.notes && <p className="mt-2 text-xs text-navy-500 italic">{pet.notes}</p>}
                       </div>
                     );
                   })}
@@ -352,22 +443,18 @@ export function Perfil() {
                       <div>
                         <p className="font-mono text-xs text-navy-400 uppercase">#{order.id.slice(0, 8)}</p>
                         <p className="text-sm font-semibold text-navy-700">
-                          {order.items.length} {order.items.length === 1 ? "item" : "itens"} ·{" "}
-                          {formatDate(order.createdAt)}
+                          {order.items.length} {order.items.length === 1 ? "item" : "itens"} · {formatDate(order.createdAt)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-orange-600">{formatBRL(order.total)}</span>
-                        <span className={`badge text-xs ${statusStyle[order.status]}`}>
-                          {order.status}
-                        </span>
+                        <span className={`badge text-xs ${statusStyle[order.status]}`}>{order.status}</span>
                       </div>
                     </Link>
                   ))}
                 </div>
               )}
             </div>
-
           </div>
         </div>
       </div>
@@ -377,11 +464,7 @@ export function Perfil() {
         <ProfileForm user={user} onDone={() => setEditProfile(false)} />
       </Modal>
 
-      <Modal
-        open={!!petModal}
-        onClose={() => setPetModal(null)}
-        title={petModal?.mode === "edit" ? "Editar pet" : "Cadastrar pet"}
-      >
+      <Modal open={!!petModal} onClose={() => setPetModal(null)} title={petModal?.mode === "edit" ? "Editar pet" : "Cadastrar pet"}>
         <PetForm
           initial={petModal?.pet}
           onSubmit={savePet}
@@ -395,9 +478,7 @@ export function Perfil() {
           Remover <strong className="text-navy-800">{petToDelete?.name}</strong>? Essa ação não pode ser desfeita.
         </p>
         <div className="mt-4 flex gap-3">
-          <button onClick={() => setPetToDelete(null)} className="btn-ghost flex-1 border border-cream-200">
-            Cancelar
-          </button>
+          <button onClick={() => setPetToDelete(null)} className="btn-ghost flex-1 border border-cream-200">Cancelar</button>
           <button
             onClick={() => { if (petToDelete) { removePet(petToDelete.id); showToast("Pet removido.", "info"); setPetToDelete(null); } }}
             className="btn flex-1 bg-red-500 text-white hover:bg-red-600"
