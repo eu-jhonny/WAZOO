@@ -1,44 +1,77 @@
 /**
- * Sistema de Notificações Inteligentes
- * - NotificationBell  → usado no Header
- * - NotificationSystem → só gerencia toasts / lógica de fundo
+ * Sistema de Notificações — v2
+ * Correção: icon NÃO é salvo no localStorage (React node não é serializável).
+ * Salva-se apenas `iconKey` string; o nó JSX é derivado na hora de renderizar.
  */
 import { useState, useEffect, useRef } from "react";
 import { Bell, X, ShoppingCart, Tag, Zap, PawPrint, Gift, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 
-/* ── Tipos ──────────────────────────────────────────── */
-export interface Notification {
-  id: string;
-  type: "cart" | "promo" | "tip" | "greeting" | "offer";
-  icon: React.ReactNode;
-  title: string;
-  message: string;
-  action?: { label: string; to: string };
-  color: string;
-  bg: string;
+/* ── Mapa de ícones (string → JSX) ─────────────── */
+export type IconKey = "ShoppingCart" | "Tag" | "Zap" | "PawPrint" | "Gift";
+
+const ICON_MAP: Record<IconKey, React.ReactNode> = {
+  ShoppingCart: <ShoppingCart size={16} />,
+  Tag:          <Tag size={16} />,
+  Zap:          <Zap size={16} />,
+  PawPrint:     <PawPrint size={16} />,
+  Gift:         <Gift size={16} />,
+};
+
+/* ── Tipo que vai pro localStorage (sem React node) */
+export interface StoredNotification {
+  id:        string;
+  type:      "cart" | "promo" | "tip" | "greeting" | "offer";
+  iconKey:   IconKey;
+  title:     string;
+  message:   string;
+  action?:   { label: string; to: string };
+  color:     string;
+  bg:        string;
   createdAt: number;
-  read: boolean;
+  read:      boolean;
 }
 
-/* ── Storage helpers ────────────────────────────────── */
+/* ── Tipo de runtime (com ícone derivado) ────────── */
+export interface Notification extends StoredNotification {
+  icon: React.ReactNode;
+}
+
+/* ── Helpers de storage ─────────────────────────── */
+const STORAGE_KEY    = "wazoo_notifs_v2"; // v2 → limpa dados corrompidos da v1
+const TIMESTAMP_PFX  = "wazoo_notif_ts_";
+
 function getStored(): Notification[] {
-  try { return JSON.parse(localStorage.getItem("wazoo_notifs") ?? "[]"); }
-  catch { return []; }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) ?? "[]";
+    const stored: StoredNotification[] = JSON.parse(raw);
+    // Hidrata o campo `icon` que não veio do JSON
+    return stored.map((n) => ({
+      ...n,
+      icon: ICON_MAP[n.iconKey] ?? <PawPrint size={16} />,
+    }));
+  } catch {
+    return [];
+  }
 }
-function save(n: Notification[]) {
-  localStorage.setItem("wazoo_notifs", JSON.stringify(n.slice(0, 20)));
+
+function save(notifs: Notification[]) {
+  // Remove o campo `icon` (React node) antes de serializar
+  const storable: StoredNotification[] = notifs.map(({ icon: _icon, ...rest }) => rest);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(storable.slice(0, 20)));
+  } catch {}
 }
+
 function wasShownRecently(key: string, hours = 4): boolean {
-  const ts = localStorage.getItem(`wazoo_notif_ts_${key}`);
+  const ts = localStorage.getItem(`${TIMESTAMP_PFX}${key}`);
   if (!ts) return false;
   return Date.now() - Number(ts) < hours * 3_600_000;
 }
 function markShown(key: string) {
-  localStorage.setItem(`wazoo_notif_ts_${key}`, String(Date.now()));
+  localStorage.setItem(`${TIMESTAMP_PFX}${key}`, String(Date.now()));
 }
-
 function greeting(): string {
   const h = new Date().getHours();
   if (h < 12) return "Bom dia";
@@ -46,98 +79,99 @@ function greeting(): string {
   return "Boa noite";
 }
 
-const PROMOS: Array<Omit<Notification, "id" | "createdAt" | "read">> = [
+/* ── Templates de promoção ───────────────────────── */
+type NotifTemplate = Omit<StoredNotification, "id" | "createdAt" | "read">;
+
+const PROMOS: NotifTemplate[] = [
   {
-    type: "promo",
-    icon: <Tag size={16} />,
+    type: "promo", iconKey: "Tag",
     title: "10% OFF no primeiro pedido!",
     message: "Use o cupom WAZOO10 e economize na sua primeira compra.",
     action: { label: "Ver produtos", to: "/produtos" },
-    color: "text-orange-600",
-    bg: "bg-orange-50",
+    color: "text-orange-600", bg: "bg-orange-50",
   },
   {
-    type: "offer",
-    icon: <Gift size={16} />,
+    type: "offer", iconKey: "Gift",
     title: "Frete grátis acima de R$200",
     message: "Monte seu pedido e ganhe entrega grátis em toda São Paulo.",
     action: { label: "Aproveitar", to: "/produtos" },
-    color: "text-green-600",
-    bg: "bg-green-50",
+    color: "text-green-600", bg: "bg-green-50",
   },
   {
-    type: "tip",
-    icon: <PawPrint size={16} />,
+    type: "tip", iconKey: "PawPrint",
     title: "Tudo sob encomenda 🐾",
     message: "Buscamos exatamente o que você precisa. Prazo médio: 5–7 dias úteis.",
     action: { label: "Como funciona?", to: "/como-funciona" },
-    color: "text-teal-600",
-    bg: "bg-teal-50",
+    color: "text-teal-600", bg: "bg-teal-50",
   },
   {
-    type: "tip",
-    icon: <Zap size={16} />,
+    type: "tip", iconKey: "Zap",
     title: "Acompanhe seus pedidos",
     message: "Crie uma conta e rastreie cada pedido em tempo real.",
-    action: { label: "Criar conta", to: "/registro" },
-    color: "text-purple-600",
-    bg: "bg-purple-50",
+    action: { label: "Criar conta", to: "/cadastro" },
+    color: "text-purple-600", bg: "bg-purple-50",
   },
 ];
 
 /* ══════════════════════════════════════════════════════
-   HOOK CENTRAL — compartilhado entre Bell e System
+   ESTADO GLOBAL (módulo-level, compartilhado)
    ══════════════════════════════════════════════════════ */
 let _listeners: Array<(n: Notification[]) => void> = [];
 let _state: Notification[] = getStored();
 
-function subscribe(cb: (n: Notification[]) => void) {
+function subscribeNotifs(cb: (n: Notification[]) => void) {
   _listeners.push(cb);
   return () => { _listeners = _listeners.filter((l) => l !== cb); };
 }
-function notify() { _listeners.forEach((l) => l([..._state])); }
+function notifyListeners() {
+  _listeners.forEach((l) => l([..._state]));
+}
 
-export function addNotification(n: Omit<Notification, "id" | "createdAt" | "read">) {
+export function addNotification(tmpl: NotifTemplate) {
   const notif: Notification = {
-    ...n, id: `${Date.now()}-${Math.random()}`, createdAt: Date.now(), read: false,
+    ...tmpl,
+    icon:      ICON_MAP[tmpl.iconKey] ?? <PawPrint size={16} />,
+    id:        `${Date.now()}-${Math.random()}`,
+    createdAt: Date.now(),
+    read:      false,
   };
   _state = [notif, ..._state].slice(0, 20);
   save(_state);
-  notify();
+  notifyListeners();
   return notif;
 }
 export function markAllRead() {
   _state = _state.map((n) => ({ ...n, read: true }));
   save(_state);
-  notify();
+  notifyListeners();
 }
 export function removeNotif(id: string) {
   _state = _state.filter((n) => n.id !== id);
   save(_state);
-  notify();
+  notifyListeners();
 }
 export function clearAll() {
   _state = [];
   save(_state);
-  notify();
+  notifyListeners();
 }
 
 function useNotifState() {
   const [notifs, setNotifs] = useState<Notification[]>(_state);
-  useEffect(() => subscribe(setNotifs), []);
+  useEffect(() => subscribeNotifs(setNotifs), []);
   return notifs;
 }
 
 /* ══════════════════════════════════════════════════════
-   NOTIFICATION BELL — vai no Header
+   NOTIFICATION BELL — montado no Header
    ══════════════════════════════════════════════════════ */
 export function NotificationBell() {
-  const notifs  = useNotifState();
+  const notifs    = useNotifState();
   const [open, setOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const unread  = notifs.filter((n) => !n.read).length;
+  const panelRef  = useRef<HTMLDivElement>(null);
+  const unread    = notifs.filter((n) => !n.read).length;
 
-  /* fechar ao clicar fora */
+  /* Fechar ao clicar fora */
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -177,7 +211,7 @@ export function NotificationBell() {
       {/* Painel dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-2xl border border-cream-200 bg-white shadow-2xl overflow-hidden z-[60]">
-          {/* Header do painel */}
+          {/* Cabeçalho */}
           <div className="flex items-center justify-between border-b border-cream-100 bg-navy-800 px-4 py-3">
             <div className="flex items-center gap-2">
               <Bell size={15} className="text-orange-400" />
@@ -236,7 +270,7 @@ export function NotificationBell() {
             )}
           </div>
 
-          {/* Footer */}
+          {/* Rodapé */}
           {notifs.length > 0 && (
             <div className="border-t border-cream-100 p-2 text-center">
               <button
@@ -255,53 +289,49 @@ export function NotificationBell() {
 
 /* ══════════════════════════════════════════════════════
    NOTIFICATION SYSTEM — lógica de fundo + toast
-   Montado no Layout, invisível
+   Montado no Layout (sem bell visível)
    ══════════════════════════════════════════════════════ */
 export function NotificationSystem() {
   const { count } = useCart();
   const notifs    = useNotifState();
   const [toast, setToast] = useState<Notification | null>(null);
-  const [open]    = useState(false); // só para ignorar toast quando bell está aberto
+  const shownIds  = useRef<Set<string>>(new Set());
 
-  /* ── Boas-vindas ─── */
+  /* ── Boas-vindas ──────────────────────────── */
   useEffect(() => {
     if (wasShownRecently("greeting", 8)) return;
     const t = setTimeout(() => {
       addNotification({
-        type: "greeting",
-        icon: <PawPrint size={16} />,
+        type: "greeting", iconKey: "PawPrint",
         title: `${greeting()}, bem-vindo à Wazoo! 🐾`,
         message: "Encontre tudo para o seu pet sob encomenda, com amor.",
         action: { label: "Ver produtos", to: "/produtos" },
-        color: "text-orange-600",
-        bg: "bg-orange-50",
+        color: "text-orange-600", bg: "bg-orange-50",
       });
       markShown("greeting");
     }, 3_000);
     return () => clearTimeout(t);
   }, []);
 
-  /* ── Abandono de carrinho ─── */
+  /* ── Abandono de carrinho ──────────────────── */
   useEffect(() => {
     if (count === 0) return;
     if (wasShownRecently("cart_abandon", 1)) return;
     const t = setTimeout(() => {
       if (count === 0) return;
       addNotification({
-        type: "cart",
-        icon: <ShoppingCart size={16} />,
+        type: "cart", iconKey: "ShoppingCart",
         title: `Você tem ${count} ${count === 1 ? "item" : "itens"} no carrinho!`,
         message: "Não esqueça do seu pedido — finalize antes que acabe o estoque.",
         action: { label: "Ver carrinho", to: "/carrinho" },
-        color: "text-orange-600",
-        bg: "bg-orange-50",
+        color: "text-orange-600", bg: "bg-orange-50",
       });
       markShown("cart_abandon");
     }, 4 * 60_000);
     return () => clearTimeout(t);
   }, [count]);
 
-  /* ── Promoção automática ─── */
+  /* ── Promoção automática ───────────────────── */
   useEffect(() => {
     if (wasShownRecently("promo", 4)) return;
     const t = setTimeout(() => {
@@ -312,14 +342,16 @@ export function NotificationSystem() {
     return () => clearTimeout(t);
   }, []);
 
-  /* ── Toast para novas notificações ─── */
+  /* ── Toast (mais recente não lido) ─────────── */
   useEffect(() => {
     const latest = notifs[0];
-    if (!latest || latest.read || open) return;
+    if (!latest || latest.read) return;
+    if (shownIds.current.has(latest.id)) return;
+    shownIds.current.add(latest.id);
     setToast(latest);
     const t = setTimeout(() => setToast(null), 6_000);
     return () => clearTimeout(t);
-  }, [notifs, open]);
+  }, [notifs]);
 
   return (
     <>
