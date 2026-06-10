@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Wazoo Pet Express — Design System v3 "Pet Fofo"
+   Paleta: laranja · azul escuro · creme · verde
+   Fontes: Fredoka (títulos) + Nunito (texto)
+   Estilo: fofo, alegre, arredondado, pet-friendly
+   ============================================================ */
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-cream-50 font-sans text-ink antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5 {
+    @apply font-display text-navy-700;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    @apply bg-orange-200 text-navy-800;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { @apply bg-cream-100; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full bg-orange-200; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-orange-300; }
+}
+
+@layer components {
+  /* ── Layout ─────────────────────────────────────────── */
+  .container-app {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .section {
+    @apply py-12 sm:py-20;
+  }
+
+  /* ── Botões ──────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-6 py-3
+           text-base font-bold leading-none transition-all duration-200
+           focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-200
+           disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.96];
+  }
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-orange-400 to-orange-600 text-white shadow-glow
+           hover:-translate-y-0.5;
+  }
+  .btn-secondary {
+    @apply btn bg-navy-700 text-white shadow-soft hover:-translate-y-0.5 hover:bg-navy-800;
+  }
+  .btn-green {
+    @apply btn bg-gradient-to-r from-green-400 to-green-600 text-white shadow-soft
+           hover:-translate-y-0.5;
+  }
+  .btn-teal {
+    @apply btn bg-brand-teal text-white shadow-soft hover:-translate-y-0.5;
+  }
+  .btn-outline {
+    @apply btn border-2 border-navy-700 bg-transparent text-navy-700
+           hover:bg-navy-700 hover:text-white;
+  }
+  .btn-outline-orange {
+    @apply btn border-2 border-orange-400 bg-transparent text-orange-600
+           hover:bg-orange-500 hover:border-orange-500 hover:text-white;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-navy-700 hover:bg-cream-100;
+  }
+  .btn-white {
+    @apply btn bg-white text-navy-700 shadow-soft hover:-translate-y-0.5 hover:bg-cream-50;
+  }
+  .btn-lg {
+    @apply px-8 py-4 text-lg;
+  }
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+  .btn-icon {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-full p-0;
+  }
+
+  /* ── Cards ───────────────────────────────────────────── */
+  .card {
+    @apply rounded-3xl border border-cream-200/70 bg-white shadow-card;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-soft-lg hover:border-orange-100/60;
+  }
+
+  /* ── Badges / selos ──────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold;
+  }
+  .badge-encomenda { @apply badge bg-orange-100 text-orange-700; }
+  .badge-navy      { @apply badge bg-navy-50 text-navy-700; }
+  .badge-green     { @apply badge bg-green-100 text-green-700; }
+  .badge-soft      { @apply badge bg-cream-100 text-navy-600; }
+  .badge-teal      { @apply badge bg-brand-teal/10 text-brand-teal; }
+  .badge-pink      { @apply badge bg-brand-pink/10 text-brand-pink; }
+  .badge-purple    { @apply badge bg-brand-purple/10 text-brand-purple; }
+
+  /* ── Formulários ─────────────────────────────────────── */
+  .label {
+    @apply mb-1.5 block text-sm font-bold text-navy-700;
+  }
+  .input {
+    @apply w-full rounded-2xl border-2 border-cream-200 bg-white px-4 py-3 text-ink
+           placeholder:text-navy-300 transition-colors duration-200
+           focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-100;
+  }
+  .input-error {
+    @apply border-red-400 focus:border-red-400 focus:ring-red-100;
+  }
+  textarea.input {
+    @apply min-h-[110px] resize-y;
+  }
+  select.input {
+    @apply cursor-pointer appearance-none bg-[length:18px] bg-[right_0.9rem_center] bg-no-repeat pr-10;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23153B5C'%20stroke-width='2.5'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpolyline%20points='6%209%2012%2015%2018%209'/%3E%3C/svg%3E");
+  }
+
+  /* ── Chips de filtro ─────────────────────────────────── */
+  .chip {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-cream-200
+           bg-white px-4 py-2 text-sm font-bold text-navy-600 transition-all duration-200
+           hover:border-orange-300 hover:text-orange-600;
+  }
+  .chip-active {
+    @apply border-orange-500 bg-orange-500 text-white hover:text-white;
+  }
+
+  /* ── Eyebrow / labels de seção ───────────────────────── */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-1.5
+           text-sm font-extrabold uppercase tracking-wide text-orange-600;
+  }
+  .eyebrow-teal   { @apply eyebrow bg-brand-teal/10 text-brand-teal; }
+  .eyebrow-purple { @apply eyebrow bg-brand-purple/10 text-brand-purple; }
+  .eyebrow-green  { @apply eyebrow bg-green-100 text-green-700; }
+  .eyebrow-pink   { @apply eyebrow bg-brand-pink/10 text-brand-pink; }
+
+  .section-title {
+    @apply font-display text-3xl font-bold text-navy-700 sm:text-4xl;
+  }
+  .link-underline {
+    @apply font-bold text-orange-600 underline-offset-4 hover:underline;
+  }
+}
+
+@layer utilities {
+  /* Gradiente de texto */
+  .text-gradient {
+    @apply bg-gradient-to-r from-orange-500 to-brand-pink bg-clip-text text-transparent;
+  }
+  .text-gradient-cool {
+    @apply bg-gradient-to-r from-brand-teal to-brand-purple bg-clip-text text-transparent;
+  }
+
+  /* Sem scrollbar */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Reveal on scroll (componente <Reveal />) */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Padrão de pontos decorativos (sem patinhas) */
+  .bg-dots {
+    background-image: radial-gradient(circle, rgba(255,122,26,0.12) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+  .bg-dots-light {
+    background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+}

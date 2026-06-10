@@ -1,0 +1,188 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        orange: {
+          50: "#FFF3EA",
+          100: "#FFE3CC",
+          200: "#FFC799",
+          300: "#FFAA66",
+          400: "#FF933D",
+          500: "#FF7A1A",
+          600: "#F26405",
+          700: "#C24F04",
+          800: "#8F3B05",
+          900: "#5C2603",
+        },
+        navy: {
+          50: "#EAF0F6",
+          100: "#C9D8E8",
+          200: "#9DB8D2",
+          300: "#6E95BA",
+          400: "#477399",
+          500: "#2F587C",
+          600: "#1F4567",
+          700: "#153B5C",
+          800: "#102C45",
+          900: "#0A1D2E",
+        },
+        cream: {
+          50: "#FFFBF5",
+          100: "#FFF4E6",
+          200: "#FCEAD2",
+          300: "#F7DCB6",
+        },
+        green: {
+          50: "#EEF7ED",
+          100: "#D2EAD0",
+          200: "#A8D6A4",
+          300: "#85C77F",
+          400: "#71BC6A",
+          500: "#61B15A",
+          600: "#4E9648",
+          700: "#3D7639",
+          800: "#2E5A2C",
+          900: "#1F3D1E",
+        },
+        brand: {
+          teal: "#18B6C4",
+          purple: "#8B5FD0",
+          pink: "#F0427E",
+          yellow: "#FBC02D",
+        },
+        ink: "#333333",
+      },
+      fontFamily: {
+        sans: ["Nunito", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Fredoka", "Nunito", "ui-sans-serif", "sans-serif"],
+      },
+      borderRadius: {
+        "4xl": "2rem",
+        "5xl": "2.5rem",
+        "6xl": "3rem",
+      },
+      boxShadow: {
+        soft: "0 10px 30px -12px rgba(21, 59, 92, 0.18)",
+        "soft-lg": "0 24px 60px -20px rgba(21, 59, 92, 0.28)",
+        glow: "0 12px 40px -10px rgba(255, 122, 26, 0.50)",
+        "glow-teal": "0 12px 40px -10px rgba(24, 182, 196, 0.45)",
+        "glow-green": "0 12px 40px -10px rgba(97, 177, 90, 0.50)",
+        "glow-purple": "0 12px 40px -10px rgba(139, 95, 208, 0.45)",
+        card: "0 8px 24px -10px rgba(21, 59, 92, 0.10)",
+        bubble: "0 20px 60px -15px rgba(255, 122, 26, 0.22), 0 4px 16px -4px rgba(21, 59, 92, 0.08)",
+      },
+      backgroundImage: {
+        "hero-grad": "linear-gradient(135deg, #FF7A1A 0%, #F26405 55%, #C24F04 100%)",
+        "navy-grad": "linear-gradient(135deg, #1F4567 0%, #153B5C 55%, #0A1D2E 100%)",
+        "cream-grad": "linear-gradient(180deg, #FFFBF5 0%, #FFF4E6 100%)",
+        "orange-soft": "linear-gradient(135deg, #FFE3CC 0%, #FFF4E6 60%, #FFFBF5 100%)",
+      },
+      keyframes: {
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(24px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-14px)" },
+        },
+        "float-slow": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+        wiggle: {
+          "0%, 100%": { transform: "rotate(-4deg)" },
+          "50%": { transform: "rotate(4deg)" },
+        },
+        pop: {
+          "0%": { transform: "scale(0.8)", opacity: "0" },
+          "60%": { transform: "scale(1.06)" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "slide-in-right": {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(0)" },
+        },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        heartbeat: {
+          "0%, 100%": { transform: "scale(1)" },
+          "25%": { transform: "scale(1.14)" },
+          "50%": { transform: "scale(1)" },
+          "75%": { transform: "scale(1.08)" },
+        },
+        "bounce-soft": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "slide-in-left": {
+          "0%": { opacity: "0", transform: "translateX(-40px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "slide-up-fade": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "ken-burns": {
+          "0%": { transform: "scale(1) translate(0, 0)" },
+          "100%": { transform: "scale(1.10) translate(-1%, -1%)" },
+        },
+        "ken-burns-alt": {
+          "0%": { transform: "scale(1) translate(0, 0)" },
+          "100%": { transform: "scale(1.10) translate(1%, 1%)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "pulse-scale": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.06)" },
+        },
+        "count-flip": {
+          "0%": { opacity: "0", transform: "translateY(-12px) scaleY(0.8)" },
+          "100%": { opacity: "1", transform: "translateY(0) scaleY(1)" },
+        },
+        "progress-bar": {
+          "0%": { width: "0%" },
+          "100%": { width: "100%" },
+        },
+      },
+      animation: {
+        "fade-up": "fade-up 0.6s ease-out both",
+        "fade-in": "fade-in 0.5s ease-out both",
+        "scale-in": "scale-in 0.4s ease-out both",
+        float: "float 6s ease-in-out infinite",
+        "float-slow": "float-slow 5s ease-in-out infinite",
+        wiggle: "wiggle 1.2s ease-in-out infinite",
+        pop: "pop 0.35s ease-out both",
+        "slide-in-right": "slide-in-right 0.3s ease-out both",
+        "slide-in-left": "slide-in-left 0.5s ease-out both",
+        "slide-up-fade": "slide-up-fade 0.55s ease-out both",
+        marquee: "marquee 28s linear infinite",
+        "marquee-slow": "marquee 48s linear infinite",
+        heartbeat: "heartbeat 1.8s ease-in-out infinite",
+        "bounce-soft": "bounce-soft 2.4s ease-in-out infinite",
+        "ken-burns": "ken-burns 8s ease-out forwards",
+        "ken-burns-alt": "ken-burns-alt 8s ease-out forwards",
+        shimmer: "shimmer 1.6s linear infinite",
+        "pulse-scale": "pulse-scale 2s ease-in-out infinite",
+        "count-flip": "count-flip 0.3s ease-out both",
+        "progress-bar": "progress-bar 5s linear forwards",
+      },
+    },
+  },
+  plugins: [],
+};
