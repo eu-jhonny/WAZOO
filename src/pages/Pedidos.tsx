@@ -1,6 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Info, MapPin, PawPrint, ShoppingBag, Store } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  MessageSquare,
+  Package,
+  PawPrint,
+  ShoppingBag,
+  Store,
+} from "lucide-react";
 import { img } from "@/config/site";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
@@ -10,111 +19,213 @@ import { OrderStatusTimeline } from "@/components/OrderStatusTimeline";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { whatsappLink } from "@/lib/whatsapp";
 
+/* ── Cores/ícones por status ─────────────────────────────────── */
+const statusIcon: Record<string, string> = {
+  "Solicitação enviada":          "🕐",
+  "Verificando disponibilidade":  "🔍",
+  "Confirmado pelo fornecedor":   "✅",
+  "Em preparação":                "📦",
+  "Pronto para retirada":         "🏪",
+  "Em rota de entrega":           "🚚",
+  "Finalizado":                   "🎉",
+  "Cancelado":                    "❌",
+};
+
+function OrderCard({ order, wa }: { order: any; wa: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const icon = statusIcon[order.status] ?? "📋";
+
+  return (
+    <div className="card overflow-hidden">
+      {/* Header */}
+      <div
+        className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-cream-50"
+        onClick={() => setExpanded((p) => !p)}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cream-100 text-xl">
+            {icon}
+          </div>
+          <div>
+            <p className="font-mono text-xs font-bold text-navy-500 uppercase tracking-wide">
+              #{order.id.slice(0, 8)}
+            </p>
+            <p className="font-display font-bold text-navy-800 leading-snug">
+              {order.items.length} {order.items.length === 1 ? "item" : "itens"} ·{" "}
+              {formatBRL(order.total)}
+            </p>
+            <p className="text-xs text-navy-400">{formatDate(order.createdAt)}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className={`badge ${statusStyle[order.status]}`}>{order.status}</span>
+          {expanded ? (
+            <ChevronUp size={18} className="text-navy-400" />
+          ) : (
+            <ChevronDown size={18} className="text-navy-400" />
+          )}
+        </div>
+      </div>
+
+      {/* Detalhes expandidos */}
+      {expanded && (
+        <div className="border-t border-cream-100">
+          <div className="grid gap-6 p-5 lg:grid-cols-2">
+
+            {/* Itens + resumo */}
+            <div>
+              <h3 className="mb-3 flex items-center gap-2 font-display font-bold text-navy-700">
+                <Package size={16} className="text-orange-500" /> Itens do pedido
+              </h3>
+              <div className="space-y-2">
+                {order.items.map((item: any, i: number) => (
+                  <div
+                    key={i}
+                    className="flex items-start justify-between gap-3 rounded-xl bg-cream-50 px-3 py-2.5 text-sm"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-navy-700 leading-snug">
+                        <span className="text-orange-600 font-bold">{item.quantity}×</span>{" "}
+                        {item.name}
+                      </p>
+                      {item.note && (
+                        <p className="mt-0.5 text-xs text-navy-400 italic">
+                          Obs: {item.note}
+                        </p>
+                      )}
+                    </div>
+                    <span className="shrink-0 font-bold text-navy-700">
+                      {formatBRL(item.price * item.quantity)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
+                <span className="font-bold text-navy-700">Total estimado</span>
+                <span className="font-display text-xl font-bold text-orange-600">
+                  {formatBRL(order.total)}
+                </span>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="badge-soft">
+                  {order.fulfillment === "retirada" ? (
+                    <><Store size={12} /> Retirada</>
+                  ) : (
+                    <><MapPin size={12} /> Entrega</>
+                  )}
+                </span>
+                {order.petName && (
+                  <span className="badge-soft">
+                    <PawPrint size={12} /> {order.petName}
+                  </span>
+                )}
+              </div>
+
+              {order.note && (
+                <div className="mt-3 rounded-xl bg-cream-100 px-4 py-3 text-sm text-navy-600">
+                  <span className="font-bold text-navy-700">Obs:</span> {order.note}
+                </div>
+              )}
+
+              <a
+                href={whatsappLink(
+                  `Olá! Gostaria de falar sobre meu pedido #${order.id.slice(0, 8)}.`,
+                  wa
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-green btn-sm mt-4"
+              >
+                <WhatsAppIcon size={15} /> Falar sobre este pedido
+              </a>
+            </div>
+
+            {/* Timeline */}
+            <div className="rounded-xl bg-cream-50 p-4">
+              <h3 className="mb-4 flex items-center gap-2 font-display font-bold text-navy-700">
+                <MessageSquare size={16} className="text-brand-teal" /> Acompanhamento
+              </h3>
+              <OrderStatusTimeline order={order} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
 export function Pedidos() {
-  const { user } = useAuth();
+  const { user }        = useAuth();
   const { orders, settings } = useStore();
 
   const myOrders = useMemo(
-    () => (user ? orders.filter((o) => o.userId === user.id).sort((a, b) => b.createdAt - a.createdAt) : []),
+    () =>
+      user
+        ? orders
+            .filter((o) => o.userId === user.id)
+            .sort((a, b) => b.createdAt - a.createdAt)
+        : [],
     [orders, user]
   );
 
   if (!user) return null;
 
-  return (
-    <section className="section bg-cream-50">
-      <div className="container-app">
-        <h1 className="font-display text-3xl font-bold text-navy-700 sm:text-4xl">Meus pedidos</h1>
-        <p className="mt-2 flex items-start gap-2 rounded-2xl bg-orange-50 p-4 text-sm text-navy-600">
-          <Info size={18} className="mt-0.5 shrink-0 text-orange-500" />
-          Como trabalhamos sob encomenda, alguns pedidos passam pela etapa de
-          verificação com fornecedor antes da confirmação final.
-        </p>
+  const wa = settings.whatsapp;
 
-        {myOrders.length === 0 ? (
-          <div className="mt-8 flex flex-col items-center rounded-3xl border border-dashed border-cream-300 bg-white px-6 py-16 text-center">
-            <img src={img.mascot.dormindo} alt="Mascote dormindo" className="h-40 w-auto" />
-            <p className="mt-4 font-display text-xl font-bold text-navy-700">
-              Você ainda não tem pedidos
+  return (
+    <div className="section bg-cream-50">
+      <div className="container-app">
+
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-navy-800 sm:text-4xl">
+              Meus pedidos
+            </h1>
+            <p className="mt-1 text-navy-500">
+              {myOrders.length === 0
+                ? "Você ainda não realizou pedidos."
+                : `${myOrders.length} pedido${myOrders.length !== 1 ? "s" : ""} encontrado${myOrders.length !== 1 ? "s" : ""}`}
             </p>
-            <p className="mt-1 text-navy-500">Monte seu pedido e envie pelo WhatsApp.</p>
+          </div>
+          <Link to="/produtos" className="btn-primary btn-sm">
+            <ShoppingBag size={16} /> Nova compra
+          </Link>
+        </div>
+
+        {/* Aviso sob encomenda */}
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
+          <PawPrint size={16} className="mt-0.5 shrink-0 text-amber-500" />
+          Como trabalhamos <strong>sob encomenda</strong>, alguns pedidos passam pela etapa de
+          verificação antes da confirmação final.
+        </div>
+
+        {/* Lista */}
+        {myOrders.length === 0 ? (
+          <div className="mt-8 flex flex-col items-center rounded-2xl border border-dashed border-cream-200 bg-white px-8 py-16 text-center shadow-card">
+            <img src={img.mascot.dormindo} alt="" className="h-36 w-auto opacity-70" />
+            <p className="mt-4 font-display text-xl font-bold text-navy-800">
+              Nenhum pedido ainda
+            </p>
+            <p className="mt-1 text-sm text-navy-500">
+              Adicione produtos ao carrinho e envie seu primeiro pedido.
+            </p>
             <Link to="/produtos" className="btn-primary mt-6">
               <ShoppingBag size={18} /> Ver produtos
             </Link>
           </div>
         ) : (
-          <div className="mt-8 space-y-6">
+          <div className="mt-6 space-y-4">
             {myOrders.map((order) => (
-              <div key={order.id} className="card overflow-hidden">
-                {/* Cabeçalho do pedido */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-200 bg-cream-50 px-6 py-4">
-                  <div>
-                    <p className="font-display text-lg font-bold text-navy-700">{order.id}</p>
-                    <p className="text-xs text-navy-400">Pedido em {formatDate(order.createdAt)}</p>
-                  </div>
-                  <span className={`badge ${statusStyle[order.status]}`}>{order.status}</span>
-                </div>
-
-                <div className="grid gap-8 p-6 lg:grid-cols-2">
-                  {/* Itens + infos */}
-                  <div>
-                    <h3 className="font-display font-bold text-navy-700">Itens solicitados</h3>
-                    <ul className="mt-3 space-y-2">
-                      {order.items.map((item, i) => (
-                        <li key={i} className="flex items-start justify-between gap-3 border-b border-cream-100 pb-2 text-sm">
-                          <span className="text-navy-600">
-                            <strong className="text-navy-700">{item.quantity}x</strong> {item.name}
-                            {item.note && <span className="block text-xs text-navy-400">Obs: {item.note}</span>}
-                          </span>
-                          <span className="shrink-0 font-semibold text-navy-600">
-                            {formatBRL(item.price * item.quantity)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="font-display font-bold text-navy-700">Total estimado</span>
-                      <span className="font-display text-xl font-bold text-orange-600">{formatBRL(order.total)}</span>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="badge-soft">
-                        {order.fulfillment === "retirada" ? <Store size={13} /> : <MapPin size={13} />}
-                        {order.fulfillment === "retirada" ? "Retirada" : "Entrega"}
-                      </span>
-                      {order.petName && (
-                        <span className="badge-soft"><PawPrint size={13} /> {order.petName}</span>
-                      )}
-                    </div>
-
-                    {order.note && (
-                      <p className="mt-3 rounded-2xl bg-cream-100 p-3 text-sm text-navy-600">
-                        <strong>Observação:</strong> {order.note}
-                      </p>
-                    )}
-
-                    <a
-                      href={whatsappLink(`Olá! Gostaria de falar sobre o meu pedido ${order.id}.`, settings.whatsapp)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-green btn-sm mt-4"
-                    >
-                      <WhatsAppIcon size={16} /> Falar sobre este pedido
-                    </a>
-                  </div>
-
-                  {/* Timeline */}
-                  <div className="rounded-2xl bg-cream-50 p-5">
-                    <h3 className="mb-4 font-display font-bold text-navy-700">Acompanhe seu pedido</h3>
-                    <OrderStatusTimeline order={order} />
-                  </div>
-                </div>
-              </div>
+              <OrderCard key={order.id} order={order} wa={wa} />
             ))}
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }
