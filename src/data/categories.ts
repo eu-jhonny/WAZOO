@@ -75,6 +75,7 @@ export const productCategories: CategoryMeta[] = [
 /** Cards de categoria exibidos na Home (incluem atalhos por tipo de pet). */
 export interface HomeCategory {
   name: string;
+  emoji: string;
   icon: LucideIcon;
   gradient: string;
   to: string;
@@ -84,6 +85,7 @@ export interface HomeCategory {
 export const homeCategories: HomeCategory[] = [
   {
     name: "Cachorros",
+    emoji: "🐕",
     icon: Dog,
     gradient: "from-orange-400 to-orange-600",
     to: "/produtos?pet=cachorro",
@@ -91,6 +93,7 @@ export const homeCategories: HomeCategory[] = [
   },
   {
     name: "Gatos",
+    emoji: "🐈",
     icon: Cat,
     gradient: "from-brand-purple to-navy-600",
     to: "/produtos?pet=gato",
@@ -98,6 +101,7 @@ export const homeCategories: HomeCategory[] = [
   },
   {
     name: "Higiene",
+    emoji: "🛁",
     icon: Bath,
     gradient: "from-brand-teal to-navy-600",
     to: "/produtos?cat=higiene",
@@ -105,6 +109,7 @@ export const homeCategories: HomeCategory[] = [
   },
   {
     name: "Brinquedos",
+    emoji: "🦴",
     icon: Bone,
     gradient: "from-green-400 to-green-600",
     to: "/produtos?cat=brinquedos",
@@ -112,6 +117,7 @@ export const homeCategories: HomeCategory[] = [
   },
   {
     name: "Acessórios",
+    emoji: "🎀",
     icon: ShoppingBag,
     gradient: "from-brand-pink to-orange-500",
     to: "/produtos?cat=acessorios",
@@ -119,6 +125,7 @@ export const homeCategories: HomeCategory[] = [
   },
   {
     name: "Petiscos",
+    emoji: "🍖",
     icon: Cookie,
     gradient: "from-orange-400 to-brand-pink",
     to: "/produtos?cat=petiscos",

@@ -149,7 +149,7 @@ export interface Order {
   addressState?: string;
   addressZip?: string;
   items: OrderItem[];
-  subtotal: number;
+  subtotal?: number;
   discountAmount?: number;
   shippingAmount?: number;
   total: number;

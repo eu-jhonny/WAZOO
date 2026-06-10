@@ -18,6 +18,7 @@ import { statusStyle } from "@/lib/orderStatus";
 import { OrderStatusTimeline } from "@/components/OrderStatusTimeline";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { whatsappLink } from "@/lib/whatsapp";
+import type { Order } from "@/types";
 
 /* ── Cores/ícones por status ─────────────────────────────────── */
 const statusIcon: Record<string, string> = {
@@ -31,7 +32,7 @@ const statusIcon: Record<string, string> = {
   "Cancelado":                    "❌",
 };
 
-function OrderCard({ order, wa }: { order: any; wa: string }) {
+function OrderCard({ order, wa }: { order: Order; wa: string }) {
   const [expanded, setExpanded] = useState(false);
   const icon = statusIcon[order.status] ?? "📋";
 

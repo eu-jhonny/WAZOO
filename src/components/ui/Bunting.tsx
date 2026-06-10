@@ -50,7 +50,7 @@ export function Bunting({
 
         {/* Corda em catenária contínua */}
         <path
-          d={Array.from({ length: count }).reduce((d, _, i) => {
+          d={Array.from({ length: count }).reduce<string>((d, _, i) => {
             const x1 = i * w + w * 0.5;
             const x2 = (i + 1) * w + w * 0.5;
             const cy = ropeY + 7;

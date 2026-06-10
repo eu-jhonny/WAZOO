@@ -27,3 +27,38 @@ export function getAdminDisplayConfig(): AdminDisplayConfig {
   } catch { /* JSON inválido */ }
   return { ...DEFAULTS };
 }
+
+/** Configuração de pagamento definida no admin → aba Pagamento. */
+export interface AdminPaymentConfig {
+  payPix:      boolean;
+  payCard:     boolean;
+  payBoleto:   boolean;
+  pixDiscount: number; // % de desconto no PIX
+  maxInstall:  number; // máximo de parcelas no cartão
+}
+
+const PAYMENT_DEFAULTS: AdminPaymentConfig = {
+  payPix:      true,
+  payCard:     true,
+  payBoleto:   true,
+  pixDiscount: 5,
+  maxInstall:  10,
+};
+
+/** Lê a config de pagamento do admin (mesma chave do config geral). */
+export function getAdminPaymentConfig(): AdminPaymentConfig {
+  try {
+    const raw = localStorage.getItem(ADMIN_CFG_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      return {
+        payPix:      obj.payPix      ?? PAYMENT_DEFAULTS.payPix,
+        payCard:     obj.payCard     ?? PAYMENT_DEFAULTS.payCard,
+        payBoleto:   obj.payBoleto   ?? PAYMENT_DEFAULTS.payBoleto,
+        pixDiscount: Number(obj.pixDiscount ?? PAYMENT_DEFAULTS.pixDiscount),
+        maxInstall:  Number(obj.maxInstall  ?? PAYMENT_DEFAULTS.maxInstall),
+      };
+    }
+  } catch { /* JSON inválido */ }
+  return { ...PAYMENT_DEFAULTS };
+}

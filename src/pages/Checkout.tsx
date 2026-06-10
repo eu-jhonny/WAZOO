@@ -1,49 +1,61 @@
 /**
- * Checkout com MercadoPago Bricks — pagamento 100% embutido na página.
+ * Checkout "sob encomenda" — 100% local (localStorage), sem backend.
  *
- * SETUP necessário:
- *   1. npm install @mercadopago/sdk-react (na raiz do projeto frontend)
- *   2. Criar .env com: VITE_MP_PUBLIC_KEY=APP_USR-xxxx
- *   3. O backend deve estar rodando em VITE_API_URL=http://localhost:3001
+ * O pedido é registrado na loja (aparece no admin e em "Meus pedidos") com
+ * status inicial "Solicitação enviada". A confirmação de disponibilidade e o
+ * pagamento são combinados pelo WhatsApp — coerente com o modelo da Wazoo.
+ *
+ * Configurações do admin que afetam esta página:
+ *   • Loja → taxa de entrega (frete)
+ *   • Pagamento → métodos habilitados, desconto no PIX, parcelas máx.
  */
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, CheckCircle, ShoppingBag, Tag, Truck, MapPin, CreditCard, Loader2 } from "lucide-react";
+import {
+  ArrowLeft, CheckCircle, ShoppingBag, Tag, Truck, MapPin,
+  CreditCard, Loader2, QrCode, FileText, Sparkles,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
+import { useAuth } from "@/context/AuthContext";
 import { formatBRL } from "@/lib/format";
+import { getAdminPaymentConfig } from "@/lib/adminConfig";
+import { whatsappLink } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 
 /* ── Tipos ──────────────────────────────────────────────────── */
-interface CustomerForm {
-  name: string; email: string; phone: string; cpf: string;
-}
+interface CustomerForm { name: string; email: string; phone: string; cpf: string; }
 interface AddressForm {
   street: string; number: string; complement: string;
   neighborhood: string; city: string; state: string; zip: string;
 }
-
-type PaymentMethod = "credit_card" | "debit_card" | "pix" | "boleto";
+type PaymentMethod = "pix" | "credit_card" | "boleto";
 type Step = "cart" | "customer" | "address" | "payment" | "success";
 
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+/* ── Cupons locais (demo) ───────────────────────────────────── */
+const COUPONS: Record<string, { type: "PERCENTAGE" | "FIXED" | "FREE_SHIPPING"; value: number; min?: number }> = {
+  WAZOO10:     { type: "PERCENTAGE", value: 10 },
+  BEMVINDO:    { type: "PERCENTAGE", value: 15, min: 100 },
+  FRETEGRATIS: { type: "FREE_SHIPPING", value: 0 },
+};
 
 /* ── Formatadores ─────────────────────────────────────────── */
 function fmtCPF(v: string) {
-  return v.replace(/\D/g, "").slice(0,11)
+  return v.replace(/\D/g, "").slice(0, 11)
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 function fmtPhone(v: string) {
-  return v.replace(/\D/g, "").slice(0,11)
+  return v.replace(/\D/g, "").slice(0, 11)
     .replace(/(\d{2})(\d)/, "($1) $2")
     .replace(/(\d{5})(\d{4})$/, "$1-$2");
 }
 function fmtCEP(v: string) {
-  return v.replace(/\D/g, "").slice(0,8).replace(/(\d{5})(\d)/, "$1-$2");
+  return v.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2");
 }
 
-/* ── Busca CEP ──────────────────────────────────────────────── */
+/* ── Busca CEP (ViaCEP, client-side) ───────────────────────── */
 async function fetchCEP(zip: string): Promise<Partial<AddressForm>> {
   const clean = zip.replace(/\D/g, "");
   if (clean.length !== 8) return {};
@@ -55,232 +67,109 @@ async function fetchCEP(zip: string): Promise<Partial<AddressForm>> {
   } catch { return {}; }
 }
 
-/* ── PIX QR Code Display ───────────────────────────────────── */
-function PixDisplay({ pixCode, pixBase64 }: { pixCode?: string; pixBase64?: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    if (!pixCode) return;
-    navigator.clipboard.writeText(pixCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <div className="rounded-3xl bg-green-50 p-6 text-center">
-      <h3 className="font-display text-xl font-bold text-green-700">Pague com PIX 📱</h3>
-      <p className="mt-1 text-sm text-green-600">Escaneie o QR Code ou copie o código</p>
-      {pixBase64 && (
-        <img src={`data:image/png;base64,${pixBase64}`} alt="QR Code PIX" className="mx-auto mt-4 h-48 w-48 rounded-2xl" />
-      )}
-      {pixCode && (
-        <div className="mt-4">
-          <div className="rounded-xl bg-white p-3 font-mono text-xs text-navy-600 break-all border border-green-200">
-            {pixCode.slice(0, 60)}...
-          </div>
-          <button onClick={copy} className="btn-green mt-3 w-full">
-            {copied ? "✅ Copiado!" : "📋 Copiar código PIX"}
-          </button>
-        </div>
-      )}
-      <p className="mt-4 text-xs text-green-600">⏱ O código expira em 30 minutos. Após o pagamento, seu pedido será confirmado automaticamente.</p>
-    </div>
-  );
-}
-
 /* ── Componente principal ─────────────────────────────────── */
 export function Checkout() {
-  const { items, total: cartTotal, clearCart } = useCart();
-  const { settings } = useStore();
+  const { items, total: cartTotal, clear } = useCart();
+  const { settings, addOrder } = useStore();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
+  const payCfg = useMemo(() => getAdminPaymentConfig(), []);
+  const methods = useMemo(() => {
+    const all: { key: PaymentMethod; label: string; icon: typeof QrCode; desc: string; enabled: boolean }[] = [
+      { key: "pix",         label: "PIX",            icon: QrCode,     desc: payCfg.pixDiscount > 0 ? `${payCfg.pixDiscount}% de desconto` : "Aprovação imediata", enabled: payCfg.payPix },
+      { key: "credit_card", label: "Cartão de crédito", icon: CreditCard, desc: `Até ${payCfg.maxInstall}x`, enabled: payCfg.payCard },
+      { key: "boleto",      label: "Boleto",         icon: FileText,   desc: "Vence em 3 dias", enabled: payCfg.payBoleto },
+    ];
+    return all.filter((m) => m.enabled);
+  }, [payCfg]);
+
   const [step, setStep] = useState<Step>("cart");
-  const [customer, setCustomer] = useState<CustomerForm>({ name: "", email: "", phone: "", cpf: "" });
-  const [address, setAddress] = useState<AddressForm>({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zip: "" });
-  const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
+  const [customer, setCustomer] = useState<CustomerForm>({
+    name: user?.name ?? "", email: user?.email ?? "", phone: user?.phone ?? "", cpf: "",
+  });
+  const [address, setAddress] = useState<AddressForm>({
+    street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zip: "",
+  });
+  const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">(
+    user?.preference === "retirada" ? "PICKUP" : "DELIVERY",
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(methods[0]?.key ?? "pix");
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponFreeShip, setCouponFreeShip] = useState(false);
   const [couponError, setCouponError] = useState("");
-  const [orderId, setOrderId] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [loading, setLoading] = useState(false);
-  const [paymentResult, setPaymentResult] = useState<{ pixCode?: string; pixBase64?: string; boletoUrl?: string; status?: string }>({});
-  const [mpLoaded, setMpLoaded] = useState(false);
-  const [cardData, setCardData] = useState({ token: "", installments: 1, paymentMethodId: "" });
 
-  const shippingAmount = deliveryMethod === "DELIVERY" ? 15 : 0;
+  /* ── Cálculo de totais ─────────────────────────────────── */
   const subtotal = cartTotal;
-  const total = Math.max(0, subtotal - couponDiscount + shippingAmount);
+  const baseShipping = deliveryMethod === "DELIVERY" ? (settings.deliveryFee || 0) : 0;
+  const shippingAmount = couponFreeShip ? 0 : baseShipping;
+  const pixDiscount = paymentMethod === "pix" && payCfg.pixDiscount > 0
+    ? Math.round((subtotal - couponDiscount) * (payCfg.pixDiscount / 100) * 100) / 100
+    : 0;
+  const total = Math.max(0, subtotal - couponDiscount - pixDiscount + shippingAmount);
 
-  /* Carrega SDK MP no head */
-  useEffect(() => {
-    const mpKey = import.meta.env.VITE_MP_PUBLIC_KEY;
-    if (!mpKey || mpLoaded) return;
-    const script = document.createElement("script");
-    script.src = "https://sdk.mercadopago.com/js/v2";
-    script.onload = () => setMpLoaded(true);
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-  }, [mpLoaded]);
-
-  /* Monta o CardForm do MercadoPago (Bricks lite) */
-  useEffect(() => {
-    if (step !== "payment" || paymentMethod !== "credit_card" || !mpLoaded) return;
-    const mpKey = import.meta.env.VITE_MP_PUBLIC_KEY;
-    if (!mpKey || !(window as any).MercadoPago) return;
-
-    const mp = new (window as any).MercadoPago(mpKey, { locale: "pt-BR" });
-    const cardForm = mp.cardForm({
-      amount: String(total),
-      autoMount: true,
-      form: {
-        id: "mp-card-form",
-        cardholderName: { id: "mp-cardholder", placeholder: "Nome no cartão" },
-        cardholderEmail: { id: "mp-email", placeholder: "E-mail" },
-        cardNumber: { id: "mp-card-number", placeholder: "Número do cartão" },
-        cardExpirationMonth: { id: "mp-exp-month", placeholder: "MM" },
-        cardExpirationYear: { id: "mp-exp-year", placeholder: "AA" },
-        securityCode: { id: "mp-cvv", placeholder: "CVV" },
-        installments: { id: "mp-installments" },
-        identificationType: { id: "mp-doctype" },
-        identificationNumber: { id: "mp-docnumber", placeholder: "CPF" },
-        issuer: { id: "mp-issuer" },
-      },
-      callbacks: {
-        onFormMounted: (err: any) => { if (err) console.error(err); },
-        onSubmit: async (e: any) => {
-          e.preventDefault();
-          const { getCardFormData } = cardForm;
-          const formData = getCardFormData();
-          setCardData({
-            token: formData.token,
-            installments: parseInt(formData.installments),
-            paymentMethodId: formData.paymentMethodId,
-          });
-        },
-      },
-    });
-    return () => cardForm.unmount?.();
-  }, [step, paymentMethod, mpLoaded, total]);
-
-  /* ── Funções ─────────────────────────────────────────────── */
-  async function applyCoupon() {
-    setCouponError("");
-    try {
-      const r = await fetch(`${API}/api/orders/validate-coupon`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponCode, subtotal }),
-      });
-      const d = await r.json();
-      if (!r.ok) { setCouponError(d.error); return; }
-      setCouponDiscount(d.discount);
-    } catch { setCouponError("Erro ao validar cupom"); }
+  /* ── Cupom (validação local) ───────────────────────────── */
+  function applyCoupon() {
+    setCouponError(""); setCouponDiscount(0); setCouponFreeShip(false);
+    const c = COUPONS[couponCode.trim().toUpperCase()];
+    if (!c) { setCouponError("Cupom inválido ou expirado."); return; }
+    if (c.min && subtotal < c.min) { setCouponError(`Válido para pedidos acima de ${formatBRL(c.min)}.`); return; }
+    if (c.type === "PERCENTAGE") setCouponDiscount(Math.round(subtotal * (c.value / 100) * 100) / 100);
+    else if (c.type === "FIXED") setCouponDiscount(c.value);
+    else if (c.type === "FREE_SHIPPING") setCouponFreeShip(true);
   }
 
-  async function createOrder(): Promise<string> {
-    const body = {
-      customerName: customer.name,
-      customerEmail: customer.email,
-      customerPhone: customer.phone.replace(/\D/g, ""),
-      customerDoc: customer.cpf.replace(/\D/g, ""),
-      deliveryMethod,
-      ...(deliveryMethod === "DELIVERY" && {
-        addressStreet: address.street,
-        addressNumber: address.number,
-        addressComplement: address.complement,
-        addressNeighborhood: address.neighborhood,
-        addressCity: address.city,
-        addressState: address.state,
-        addressZip: address.zip.replace(/\D/g, ""),
-      }),
-      items: items.map((i) => ({
-        name: i.name,
-        quantity: i.quantity,
-        unitPrice: i.price,
-        image: i.image,
-        ...(i.kind === "product" ? { productId: i.id } : { kitId: i.id }),
-      })),
-      couponCode: couponCode || undefined,
-      customerNote: "",
-    };
-    const r = await fetch(`${API}/api/orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error((await r.json()).error ?? "Erro ao criar pedido");
-    const order = await r.json();
-    return order.id;
-  }
-
-  async function processPayment(oId: string) {
-    const [firstName, ...rest] = customer.name.trim().split(" ");
-    const lastName = rest.join(" ") || firstName;
-    const cpf = customer.cpf.replace(/\D/g, "");
-
-    const body: Record<string, unknown> = {
-      orderId: oId,
-      email: customer.email,
-      cpf,
-      firstName,
-      lastName,
-      method: paymentMethod,
-    };
-
-    if (paymentMethod === "credit_card") {
-      if (!cardData.token) throw new Error("Dados do cartão inválidos");
-      body.token = cardData.token;
-      body.installments = cardData.installments;
-      body.paymentMethodId = cardData.paymentMethodId;
-    }
-
-    const r = await fetch(`${API}/api/payments/process`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error((await r.json()).error ?? "Erro no pagamento");
-    return r.json();
-  }
-
-  async function handleFinalize() {
+  /* ── Finalizar: cria o pedido localmente ───────────────── */
+  function handleFinalize() {
     setLoading(true);
-    let createdOrderId: string | null = null;
     try {
-      // 1. Cria o pedido no banco
-      createdOrderId = await createOrder();
-      setOrderId(createdOrderId);
-
-      // 2. Processa o pagamento
-      const result = await processPayment(createdOrderId);
-      setOrderNumber(result.orderNumber ?? createdOrderId);
-      setPaymentResult({
-        pixCode: result.pixCode,
-        pixBase64: result.pixQrBase64,
-        boletoUrl: result.boletoUrl,
-        status: result.status,
+      const order = addOrder({
+        customerName: customer.name,
+        customerPhone: customer.phone.replace(/\D/g, ""),
+        fulfillment: deliveryMethod === "DELIVERY" ? "entrega" : "retirada",
+        userId: user?.id,
+        items: items.map((i) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: i.price,
+          note: i.note,
+        })),
+        total,
+        note: [
+          paymentMethod === "pix" ? "Pagamento: PIX" : paymentMethod === "credit_card" ? "Pagamento: Cartão" : "Pagamento: Boleto",
+          couponCode ? `Cupom: ${couponCode.toUpperCase()}` : "",
+          deliveryMethod === "DELIVERY" && address.street
+            ? `Entrega: ${address.street}, ${address.number} - ${address.neighborhood}, ${address.city}/${address.state}, CEP ${address.zip}`
+            : deliveryMethod === "PICKUP" ? "Retirada na loja" : "",
+        ].filter(Boolean).join(" · "),
       });
-
-      clearCart();
+      setOrderNumber(order.id);
+      clear();
       setStep("success");
-    } catch (err: any) {
-      // Se o pedido foi criado mas o pagamento falhou, cancela o pedido
-      if (createdOrderId) {
-        try {
-          await fetch(`${API}/api/orders/${createdOrderId}/cancel`, { method: "PATCH" });
-        } catch {/* ignora erro do cancel */}
-      }
-      alert(`Erro: ${err.message}`);
     } finally {
       setLoading(false);
     }
   }
+
+  /* ── Mensagem de WhatsApp para a tela de sucesso ────────── */
+  const waMessage = useMemo(() => {
+    const lines = [
+      `Olá! Acabei de enviar o pedido *${orderNumber}* pelo site. 🐾`,
+      `Total estimado: ${formatBRL(total)} (${paymentMethod === "pix" ? "PIX" : paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
+      `Gostaria de confirmar a disponibilidade e o pagamento.`,
+    ];
+    return lines.join("\n");
+  }, [orderNumber, total, paymentMethod]);
 
   if (!items.length && step !== "success") {
     return (
       <div className="container-app py-20 text-center">
         <span className="text-6xl">🛒</span>
         <h2 className="section-title mt-6">Seu carrinho está vazio</h2>
+        <p className="mt-2 text-navy-500">Adicione produtos para finalizar seu pedido.</p>
         <Link to="/produtos" className="btn-primary mt-6">Ver produtos</Link>
       </div>
     );
@@ -289,35 +178,39 @@ export function Checkout() {
   /* ═══ SUCCESS ═════════════════════════════════════════════ */
   if (step === "success") {
     return (
-      <div className="container-app max-w-lg py-20 text-center">
-        <CheckCircle size={72} className="mx-auto text-green-500" />
-        <h1 className="section-title mt-6">Pedido criado! 🎉</h1>
-        <p className="mt-3 text-navy-500">Número do pedido: <strong className="text-navy-700">{orderNumber}</strong></p>
+      <div className="container-app max-w-lg py-16 text-center sm:py-20">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 animate-pop">
+          <CheckCircle size={44} className="text-green-500" />
+        </div>
+        <h1 className="section-title mt-6">Pedido enviado! 🎉</h1>
+        <p className="mt-3 text-navy-500">
+          Número do pedido: <strong className="text-navy-700">{orderNumber}</strong>
+        </p>
 
-        {paymentResult.status === "APPROVED" && (
-          <div className="mt-6 rounded-3xl bg-green-50 p-5 text-green-700">✅ Pagamento aprovado! Em breve você receberá a confirmação.</div>
-        )}
+        <div className="mt-6 rounded-3xl border border-cream-200 bg-cream-50 p-5 text-left text-sm text-navy-600">
+          <p className="flex items-center gap-2 font-bold text-navy-700">
+            <Sparkles size={16} className="text-orange-500" /> Próximos passos
+          </p>
+          <ol className="mt-3 space-y-2">
+            <li>1. Vamos verificar a disponibilidade dos itens.</li>
+            <li>2. Confirmamos o valor final e o prazo com você.</li>
+            <li>3. Combinamos o pagamento ({paymentMethod === "pix" ? "PIX" : paymentMethod === "credit_card" ? "cartão" : "boleto"}) e a {deliveryMethod === "DELIVERY" ? "entrega" : "retirada"}.</li>
+          </ol>
+        </div>
 
-        {(paymentResult.status === "PENDING" || paymentResult.status === "IN_PROCESS") && paymentMethod === "pix" && (
-          <div className="mt-6">
-            <PixDisplay pixCode={paymentResult.pixCode} pixBase64={paymentResult.pixBase64} />
-          </div>
-        )}
+        <a
+          href={whatsappLink(waMessage, settings.whatsapp)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-green mt-6 w-full"
+        >
+          <WhatsAppIcon size={18} /> Agilizar pelo WhatsApp
+        </a>
 
-        {paymentMethod === "boleto" && paymentResult.boletoUrl && (
-          <a href={paymentResult.boletoUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary mt-6 block">
-            📄 Abrir boleto
-          </a>
-        )}
-
-        {paymentMethod === "credit_card" && paymentResult.status === "REJECTED" && (
-          <div className="mt-6 rounded-3xl bg-red-50 p-5 text-red-700">
-            ❌ Pagamento recusado. Tente novamente ou escolha outro método.
-          </div>
-        )}
-
-        <p className="mt-6 text-sm text-navy-400">Dúvidas? Fale conosco pelo WhatsApp: {settings.whatsapp}</p>
-        <Link to="/" className="btn-outline-orange mt-6">Voltar para a loja</Link>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Link to="/pedidos" className="btn-outline-orange flex-1">Meus pedidos</Link>
+          <Link to="/" className="btn-ghost flex-1 border border-cream-200">Voltar para a loja</Link>
+        </div>
       </div>
     );
   }
@@ -330,25 +223,40 @@ export function Checkout() {
     { key: "payment",  label: "Pagamento" },
   ];
   const stepIdx = steps.findIndex((s) => s.key === step);
+  const canAddress = customer.name && customer.email && customer.phone && customer.cpf;
 
   return (
     <div className="bg-cream-50 py-8 sm:py-12">
       <div className="container-app max-w-4xl">
 
         {/* Back button */}
-        <button onClick={() => stepIdx > 0 ? setStep(steps[stepIdx - 1].key) : navigate(-1)} className="mb-6 flex items-center gap-2 text-navy-500 hover:text-navy-700">
+        <button
+          onClick={() => (stepIdx > 0 ? setStep(steps[stepIdx - 1].key) : navigate(-1))}
+          className="mb-6 flex items-center gap-2 text-navy-500 transition-colors hover:text-navy-700"
+        >
           <ArrowLeft size={18} /> Voltar
         </button>
 
-        <h1 className="font-display text-3xl font-bold text-navy-700">Finalizar Pedido</h1>
+        <h1 className="font-display text-3xl font-bold text-navy-700">Finalizar pedido</h1>
 
         {/* Progress steps */}
         <div className="mt-6 flex items-center gap-2">
           {steps.map((s, i) => (
             <div key={s.key} className="flex items-center gap-2">
-              <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all ${i <= stepIdx ? "bg-orange-500 text-white" : "bg-cream-200 text-navy-400"}`}>{i + 1}</div>
-              <span className={`hidden text-sm font-semibold sm:block ${i === stepIdx ? "text-orange-600" : "text-navy-400"}`}>{s.label}</span>
-              {i < steps.length - 1 && <div className={`h-px w-8 sm:w-12 ${i < stepIdx ? "bg-orange-400" : "bg-cream-200"}`} />}
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                  i <= stepIdx ? "text-white" : "bg-cream-200 text-navy-400"
+                }`}
+                style={i <= stepIdx ? { backgroundColor: "var(--a500)" } : undefined}
+              >
+                {i < stepIdx ? "✓" : i + 1}
+              </div>
+              <span className={`hidden text-sm font-semibold sm:block ${i === stepIdx ? "text-orange-600" : "text-navy-400"}`}>
+                {s.label}
+              </span>
+              {i < steps.length - 1 && (
+                <div className={`h-px w-8 sm:w-12 ${i < stepIdx ? "bg-orange-400" : "bg-cream-200"}`} />
+              )}
             </div>
           ))}
         </div>
@@ -360,11 +268,11 @@ export function Checkout() {
 
             {/* STEP: CART */}
             {step === "cart" && (
-              <div>
+              <div className="animate-fade-in">
                 <h2 className="font-display text-xl font-bold text-navy-700">Resumo do carrinho</h2>
                 <div className="mt-4 space-y-3">
                   {items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-cream-50 p-3">
+                    <div key={`${item.kind}-${item.id}`} className="flex items-center gap-3 rounded-2xl bg-cream-50 p-3">
                       <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-cream-200">
                         {item.image ? <img src={item.image} alt={item.name} className="h-full w-full object-cover" /> : <ShoppingBag size={24} className="text-navy-400" />}
                       </div>
@@ -385,7 +293,12 @@ export function Checkout() {
                     <button onClick={applyCoupon} className="btn-teal shrink-0 px-4">Aplicar</button>
                   </div>
                   {couponError && <p className="mt-1 text-sm text-red-500">{couponError}</p>}
-                  {couponDiscount > 0 && <p className="mt-1 text-sm font-bold text-green-600">✅ Desconto de {formatBRL(couponDiscount)} aplicado!</p>}
+                  {(couponDiscount > 0 || couponFreeShip) && (
+                    <p className="mt-1 text-sm font-bold text-green-600">
+                      ✅ {couponFreeShip ? "Frete grátis aplicado!" : `Desconto de ${formatBRL(couponDiscount)} aplicado!`}
+                    </p>
+                  )}
+                  <p className="mt-1.5 text-xs text-navy-400">Experimente: WAZOO10, BEMVINDO ou FRETEGRATIS</p>
                 </div>
 
                 <button onClick={() => setStep("customer")} className="btn-primary mt-6 w-full">Continuar → Dados pessoais</button>
@@ -394,7 +307,7 @@ export function Checkout() {
 
             {/* STEP: CUSTOMER */}
             {step === "customer" && (
-              <div>
+              <div className="animate-fade-in">
                 <h2 className="font-display text-xl font-bold text-navy-700">Seus dados</h2>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   {[
@@ -421,7 +334,7 @@ export function Checkout() {
                   ))}
                 </div>
                 <button
-                  disabled={!customer.name || !customer.email || !customer.phone || !customer.cpf}
+                  disabled={!canAddress}
                   onClick={() => setStep("address")}
                   className="btn-primary mt-6 w-full disabled:opacity-60"
                 >
@@ -432,11 +345,11 @@ export function Checkout() {
 
             {/* STEP: ADDRESS */}
             {step === "address" && (
-              <div>
+              <div className="animate-fade-in">
                 <h2 className="font-display text-xl font-bold text-navy-700">Forma de entrega</h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {[
-                    { key: "DELIVERY" as const, label: "Entrega", icon: Truck, desc: "Receba em casa" },
+                    { key: "DELIVERY" as const, label: "Entrega", icon: Truck, desc: settings.deliveryFee > 0 ? `Frete ${formatBRL(settings.deliveryFee)}` : "Frete grátis" },
                     { key: "PICKUP"   as const, label: "Retirada", icon: MapPin, desc: "Retire na loja (SP)" },
                   ].map((o) => (
                     <button key={o.key} onClick={() => setDeliveryMethod(o.key)}
@@ -495,63 +408,44 @@ export function Checkout() {
 
             {/* STEP: PAYMENT */}
             {step === "payment" && (
-              <div>
+              <div className="animate-fade-in">
                 <h2 className="font-display text-xl font-bold text-navy-700">Forma de pagamento</h2>
+                <p className="mt-1 text-sm text-navy-400">Você combina o pagamento com a gente após a confirmação.</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  {[
-                    { key: "pix" as const,         label: "PIX",           icon: "💚", desc: "Aprovação imediata" },
-                    { key: "credit_card" as const,  label: "Cartão Crédito", icon: "💳", desc: "Até 12x sem juros" },
-                    { key: "boleto" as const,       label: "Boleto",        icon: "📄", desc: "Vencimento em 3 dias" },
-                  ].map((m) => (
-                    <button key={m.key} onClick={() => setPaymentMethod(m.key)}
-                      className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-4 transition-all ${paymentMethod === m.key ? "border-orange-500 bg-orange-50" : "border-cream-200 hover:border-orange-200"}`}>
-                      <span className="text-2xl">{m.icon}</span>
-                      <p className="text-sm font-bold text-navy-700">{m.label}</p>
-                      <p className="text-[10px] text-navy-400">{m.desc}</p>
-                    </button>
-                  ))}
+                  {methods.map((m) => {
+                    const Icon = m.icon;
+                    const active = paymentMethod === m.key;
+                    return (
+                      <button key={m.key} onClick={() => setPaymentMethod(m.key)}
+                        className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 p-4 transition-all ${active ? "border-orange-500 bg-orange-50" : "border-cream-200 hover:border-orange-200"}`}>
+                        <Icon size={24} className={active ? "text-orange-500" : "text-navy-400"} />
+                        <p className="text-sm font-bold text-navy-700">{m.label}</p>
+                        <p className="text-[10px] text-navy-400">{m.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Formulário Cartão MercadoPago */}
-                {paymentMethod === "credit_card" && (
-                  <div className="mt-6 rounded-2xl border border-cream-200 p-4">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-bold text-navy-600">
-                      <CreditCard size={16} /> Dados do cartão (criptografado pelo MercadoPago)
-                    </div>
-                    {mpLoaded ? (
-                      <form id="mp-card-form" className="grid gap-3 sm:grid-cols-2">
-                        <div className="sm:col-span-2"><input id="mp-cardholder" className="input" /></div>
-                        <div className="sm:col-span-2"><input id="mp-email" className="input" /></div>
-                        <div className="sm:col-span-2"><input id="mp-card-number" className="input" /></div>
-                        <div><input id="mp-exp-month" className="input" /></div>
-                        <div><input id="mp-exp-year" className="input" /></div>
-                        <div><input id="mp-cvv" className="input" /></div>
-                        <div><select id="mp-doctype" className="input" /></div>
-                        <div><input id="mp-docnumber" className="input" /></div>
-                        <div><select id="mp-issuer" className="input" /></div>
-                        <div className="sm:col-span-2"><select id="mp-installments" className="input" /></div>
-                      </form>
-                    ) : (
-                      <div className="flex items-center gap-2 text-navy-400"><Loader2 size={16} className="animate-spin" /> Carregando formulário seguro...</div>
-                    )}
+                {paymentMethod === "pix" && payCfg.pixDiscount > 0 && (
+                  <div className="mt-4 rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-700">
+                    💚 Pagando com PIX você ganha <strong>{payCfg.pixDiscount}% de desconto</strong> ({formatBRL(pixDiscount)}).
                   </div>
                 )}
-
-                {paymentMethod === "pix" && (
-                  <div className="mt-4 rounded-2xl bg-green-50 p-4 text-sm text-green-700">
-                    💚 O QR Code PIX será gerado após confirmar o pedido. Válido por 30 minutos.
+                {paymentMethod === "credit_card" && (
+                  <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-700">
+                    💳 Parcele em até {payCfg.maxInstall}x. Os dados do cartão são combinados de forma segura na confirmação.
                   </div>
                 )}
                 {paymentMethod === "boleto" && (
-                  <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-700">
-                    📄 O boleto será gerado após confirmar o pedido. Prazo de compensação: 1-3 dias úteis.
+                  <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
+                    📄 O boleto é enviado após a confirmação da disponibilidade. Vencimento em 3 dias úteis.
                   </div>
                 )}
 
                 <button onClick={handleFinalize} disabled={loading} className="btn-primary mt-6 w-full disabled:opacity-60">
-                  {loading ? <><Loader2 size={18} className="animate-spin" /> Processando...</> : "🔒 Confirmar e pagar"}
+                  {loading ? <><Loader2 size={18} className="animate-spin" /> Enviando...</> : <>🐾 Enviar pedido</>}
                 </button>
-                <p className="mt-2 text-center text-xs text-navy-400">🔒 Pagamento seguro processado pelo MercadoPago</p>
+                <p className="mt-2 text-center text-xs text-navy-400">Sem cobrança agora — combinamos tudo pelo WhatsApp.</p>
               </div>
             )}
           </div>
@@ -566,8 +460,14 @@ export function Checkout() {
               </div>
               {couponDiscount > 0 && (
                 <div className="flex justify-between text-green-600">
-                  <span><Tag size={13} className="inline mr-1" />Desconto ({couponCode})</span>
+                  <span><Tag size={13} className="inline mr-1" />Cupom ({couponCode})</span>
                   <span>- {formatBRL(couponDiscount)}</span>
+                </div>
+              )}
+              {pixDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span><QrCode size={13} className="inline mr-1" />Desconto PIX</span>
+                  <span>- {formatBRL(pixDiscount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-navy-500">
@@ -580,7 +480,7 @@ export function Checkout() {
               </div>
             </div>
             <div className="mt-5 rounded-2xl bg-cream-50 p-3 text-xs text-navy-500">
-              <p>🐾 <strong>Sob encomenda</strong> — prazo médio de 5–7 dias úteis após confirmação do pagamento.</p>
+              <p>🐾 <strong>Sob encomenda</strong> — prazo médio de 5–7 dias úteis após a confirmação.</p>
             </div>
           </div>
         </div>

@@ -133,6 +133,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       orders,
       addOrder: (input) => {
         const now = Date.now();
+        const subtotal = input.items.reduce((s, i) => s + i.price * i.quantity, 0);
         const order: Order = {
           id: nextOrderId(orders),
           userId: input.userId,
@@ -141,6 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           petName: input.petName,
           fulfillment: input.fulfillment,
           items: input.items,
+          subtotal,
           total: input.total,
           note: input.note,
           status: "Solicitação enviada",
