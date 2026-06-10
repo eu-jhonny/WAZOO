@@ -6,6 +6,27 @@ const INTERVAL_MS = 6000;
 
 const SLIDES = [
   {
+    id: "copa",
+    image: "/images/banners/copa.jpg",
+    fallbackColor: "#071444",
+    badge: "⚽ Edição Especial · Copa 2026",
+    badgeColor: "bg-[#FFDF00]/20 text-[#FFDF00] border-[#FFDF00]/30",
+    title: "Copa dos Pets! 🏆",
+    subtitle: "Vista seu pet com as cores do Brasil.\nBandanas, roupinhas e kits temáticos.",
+    ctas: [
+      { to: "/produtos", label: "Ver coleção Copa →", style: "bg-[#FFDF00] text-[#002776] hover:bg-yellow-300 font-bold" },
+      { to: "/kits",     label: "Ver kits",           style: "bg-[#009C3B] text-white hover:bg-green-700 font-bold" },
+    ],
+    extra: (
+      <div className="absolute right-8 bottom-6 hidden sm:flex lg:right-16">
+        <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-4 border-[#FFDF00] text-center shadow-lg sm:h-28 sm:w-28 bg-[#002776]">
+          <span className="text-2xl sm:text-3xl">🏆</span>
+          <span className="font-display text-[10px] font-extrabold uppercase text-[#FFDF00] sm:text-xs">Copa<br/>2026</span>
+        </div>
+      </div>
+    ),
+  },
+  {
     id: "caes",
     image: "/images/banners/cachorros.jpg",
     fallbackColor: "#78350F",
@@ -34,6 +55,20 @@ const SLIDES = [
     extra: null,
   },
   {
+    id: "festa",
+    image: "/images/banners/festajunina.jpg",
+    fallbackColor: "#9A3412",
+    badge: "🎉 Arraiá Pet 2025",
+    badgeColor: "bg-yellow-400/20 text-yellow-200 border-yellow-400/30",
+    title: "Festa Junina\ndos Pets! 🌽",
+    subtitle: "Chapéus de palha, bandanas xadrez e kits temáticos.\nFaça seu pet brilhar no arraial!",
+    ctas: [
+      { to: "/kits", label: "Ver kits Festa Junina →", style: "bg-white text-orange-700 hover:bg-cream-50 font-bold" },
+      { to: "/produtos", label: "Ver tudo", style: "bg-orange-500/80 text-white hover:bg-orange-600 backdrop-blur-sm" },
+    ],
+    extra: null,
+  },
+  {
     id: "conforto",
     image: "/images/banners/conforto.jpg",
     fallbackColor: "#1C3A2E",
@@ -45,24 +80,6 @@ const SLIDES = [
       { to: "/produtos", label: "Ver produtos →", style: "bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg" },
     ],
     extra: null,
-  },
-  {
-    id: "promo",
-    image: "/images/banners/promo.jpg",
-    fallbackColor: "#1E3A5F",
-    badge: "🔥 Ofertas Especiais",
-    badgeColor: "bg-white/15 text-white border-white/20",
-    title: "Promoções\nda semana!",
-    subtitle: "Descontos em produtos selecionados.\nAproveite enquanto durar!",
-    ctas: [
-      { to: "/produtos", label: "Aproveitar agora →", style: "bg-orange-500 text-white hover:bg-orange-600 shadow-lg" },
-    ],
-    extra: (
-      <div className="absolute top-8 right-12 hidden sm:flex flex-col items-center justify-center h-24 w-24 rounded-full bg-orange-500 shadow-lg text-white font-display text-center font-bold leading-tight">
-        <span className="text-2xl">🔥</span>
-        <span className="text-xs font-bold uppercase mt-1">Oferta</span>
-      </div>
-    ),
   },
 ];
 

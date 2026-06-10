@@ -245,12 +245,15 @@ export function Checkout() {
 
   async function handleFinalize() {
     setLoading(true);
+    let createdOrderId: string | null = null;
     try {
-      const oId = await createOrder();
-      setOrderId(oId);
+      // 1. Cria o pedido no banco
+      createdOrderId = await createOrder();
+      setOrderId(createdOrderId);
 
-      const result = await processPayment(oId);
-      setOrderNumber(result.orderNumber ?? oId);
+      // 2. Processa o pagamento
+      const result = await processPayment(createdOrderId);
+      setOrderNumber(result.orderNumber ?? createdOrderId);
       setPaymentResult({
         pixCode: result.pixCode,
         pixBase64: result.pixQrBase64,
@@ -261,6 +264,12 @@ export function Checkout() {
       clearCart();
       setStep("success");
     } catch (err: any) {
+      // Se o pedido foi criado mas o pagamento falhou, cancela o pedido
+      if (createdOrderId) {
+        try {
+          await fetch(`${API}/api/orders/${createdOrderId}/cancel`, { method: "PATCH" });
+        } catch {/* ignora erro do cancel */}
+      }
       alert(`Erro: ${err.message}`);
     } finally {
       setLoading(false);

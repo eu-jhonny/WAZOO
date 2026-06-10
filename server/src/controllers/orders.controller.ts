@@ -171,3 +171,17 @@ export async function validateCoupon(req: Request, res: Response) {
     discount,
   });
 }
+
+/* ── Cancelar pedido pendente ────────────────────────── */
+export async function cancelOrder(req: Request, res: Response) {
+  const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+  if (!order) throw new AppError("Pedido não encontrado", 404);
+  if (order.status === "DELIVERED" || order.status === "CANCELLED") {
+    throw new AppError("Este pedido não pode ser cancelado", 400);
+  }
+  const updated = await prisma.order.update({
+    where: { id: req.params.id },
+    data: { status: "CANCELLED" },
+  });
+  res.json(updated);
+}

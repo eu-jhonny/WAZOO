@@ -27,6 +27,10 @@ const TRUST = [
   { icon: Truck,       label: "Entrega combinada",  color: "text-teal-500",   bg: "bg-teal-50"    },
 ] as const;
 
+const COPA_ITEMS  = ["Bandanas e lenços temáticos", "Brinquedos Copa", "Roupinhas e acessórios", "Petiscos especiais"];
+const FESTA_ITEMS = ["Chapéus de palha pet", "Bandanas xadrez", "Brinquedos e petiscos temáticos", "Kits Arraiá completos"];
+const BUNTING     = ["#F0427E", "#FFDF00", "#009C3B", "#FF7A1A", "#8B5FD0", "#18B6C4"];
+
 const MINI_BANNERS = [
   {
     image: "/images/banners/cachorros.jpg",
@@ -182,6 +186,133 @@ export function Home() {
           </div>
           <div className="mt-8 text-center sm:hidden">
             <Link to="/produtos" className="btn-outline-orange">Ver todos os produtos <ArrowRight size={16} /></Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ MINI BANNERS Copa + Festa ══════════════════ */}
+      <section className="py-6 sm:py-8">
+        <div className="container-app grid gap-4 sm:grid-cols-2">
+          <Reveal>
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002776] to-[#009C3B] shadow-md">
+              <img src="/images/banners/copa.jpg" alt="Copa dos Pets"
+                className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-500 hover:scale-105"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <div className="relative flex min-h-[170px] flex-col justify-end p-5 sm:min-h-[210px] sm:p-7">
+                <span className="mb-1 text-xs font-extrabold uppercase tracking-widest text-[#FFDF00]">⚽ Coleção Copa 2026</span>
+                <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">Torcida Animal! 🏆</h3>
+                <p className="mt-1 text-sm text-blue-200">Vista seu pet com as cores do Brasil</p>
+                <Link to="/produtos" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#FFDF00] px-5 py-2.5 text-sm font-bold text-[#002776] transition hover:-translate-y-0.5 hover:bg-yellow-300">
+                  Ver coleção →
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+          <Reveal delay={80}>
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 to-yellow-500 shadow-md">
+              <div className="pointer-events-none absolute left-0 right-0 top-0 flex overflow-hidden" aria-hidden>
+                {Array.from({ length: 18 }).map((_, i) => (
+                  <div key={i} className="h-6 flex-1" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", backgroundColor: BUNTING[i % BUNTING.length] }} />
+                ))}
+              </div>
+              <img src="/images/banners/festajunina.jpg" alt="Arraiá Pet"
+                className="absolute inset-0 h-full w-full object-cover opacity-40 transition-transform duration-500 hover:scale-105"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <div className="relative flex min-h-[170px] flex-col justify-end p-5 pt-8 sm:min-h-[210px] sm:p-7 sm:pt-10">
+                <span className="mb-1 text-xs font-extrabold uppercase tracking-widest text-yellow-200">🎉 Arraiá Pet</span>
+                <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">Festa Junina! 🌽</h3>
+                <p className="mt-1 text-sm text-yellow-100">Chapéus, bandanas e kits temáticos</p>
+                <Link to="/kits" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-orange-600 transition hover:-translate-y-0.5 hover:bg-cream-50">
+                  Ver kits →
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ══ COPA DOS PETS ══════════════════════════════ */}
+      <section className="relative overflow-hidden py-14 sm:py-20" style={{ background: "linear-gradient(135deg, #071444 0%, #0A3A1A 50%, #071444 100%)" }}>
+        <div className="container-app relative">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <Reveal>
+              <div className="relative overflow-hidden rounded-[2.5rem] shadow-soft-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#002776] to-[#009C3B]" />
+                <img src="/images/banners/copa.jpg" alt="Copa dos Pets"
+                  className="relative h-64 w-full object-cover sm:h-80"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 flex h-2">
+                  <div className="flex-1 bg-[#002776]" /><div className="flex-1 bg-[#FFDF00]" /><div className="flex-1 bg-[#009C3B]" />
+                </div>
+              </div>
+            </Reveal>
+            <Reveal delay={100}>
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#FFDF00]/15 px-4 py-1.5 text-sm font-extrabold uppercase tracking-wide text-[#FFDF00]">⚽ Coleção Especial</span>
+                <h2 className="mt-4 font-display text-4xl font-bold text-white sm:text-5xl">Copa dos Pets! 🏆</h2>
+                <p className="mt-3 text-lg text-blue-200">Deixe seu pet pronto para torcer. Acessórios temáticos, brinquedos e muito mais!</p>
+                <ul className="mt-6 space-y-3">
+                  {COPA_ITEMS.map((item) => (
+                    <li key={item} className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#009C3B] text-xs font-bold text-white">✓</span>
+                      <span className="font-semibold text-blue-100">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link to="/produtos" className="btn bg-[#FFDF00] px-6 py-3 font-bold text-[#002776] shadow-soft hover:-translate-y-0.5 hover:bg-yellow-300">
+                    <ShoppingBag size={18} /> Ver coleção Copa
+                  </Link>
+                  <a href={whatsappLink("Olá! Quero saber mais sobre a coleção Copa dos Pets!", settings.whatsapp)} target="_blank" rel="noopener noreferrer" className="btn bg-[#009C3B] px-6 py-3 font-bold text-white shadow-soft hover:-translate-y-0.5 hover:bg-green-700">
+                    <WhatsAppIcon size={18} /> Pedir agora
+                  </a>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ ARRAIÁ PET ══════════════════════════════════ */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-yellow-50 to-cream-50 py-14 sm:py-20">
+        <div className="pointer-events-none absolute left-0 right-0 top-0 flex overflow-hidden" aria-hidden>
+          {Array.from({ length: 26 }).map((_, i) => (
+            <div key={i} className="h-8 flex-1" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)", backgroundColor: BUNTING[i % BUNTING.length] }} />
+          ))}
+        </div>
+        <div className="container-app pt-6">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <Reveal>
+              <div>
+                <span className="eyebrow">🎉 Arraiá Pet</span>
+                <h2 className="section-title mt-4">Festa Junina dos Pets! 🌽</h2>
+                <p className="mt-3 text-lg leading-relaxed text-navy-500">Vista seu pet com chapéus de palha, bandanas xadrez e looks caipiras fofíssimos.</p>
+                <ul className="mt-6 space-y-3">
+                  {FESTA_ITEMS.map((item) => (
+                    <li key={item} className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm">🌟</span>
+                      <span className="font-semibold text-navy-600">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link to="/kits" className="btn-primary"><ShoppingBag size={18} /> Ver kits Festa Junina</Link>
+                  <Link to="/produtos" className="btn-outline-orange">Ver todos <ArrowRight size={16} /></Link>
+                </div>
+              </div>
+            </Reveal>
+            <Reveal delay={100}>
+              <div className="relative overflow-hidden rounded-[2.5rem] shadow-soft-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-yellow-500" />
+                <img src="/images/banners/festajunina.jpg" alt="Arraiá Pet"
+                  className="relative h-72 w-full object-cover sm:h-80"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>
