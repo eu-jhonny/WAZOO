@@ -72,9 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [users, currentUserId]
   );
 
-  /** Aplica uma transformação ao usuário atual dentro da lista. */
+  /** Aplica uma transformação ao usuário atual e garante persistência imediata. */
   const mutateCurrent = (fn: (u: User) => User) => {
     if (!currentUserId) return;
+    // setUsers já usa o setter síncrono do usePersistentState (salva no localStorage
+    // dentro do próprio updater, sem depender do useEffect assíncrono)
     setUsers((prev) => prev.map((u) => (u.id === currentUserId ? fn(u) : u)));
   };
 
