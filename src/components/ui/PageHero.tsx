@@ -25,6 +25,10 @@ export function PageHero({ eyebrow, title, subtitle, icon: Icon, mascot, chips }
       <div className="absolute inset-0 bg-gradient-to-br from-navy-800 via-navy-700 to-orange-700" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
+      {/* Texturas sutis */}
+      <div className="pattern-diagonal absolute inset-0 opacity-60" aria-hidden />
+      <div className="bg-dots-light absolute inset-0 opacity-[0.4]" aria-hidden />
+
       {/* Círculos decorativos de fundo */}
       <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-orange-500/15 blur-3xl" aria-hidden />
       <div className="absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-teal-500/10 blur-3xl" aria-hidden />

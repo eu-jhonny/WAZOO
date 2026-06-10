@@ -51,7 +51,7 @@ export function Avaliacoes() {
         mascot={img.mascot.saudacao}
       />
 
-      <section className="section">
+      <section className="section pattern-paws">
         <div className="container-app">
           {/* Resumo */}
           <Reveal>

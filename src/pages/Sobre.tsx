@@ -72,7 +72,7 @@ export function Sobre() {
       </section>
 
       {/* Valores */}
-      <section className="section bg-cream-100">
+      <section className="section bg-cream-100 pattern-grid">
         <div className="container-app">
           <Reveal>
             <SectionHeader

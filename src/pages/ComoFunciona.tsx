@@ -107,7 +107,7 @@ export function ComoFunciona() {
       </section>
 
       {/* Significado */}
-      <section className="section bg-cream-100">
+      <section className="section bg-cream-100 pattern-grid">
         <div className="container-app grid items-center gap-10 lg:grid-cols-2">
           <Reveal>
             <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-orange-100 via-cream-100 to-brand-purple/15 p-8">

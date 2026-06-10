@@ -247,7 +247,7 @@ export function Cart() {
                   <WhatsAppIcon size={20} /> Enviar pedido pelo WhatsApp
                 </button>
                 <Link to="/checkout" className="btn-primary w-full flex items-center justify-center gap-2">
-                  Finalizar com pagamento <ArrowRight size={16} />
+                  Finalizar pedido com entrega <ArrowRight size={16} />
                 </Link>
 
                 {!isLoggedIn && (
