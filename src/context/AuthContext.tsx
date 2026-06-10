@@ -24,6 +24,13 @@ export interface RegisterInput {
   preference: User["preference"];
 }
 
+export interface GoogleProfile {
+  name: string;
+  email: string;
+  picture?: string;
+  googleId?: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   isLoggedIn: boolean;
@@ -31,6 +38,7 @@ interface AuthContextValue {
 
   register: (data: RegisterInput) => AuthResult;
   login: (email: string, password: string) => AuthResult;
+  loginWithGoogle: (profile: GoogleProfile) => AuthResult;
   logout: () => void;
   updateProfile: (data: Partial<Omit<User, "id" | "pets">>) => void;
 
@@ -103,6 +111,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: "E-mail ou senha inválidos." };
         }
         setCurrentUserId(found.id);
+        return { ok: true };
+      },
+
+      loginWithGoogle: (profile) => {
+        const email = profile.email.trim().toLowerCase();
+
+        // Verifica se já existe uma conta com esse e-mail
+        const existing = users.find((u) => u.email.toLowerCase() === email);
+        if (existing) {
+          setCurrentUserId(existing.id);
+          return { ok: true };
+        }
+
+        // Cria nova conta automática com dados do Google
+        const newUser: User = {
+          id:        uid("u-"),
+          name:      profile.name,
+          email:     profile.email,
+          phone:     "",
+          password:  "", // usuário Google não tem senha local
+          address:   { street: "", neighborhood: "", city: "" },
+          preference: "entrega",
+          pets:      [],
+          createdAt: Date.now(),
+        };
+        setUsers((prev) => [...prev, newUser]);
+        setCurrentUserId(newUser.id);
         return { ok: true };
       },
 

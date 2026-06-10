@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 
-/* ── Ícones SVG de provedores ─────────────────────────────── */
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
+/* ── Ícones dos provedores ─────────────────────── */
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
@@ -24,27 +27,89 @@ function MetaIcon() {
 }
 function AppleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden>
-      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/>
+    <svg viewBox="0 0 814 1000" className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden>
+      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.3-165-39.3c-76.5 0-103.7 40.8-165.9 40.8s-105.5-57.8-155.3-127.1C43 375.2 32.4 222.4 84.5 130.7c36.5-63.1 101.2-103.2 173.3-103.2 65.2 0 107.5 43.2 163.5 43.2 54.4 0 87.8-43.2 165.9-43.2 68.1 0 128.9 35.2 166.5 90.9zm-87.9-188.2c-36.3 43.5-98 76.3-155.5 76.3-7.1 0-14.3-.6-21.5-1.9-1.1-7.7-1.5-15.5-1.5-22.6 0-60.6 31.7-120 83.9-158.2 26.2-19.7 68.1-36.5 104.6-37.5 1.1 8.3 1.5 16.6 1.5 24.2 0 59.5-29.1 119.5-11.5 119.7z"/>
     </svg>
   );
 }
 
-/* ═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   BOTÃO GOOGLE — wrapper que chama o OAuth real
+   ══════════════════════════════════════════════ */
+function GoogleLoginButton({ onSuccess, onError }: {
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+}) {
+  const { loginWithGoogle } = useAuth();
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        // Busca os dados do perfil na API do Google
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        });
+        if (!res.ok) throw new Error("Não foi possível obter os dados do Google.");
+        const profile = await res.json();
+
+        const result = loginWithGoogle({
+          name:     profile.name,
+          email:    profile.email,
+          picture:  profile.picture,
+          googleId: profile.sub,
+        });
+
+        if (result.ok) {
+          showToast(`Bem-vindo, ${profile.name.split(" ")[0]}! 🐾`, "success");
+          onSuccess();
+        } else {
+          onError(result.error ?? "Erro ao entrar com Google.");
+        }
+      } catch (err: any) {
+        onError(err.message ?? "Erro ao conectar com o Google.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      onError("Login com Google cancelado ou falhou. Tente novamente.");
+    },
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={() => googleLogin()}
+      disabled={loading}
+      className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm disabled:opacity-60"
+    >
+      {loading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
+      <span className="hidden text-xs sm:inline">Google</span>
+    </button>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   FORMULÁRIO PRINCIPAL
+   ══════════════════════════════════════════════ */
 export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
   const { login } = useAuth();
   const { showToast } = useToast();
-  const [email, setEmail]       = useState("");
+
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd]   = useState(false);
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [showPwd,  setShowPwd]  = useState(false);
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    await new Promise((r) => setTimeout(r, 300)); // micro-delay realista
+    await new Promise((r) => setTimeout(r, 300));
     const result = login(email, password);
     if (result.ok) {
       showToast("Bem-vindo de volta! 🐾", "success");
@@ -55,33 +120,50 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
     setLoading(false);
   };
 
-  const socialLogin = (provider: string) => {
-    showToast(`Login com ${provider} em breve! Aguarde as novidades. 🐾`, "info");
+  const handleSocialNotReady = (provider: string) => {
+    showToast(`Login com ${provider} em breve! 🐾`, "info");
+  };
+
+  const handleGoogleError = (msg: string) => {
+    setError(msg);
+    showToast(msg, "error");
   };
 
   return (
     <div className="space-y-5">
-      {/* Social login */}
+      {/* Botões de login social */}
       <div className="grid grid-cols-3 gap-2">
+        {/* Google — real se VITE_GOOGLE_CLIENT_ID estiver configurado */}
+        {GOOGLE_CLIENT_ID ? (
+          <GoogleLoginButton
+            onSuccess={() => onSuccess?.()}
+            onError={handleGoogleError}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => handleSocialNotReady("Google")}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm"
+          >
+            <GoogleIcon />
+            <span className="hidden text-xs sm:inline">Google</span>
+          </button>
+        )}
+
+        {/* Meta — em breve */}
         <button
           type="button"
-          onClick={() => socialLogin("Google")}
-          className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm"
-        >
-          <GoogleIcon />
-          <span className="hidden text-xs sm:inline">Google</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => socialLogin("Meta")}
+          onClick={() => handleSocialNotReady("Facebook")}
           className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
         >
           <MetaIcon />
           <span className="hidden text-xs sm:inline">Facebook</span>
         </button>
+
+        {/* Apple — em breve */}
         <button
           type="button"
-          onClick={() => socialLogin("Apple")}
+          onClick={() => handleSocialNotReady("Apple")}
           className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm"
         >
           <AppleIcon />
@@ -96,7 +178,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
         <div className="h-px flex-1 bg-cream-200" />
       </div>
 
-      {/* Formulário */}
+      {/* Formulário e-mail/senha */}
       <form onSubmit={submit} className="space-y-4">
         {error && (
           <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
@@ -115,7 +197,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
             className="input"
             placeholder="voce@email.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setError(""); }}
           />
         </div>
 
@@ -139,7 +221,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
               className="input pr-11"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setError(""); }}
             />
             <button
               type="button"
@@ -160,7 +242,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <Loader2 size={16} className="animate-spin" />
               Entrando…
             </span>
           ) : (
