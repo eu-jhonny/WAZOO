@@ -21,6 +21,8 @@ import { ReviewCard } from "@/components/product/ReviewCard";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { Decor } from "@/components/ui/Decor";
 import { Bunting } from "@/components/ui/Bunting";
+import { Confetti } from "@/components/ui/Confetti";
+import { CopaDecor } from "@/components/ui/CopaDecor";
 
 /* ── Constantes ─────────────────────────────────────────────── */
 const TRUST = [
@@ -220,6 +222,7 @@ export function Home() {
                   className="absolute inset-0 h-full w-full object-cover opacity-40 transition-transform duration-700 group-hover:scale-105"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
+                <Confetti count={16} />
                 {/* Troféu decorativo */}
                 <div className="absolute right-4 top-4 flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 border-[#FFDF00]/50 bg-[#FFDF00]/15 backdrop-blur-sm">
                   <span className="text-2xl">⚽</span>
@@ -278,6 +281,13 @@ export function Home() {
       {/* ══ COPA DOS PETS ══════════════════════════════ */}
       {showCopa && (
       <section className="relative overflow-hidden py-14 sm:py-20" style={{ background: "linear-gradient(135deg, #071444 0%, #0A3A1A 50%, #071444 100%)" }}>
+        {/* Elementos decorativos de Copa + confete */}
+        <CopaDecor field />
+        <Confetti count={30} />
+        {/* Faixa de cores do Brasil no topo */}
+        <div className="absolute left-0 right-0 top-0 flex h-1.5" aria-hidden>
+          <div className="flex-1 bg-[#009C3B]" /><div className="flex-1 bg-[#FFDF00]" /><div className="flex-1 bg-[#002776]" />
+        </div>
         <div className="container-app relative">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <Reveal>
@@ -390,7 +400,7 @@ export function Home() {
       </Reveal>
 
       {/* ══ KITS ═══════════════════════════════════════ */}
-      <section className="section bg-cream-100">
+      <section className="section bg-cream-100 pattern-grid">
         <div className="container-app">
           <Reveal>
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -407,7 +417,7 @@ export function Home() {
       </section>
 
       {/* ══ POR QUE SOB ENCOMENDA ══════════════════════ */}
-      <section className="section bg-white">
+      <section className="section bg-white pattern-paws">
         <div className="container-app">
           <Reveal>
             <div className="mb-10 text-center">

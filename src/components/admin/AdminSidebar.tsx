@@ -69,7 +69,7 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
                   isActive
-                    ? "bg-orange-500 text-white shadow-glow"
+                    ? "nav-active"
                     : "text-slate-300 hover:bg-white/8 hover:text-white"
                 }`
               }

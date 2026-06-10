@@ -4,6 +4,7 @@ import { LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { site } from "@/config/site";
 import { AdminSidebar } from "./AdminSidebar";
+import { ThemeApplier } from "@/components/ui/ThemeApplier";
 
 export function AdminLayout() {
   const [open, setOpen]     = useState(false);
@@ -17,6 +18,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-cream-50">
+      <ThemeApplier />
       <AdminSidebar open={open} onClose={() => setOpen(false)} />
 
       {/* Conteúdo principal */}

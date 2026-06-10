@@ -95,6 +95,75 @@
   color: #fff;
 }
 
+/* ============================================================
+   FESTIVO / COPA — confete, balanço, flutuação
+   ============================================================ */
+.wz-confetti {
+  position: absolute;
+  top: -12%;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: wz-confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes wz-confetti-fall {
+  0%   { transform: translate3d(0, -10%, 0) rotate(0deg);                opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate3d(var(--wz-drift, 0), 115vh, 0) rotate(var(--wz-rot, 360deg)); opacity: 0.9; }
+}
+@keyframes wz-float-bob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50%      { transform: translateY(-16px) rotate(4deg); }
+}
+@keyframes wz-sway {
+  0%, 100% { transform: rotate(-3.5deg); }
+  50%      { transform: rotate(3.5deg); }
+}
+@keyframes wz-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: wz-gradient-shift 8s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wz-confetti { animation: none; opacity: 0; }
+}
+
+/* ============================================================
+   PATTERNS DECORATIVOS — afetam todo o site
+   ============================================================ */
+/* Patinhas sutis */
+.pattern-paws {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='%23F97316' fill-opacity='0.05'%3E%3Cellipse cx='20' cy='28' rx='6' ry='8'/%3E%3Cellipse cx='10' cy='18' rx='3' ry='4'/%3E%3Cellipse cx='18' cy='13' rx='3' ry='4'/%3E%3Cellipse cx='27' cy='15' rx='3' ry='4'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 56px 56px;
+}
+/* Grade fina */
+.pattern-grid {
+  background-image:
+    linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* Listras diagonais suaves */
+.pattern-diagonal {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,0.06) 0,
+    rgba(255,255,255,0.06) 2px,
+    transparent 2px,
+    transparent 14px
+  );
+}
+/* Malha de bolinhas */
+.pattern-dots-soft {
+  background-image: radial-gradient(circle, rgba(249,115,22,0.10) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
 @layer base {
   :root { color-scheme: light; }
 

@@ -1,6 +1,7 @@
 /**
- * Bunting — bandeirinhas estilo Festa Junina
- * Renderiza um barbante com triângulos pendurados, estilo arraial.
+ * Bunting — bandeirinhas de Festa Junina, versão refinada.
+ * Triângulos limpos com leve balanço (sway), corda em catenária suave
+ * e brilho sutil. Use no topo de uma seção festiva.
  */
 interface BuntingProps {
   colors?: string[];
@@ -8,109 +9,90 @@ interface BuntingProps {
   className?: string;
   /** Altura total do componente em px */
   height?: number;
+  /** Ativa o balanço animado das bandeirinhas */
+  animated?: boolean;
 }
 
 const DEFAULT_COLORS = [
-  "#E63946", "#F4A261", "#2A9D8F", "#E9C46A",
-  "#8338EC", "#3A86FF", "#FB5607", "#FFBE0B",
-  "#06D6A0", "#EF476F",
+  "#EF476F", "#FFD166", "#06D6A0", "#118AB2",
+  "#F78C6B", "#9B5DE5", "#FF9F1C", "#2EC4B6",
 ];
 
 export function Bunting({
   colors = DEFAULT_COLORS,
   count = 16,
   className = "",
-  height = 56,
+  height = 58,
+  animated = true,
 }: BuntingProps) {
-  const w  = 100; // viewBox width units por bandeirinha
+  const w = 100;
   const tw = w * count;
-  const flagH = height * 0.65; // altura do triângulo
-  const ropeY = height * 0.18; // Y da corda
+  const flagH = height * 0.62;
+  const ropeY = height * 0.16;
 
   return (
-    <div className={`w-full overflow-hidden select-none pointer-events-none ${className}`} style={{ height }} aria-hidden>
+    <div
+      className={`w-full overflow-hidden select-none pointer-events-none ${className}`}
+      style={{ height }}
+      aria-hidden
+    >
       <svg
         viewBox={`0 0 ${tw} ${height}`}
         preserveAspectRatio="xMidYMid slice"
         className="w-full h-full"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Sombra suave */}
         <defs>
-          <filter id="bunting-shadow" x="-10%" y="-10%" width="120%" height="130%">
-            <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.18" />
-          </filter>
-          <filter id="flag-shadow">
-            <feDropShadow dx="1" dy="2" stdDeviation="2" floodOpacity="0.22" />
+          <filter id="bt-shadow" x="-20%" y="-20%" width="140%" height="160%">
+            <feDropShadow dx="0" dy="2.5" stdDeviation="2.2" floodOpacity="0.20" />
           </filter>
         </defs>
 
-        {/* Corda principal — leve curva para cada vão */}
-        {Array.from({ length: count + 1 }).map((_, i) => i).reduce<JSX.Element[]>((acc, i) => {
-          if (i === count) return acc;
-          const x1 = i * w + w * 0.5;
-          const x2 = (i + 1) * w + w * 0.5;
-          const cy = ropeY + 6; // leve catenária
-          acc.push(
-            <path
-              key={`rope-${i}`}
-              d={`M ${x1} ${ropeY} Q ${(x1 + x2) / 2} ${cy} ${x2} ${ropeY}`}
-              stroke="#8B6914"
-              strokeWidth="2.5"
-              fill="none"
-              opacity="0.75"
-            />
-          );
-          return acc;
-        }, [])}
+        {/* Corda em catenária contínua */}
+        <path
+          d={Array.from({ length: count }).reduce((d, _, i) => {
+            const x1 = i * w + w * 0.5;
+            const x2 = (i + 1) * w + w * 0.5;
+            const cy = ropeY + 7;
+            return `${d} M ${x1} ${ropeY} Q ${(x1 + x2) / 2} ${cy} ${x2} ${ropeY}`;
+          }, "")}
+          stroke="#7c4a1e"
+          strokeWidth="2"
+          fill="none"
+          opacity="0.65"
+          strokeLinecap="round"
+        />
 
         {/* Bandeirinhas */}
         {Array.from({ length: count }).map((_, i) => {
-          const cx   = i * w + w / 2;
-          const col  = colors[i % colors.length];
-          // ponto de penduramento
-          const topX = cx;
+          const cx = i * w + w / 2;
+          const col = colors[i % colors.length];
           const topY = ropeY;
-          // extremidades base do triângulo
-          const bw   = w * 0.62;
-          const bl   = cx - bw / 2;
-          const br   = cx + bw / 2;
-          const by   = topY + flagH;
-          // rotação leve alternada para variar
-          const rot  = (i % 2 === 0 ? -3 : 3) + (i % 3 === 0 ? 2 : 0);
+          const bw = w * 0.66;
+          const bl = cx - bw / 2;
+          const br = cx + bw / 2;
+          const by = topY + flagH;
+          const pts = `${cx},${topY} ${bl},${by} ${br},${by}`;
 
           return (
-            <g key={i} transform={`rotate(${rot}, ${cx}, ${topY})`} filter="url(#flag-shadow)">
-              {/* Triângulo preenchido */}
-              <polygon
-                points={`${topX},${topY} ${bl},${by} ${br},${by}`}
-                fill={col}
-                opacity="0.93"
-              />
-              {/* Borda */}
-              <polygon
-                points={`${topX},${topY} ${bl},${by} ${br},${by}`}
-                fill="none"
-                stroke="rgba(0,0,0,0.15)"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              {/* Padrão interno: listras horizontais em algumas bandeiras */}
-              {i % 3 === 0 && (
-                <>
-                  <clipPath id={`clip-${i}`}>
-                    <polygon points={`${topX},${topY} ${bl},${by} ${br},${by}`} />
-                  </clipPath>
-                  <rect
-                    x={bl} y={topY + flagH * 0.45}
-                    width={bw} height={flagH * 0.15}
-                    fill="rgba(255,255,255,0.25)"
-                    clipPath={`url(#clip-${i})`}
-                  />
-                </>
-              )}
-              {/* Ponto de fixação na corda */}
-              <circle cx={topX} cy={topY} r="3.5" fill="#8B6914" opacity="0.9" />
+            <g
+              key={i}
+              filter="url(#bt-shadow)"
+              style={
+                animated
+                  ? {
+                      transformOrigin: `${cx}px ${topY}px`,
+                      transformBox: "fill-box",
+                      animation: `wz-sway 3.2s ease-in-out ${(i % 5) * 0.18}s infinite`,
+                    }
+                  : undefined
+              }
+            >
+              <polygon points={pts} fill={col} />
+              {/* Brilho diagonal */}
+              <polygon points={`${cx},${topY} ${bl},${by} ${cx},${by}`} fill="rgba(255,255,255,0.18)" />
+              {/* Ponto de fixação */}
+              <circle cx={cx} cy={topY} r="3" fill="#7c4a1e" opacity="0.85" />
             </g>
           );
         })}
