@@ -16,6 +16,8 @@ export const seedProducts: Product[] = [
     name: "Caminha Pet Confort",
     category: "caminhas",
     price: 89.9,
+    comparePrice: 119.9,
+    promoLabel: "Oferta 🔥",
     leadTime: "3 a 7 dias úteis",
     shortDescription:
       "Caminha macia e aconchegante para cães e gatos de pequeno e médio porte.",
@@ -35,6 +37,7 @@ export const seedProducts: Product[] = [
     name: "Coleira Ajustável",
     category: "acessorios",
     price: 34.9,
+    comparePrice: 49.9,
     leadTime: "2 a 5 dias úteis",
     shortDescription:
       "Confortável, segura e disponível sob encomenda em diferentes tamanhos.",
@@ -54,6 +57,7 @@ export const seedProducts: Product[] = [
     name: "Brinquedo Mordedor",
     category: "brinquedos",
     price: 24.9,
+    comparePrice: 32.9,
     leadTime: "2 a 4 dias úteis",
     shortDescription: "Ajuda na diversão e no gasto de energia do seu cão.",
     description:

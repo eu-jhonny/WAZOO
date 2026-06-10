@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, PawPrint, ShoppingCart, Tag } from "lucide-react";
+import { Check, Clock, PawPrint, ShoppingCart, Tag } from "lucide-react";
 import type { Product } from "@/types";
 import { formatBRL } from "@/lib/format";
 import { getCategoryName } from "@/data/categories";
@@ -32,6 +33,13 @@ export function ProductCard({ product, compact = false }: Props) {
   const discount = calcDiscount(product.price, product.comparePrice);
   const promoTag = product.promoLabel ?? (discount ? `-${discount}%` : null);
 
+  const [added, setAdded] = useState(false);
+  const handleAdd = (qty = 1) => {
+    addProduct(product, qty);
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1400);
+  };
+
   if (compact) {
     return (
       <div className="card card-hover group flex flex-col overflow-hidden h-full">
@@ -61,10 +69,10 @@ export function ProductCard({ product, compact = false }: Props) {
             <p className="font-display text-base font-bold text-orange-600">{formatBRL(product.price)}</p>
           </div>
           <button
-            onClick={() => addProduct(product)}
-            className="btn-primary btn-sm mt-2 w-full text-xs"
+            onClick={() => handleAdd()}
+            className={`btn-sm mt-2 w-full text-xs transition-all ${added ? "btn-green" : "btn-primary"}`}
           >
-            <ShoppingCart size={14} /> Adicionar
+            {added ? <><Check size={14} /> Adicionado!</> : <><ShoppingCart size={14} /> Adicionar</>}
           </button>
         </div>
       </div>
@@ -133,8 +141,11 @@ export function ProductCard({ product, compact = false }: Props) {
         </div>
 
         <div className="mt-4 flex gap-2">
-          <button onClick={() => addProduct(product)} className="btn-primary btn-sm flex-1">
-            <ShoppingCart size={16} /> Adicionar
+          <button
+            onClick={() => handleAdd()}
+            className={`btn-sm flex-1 transition-all ${added ? "btn-green" : "btn-primary"}`}
+          >
+            {added ? <><Check size={16} /> Adicionado!</> : <><ShoppingCart size={16} /> Adicionar</>}
           </button>
           <a
             href={whatsappLink(buildProductMessage(product), settings.whatsapp)}

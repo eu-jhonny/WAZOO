@@ -12,6 +12,7 @@ import {
   Plus,
   Ruler,
   ShoppingCart,
+  Tag,
 } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import { useCart } from "@/context/CartContext";
@@ -86,14 +87,16 @@ export function ProductDetail() {
           <div className="grid gap-10 lg:grid-cols-2">
             {/* Galeria */}
             <div>
-              <div className="overflow-hidden rounded-3xl border border-cream-200 bg-cream-100 shadow-card">
-                <div className="aspect-square">
-                  <ProductImage
-                    src={gallery[selected]}
-                    alt={product.name}
-                    category={product.category}
-                    iconSize={120}
-                  />
+              <div className="group overflow-hidden rounded-3xl border border-cream-200 bg-cream-100 shadow-card">
+                <div className="aspect-square overflow-hidden">
+                  <div className="h-full w-full transition-transform duration-500 group-hover:scale-110">
+                    <ProductImage
+                      src={gallery[selected]}
+                      alt={product.name}
+                      category={product.category}
+                      iconSize={120}
+                    />
+                  </div>
                 </div>
               </div>
               {gallery.length > 1 && (
@@ -102,8 +105,8 @@ export function ProductDetail() {
                     <button
                       key={i}
                       onClick={() => setSelected(i)}
-                      className={`h-20 w-20 overflow-hidden rounded-2xl border-2 transition-colors ${
-                        selected === i ? "border-orange-500" : "border-cream-200"
+                      className={`h-20 w-20 overflow-hidden rounded-2xl border-2 transition-all hover:-translate-y-0.5 ${
+                        selected === i ? "border-[color:var(--a500)] ring-2 ring-[color:var(--a200)]" : "border-cream-200"
                       }`}
                     >
                       <ProductImage src={src} alt="" category={product.category} iconSize={28} />
@@ -129,13 +132,21 @@ export function ProductDetail() {
                 {product.name}
               </h1>
 
-              <div className="mt-4 flex items-end gap-3">
+              <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
                 <div>
                   <span className="text-sm font-medium text-navy-400">Preço estimado</span>
-                  <p className="font-display text-4xl font-bold text-orange-600">
+                  <p className="price-sale text-4xl">
                     {formatBRL(product.price)}
                   </p>
                 </div>
+                {product.comparePrice && product.comparePrice > product.price && (
+                  <div className="flex items-center gap-2 pb-1">
+                    <span className="price-original text-base">{formatBRL(product.comparePrice)}</span>
+                    <span className="price-discount-badge">
+                      <Tag size={12} /> -{Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)}%
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
