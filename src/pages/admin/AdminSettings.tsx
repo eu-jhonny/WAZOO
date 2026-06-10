@@ -1,15 +1,17 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import {
   Bell, Clock, CreditCard, Instagram, Lock, Mail, MapPin,
   Package, PawPrint, RefreshCw, Save, Shield, Store,
   Truck, Wallet, MessageSquare, Palette, User, Eye, EyeOff,
-  CheckCircle2, Phone,
+  CheckCircle2, Phone, Upload, Loader2, Trash2, Plus, X,
+  Download,
 } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import { useToast } from "@/context/ToastContext";
 import { whatsappLink, defaultContactMessage } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { Modal } from "@/components/ui/Modal";
+import { compressLogo } from "@/lib/imageUtils";
 
 /* ── Tipos de aba ──────────────────────────── */
 type Tab = "perfil" | "loja" | "pagamento" | "entrega" | "notificacoes" | "aparencia" | "dados";
@@ -23,6 +25,33 @@ const TABS: Array<{ id: Tab; label: string; icon: React.ElementType; badge?: str
   { id: "aparencia",    label: "Aparência",        icon: Palette   },
   { id: "dados",        label: "Dados demo",       icon: RefreshCw, badge: "!" },
 ];
+
+/* ── Zona de entrega ────────────────────────── */
+interface DeliveryZone {
+  id: string;
+  zone: string;
+  fee: number;
+  min: number;
+  days: string;
+}
+
+const ZONES_KEY = "wazoo_delivery_zones";
+
+function loadZones(): DeliveryZone[] {
+  try {
+    const raw = localStorage.getItem(ZONES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignorar */ }
+  return [
+    { id: "1", zone: "Centro (SP)",     fee: 0,  min: 0,   days: "3–5 dias úteis" },
+    { id: "2", zone: "Zona Sul",        fee: 8,  min: 0,   days: "4–6 dias úteis" },
+    { id: "3", zone: "Zona Norte",      fee: 8,  min: 0,   days: "4–6 dias úteis" },
+    { id: "4", zone: "Zona Leste",      fee: 12, min: 0,   days: "5–7 dias úteis" },
+    { id: "5", zone: "Zona Oeste",      fee: 12, min: 0,   days: "5–7 dias úteis" },
+    { id: "6", zone: "ABC Paulista",    fee: 18, min: 100, days: "5–8 dias úteis" },
+    { id: "7", zone: "Interior SP",     fee: 25, min: 150, days: "7–10 dias úteis" },
+  ];
+}
 
 /* ── Sub-componente: campo de formulário ────── */
 function Field({
@@ -55,11 +84,88 @@ function ComingSoon() {
   return <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-600 uppercase">em breve</span>;
 }
 
+/* ── Toggle helper ─────────────────────────── */
+function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: React.ReactNode }) {
+  return (
+    <label className="flex items-center justify-between cursor-pointer gap-3">
+      <span className="text-sm font-semibold text-navy-700">{label}</span>
+      <button
+        type="button"
+        onClick={() => onChange(!value)}
+        className={`relative inline-flex h-5 w-10 shrink-0 items-center rounded-full transition-colors ${value ? "bg-orange-500" : "bg-cream-300"}`}
+      >
+        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${value ? "translate-x-5" : "translate-x-0.5"}`} />
+      </button>
+    </label>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   MODAL: ADICIONAR ZONA DE ENTREGA
+   ══════════════════════════════════════════════ */
+function AddZoneModal({ open, onClose, onAdd }: {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (zone: Omit<DeliveryZone, "id">) => void;
+}) {
+  const [zone, setZone] = useState("");
+  const [fee,  setFee]  = useState("");
+  const [min,  setMin]  = useState("0");
+  const [days, setDays] = useState("");
+  const [err,  setErr]  = useState("");
+
+  const reset = () => { setZone(""); setFee(""); setMin("0"); setDays(""); setErr(""); };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!zone.trim()) { setErr("Nome da zona é obrigatório."); return; }
+    if (fee === "" || isNaN(Number(fee))) { setErr("Taxa de entrega inválida."); return; }
+    if (!days.trim()) { setErr("Prazo de entrega é obrigatório."); return; }
+    onAdd({ zone: zone.trim(), fee: Number(fee), min: Number(min) || 0, days: days.trim() });
+    reset();
+    onClose();
+  };
+
+  return (
+    <Modal open={open} onClose={() => { reset(); onClose(); }} title="Adicionar zona de entrega" size="sm">
+      <form onSubmit={submit} className="space-y-4">
+        {err && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600">{err}</p>}
+        <Field label="Nome da zona / região">
+          <input className="input" placeholder="Ex: Zona Norte" value={zone}
+            onChange={(e) => { setZone(e.target.value); setErr(""); }} autoFocus />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Taxa de entrega (R$)">
+            <input type="number" min={0} step="0.01" className="input" placeholder="0.00"
+              value={fee} onChange={(e) => { setFee(e.target.value); setErr(""); }} />
+          </Field>
+          <Field label="Pedido mínimo (R$)">
+            <input type="number" min={0} step={10} className="input" placeholder="0"
+              value={min} onChange={(e) => setMin(e.target.value)} />
+          </Field>
+        </div>
+        <Field label="Prazo de entrega">
+          <input className="input" placeholder="Ex: 3–5 dias úteis" value={days}
+            onChange={(e) => { setDays(e.target.value); setErr(""); }} />
+        </Field>
+        <div className="flex gap-3 pt-1">
+          <button type="button" onClick={() => { reset(); onClose(); }} className="btn-ghost flex-1 border border-cream-200">
+            Cancelar
+          </button>
+          <button type="submit" className="btn-primary flex-1">
+            <Plus size={15} /> Adicionar
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 /* ══════════════════════════════════════════════
    PÁGINA PRINCIPAL
    ══════════════════════════════════════════════ */
 export function AdminSettings() {
-  const { settings, updateSettings, resetStore } = useStore();
+  const { settings, updateSettings, resetStore, products, orders, reviews } = useStore();
   const { showToast } = useToast();
   const [tab, setTab]             = useState<Tab>("perfil");
   const [confirmReset, setConfirmReset] = useState(false);
@@ -78,16 +184,56 @@ export function AdminSettings() {
   const [showPwd,      setShowPwd]      = useState(false);
   const [adminAvatar,  setAdminAvatar]  = useState("🐾");
 
+  // Logo upload
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [customLogo,  setCustomLogo]   = useState<string | null>(() => localStorage.getItem("wazoo_custom_logo"));
+  const [logoLoading, setLogoLoading]  = useState(false);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { showToast("Arquivo muito grande (máx. 10 MB).", "error"); return; }
+    setLogoLoading(true);
+    try {
+      const compressed = await compressLogo(file);
+      localStorage.setItem("wazoo_custom_logo", compressed);
+      setCustomLogo(compressed);
+      showToast("Logo atualizado com sucesso! ✅", "success");
+    } catch {
+      showToast("Erro ao processar imagem.", "error");
+    } finally {
+      setLogoLoading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const removeLogo = () => {
+    localStorage.removeItem("wazoo_custom_logo");
+    setCustomLogo(null);
+    showToast("Logo removido.", "success");
+  };
+
   // Entrega
-  const [deliveryZones] = useState([
-    { zone: "Centro (SP)",     fee: 0,  min: 0,  days: "3–5 dias úteis" },
-    { zone: "Zona Sul",        fee: 8,  min: 0,  days: "4–6 dias úteis" },
-    { zone: "Zona Norte",      fee: 8,  min: 0,  days: "4–6 dias úteis" },
-    { zone: "Zona Leste",      fee: 12, min: 0,  days: "5–7 dias úteis" },
-    { zone: "Zona Oeste",      fee: 12, min: 0,  days: "5–7 dias úteis" },
-    { zone: "ABC Paulista",    fee: 18, min: 100, days: "5–8 dias úteis" },
-    { zone: "Interior SP",     fee: 25, min: 150, days: "7–10 dias úteis" },
-  ]);
+  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>(loadZones);
+  const [addZoneOpen, setAddZoneOpen]     = useState(false);
+  const [zoneToDelete, setZoneToDelete]   = useState<string | null>(null);
+
+  const persistZones = (zones: DeliveryZone[]) => {
+    localStorage.setItem(ZONES_KEY, JSON.stringify(zones));
+    setDeliveryZones(zones);
+  };
+
+  const addZone = (data: Omit<DeliveryZone, "id">) => {
+    const newZone: DeliveryZone = { id: Date.now().toString(), ...data };
+    persistZones([...deliveryZones, newZone]);
+    showToast(`Zona "${data.zone}" adicionada! ✅`, "success");
+  };
+
+  const deleteZone = (id: string) => {
+    persistZones(deliveryZones.filter((z) => z.id !== id));
+    setZoneToDelete(null);
+    showToast("Zona removida.", "success");
+  };
 
   // Notificações
   const [notifWA,      setNotifWA]      = useState(true);
@@ -111,6 +257,52 @@ export function AdminSettings() {
   const [showBanner,   setShowBanner]   = useState(true);
   const [showCopa,     setShowCopa]     = useState(true);
   const [showFesta,    setShowFesta]    = useState(true);
+
+  /* ── Export helpers ─────────────────────────── */
+  const downloadFile = (content: string, filename: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportProductsJson = () => {
+    const data = products.map(({ image: _img, gallery: _gal, ...p }) => p); // remove imagens base64 pesadas
+    downloadFile(JSON.stringify(data, null, 2), "wazoo-produtos.json", "application/json");
+    showToast(`${data.length} produtos exportados! 📦`, "success");
+  };
+
+  const exportOrdersCsv = () => {
+    const header = ["ID", "Cliente", "Telefone", "Data", "Status", "Total (R$)", "Itens", "Entrega"];
+    const rows = orders.map((o) => [
+      o.id,
+      o.customerName,
+      o.customerPhone,
+      new Date(o.createdAt).toLocaleDateString("pt-BR"),
+      o.status,
+      o.total.toFixed(2),
+      o.items.map((i) => `${i.name} x${i.quantity}`).join(" | "),
+      o.fulfillment === "entrega" ? "Entrega" : "Retirada",
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    downloadFile("﻿" + csv, "wazoo-pedidos.csv", "text/csv;charset=utf-8");
+    showToast(`${orders.length} pedidos exportados! 📊`, "success");
+  };
+
+  const exportReviewsCsv = () => {
+    const header = ["ID", "Nome", "Pet", "Nota", "Texto", "Aprovado", "Data"];
+    const rows = reviews.map((r) => [
+      r.id, r.name, r.petName ?? "", r.rating, r.text,
+      r.approved ? "Sim" : "Não",
+      new Date(r.createdAt).toLocaleDateString("pt-BR"),
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    downloadFile("﻿" + csv, "wazoo-avaliacoes.csv", "text/csv;charset=utf-8");
+    showToast(`${reviews.length} avaliações exportadas! 📊`, "success");
+  };
 
   /* ── Submits ── */
   const saveLoja = (e: FormEvent) => {
@@ -149,20 +341,6 @@ export function AdminSettings() {
     setConfirmReset(false);
     showToast("Dados de demonstração restaurados.", "success");
   };
-
-  /* ── Toggle helper ── */
-  const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => (
-    <label className="flex items-center justify-between cursor-pointer gap-3">
-      <span className="text-sm font-semibold text-navy-700">{label}</span>
-      <button
-        type="button"
-        onClick={() => onChange(!value)}
-        className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${value ? "bg-orange-500" : "bg-cream-300"}`}
-      >
-        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${value ? "translate-x-5" : "translate-x-0.5"}`} />
-      </button>
-    </label>
-  );
 
   return (
     <div className="space-y-6">
@@ -207,7 +385,6 @@ export function AdminSettings() {
       {tab === "perfil" && (
         <form onSubmit={savePerfil} className="space-y-5 max-w-2xl">
           <Section title="Informações do administrador" icon={User}>
-            {/* Avatar */}
             <div className="flex items-center gap-5">
               <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-navy-800 text-4xl shadow-soft">
                 {adminAvatar}
@@ -218,8 +395,7 @@ export function AdminSettings() {
                 <div className="mt-2 flex gap-1.5 flex-wrap">
                   {["🐾", "🐕", "🐈", "🌟", "⚡", "🏆", "🎯"].map((em) => (
                     <button
-                      key={em}
-                      type="button"
+                      key={em} type="button"
                       onClick={() => setAdminAvatar(em)}
                       className={`rounded-lg border px-2 py-1 text-lg transition-all ${adminAvatar === em ? "border-orange-400 bg-orange-50" : "border-cream-200 hover:border-cream-300"}`}
                     >
@@ -290,7 +466,7 @@ export function AdminSettings() {
             </div>
             <div>
               <p className="label">Autenticação em 2 fatores <ComingSoon /></p>
-              <p className="text-xs text-navy-400">Adicione uma camada extra de segurança à sua conta com 2FA via app autenticador.</p>
+              <p className="text-xs text-navy-400">Adicione uma camada extra de segurança com 2FA via app autenticador.</p>
             </div>
           </Section>
 
@@ -386,8 +562,7 @@ export function AdminSettings() {
             </button>
             <a
               href={whatsappLink(defaultContactMessage, f.whatsapp)}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="_blank" rel="noopener noreferrer"
               className="btn-outline"
             >
               <WhatsAppIcon size={16} /> Testar WhatsApp
@@ -403,8 +578,8 @@ export function AdminSettings() {
         <form onSubmit={savePayment} className="space-y-5 max-w-2xl">
           <Section title="Métodos aceitos" icon={CreditCard}>
             <div className="space-y-3">
-              <Toggle value={payPix} onChange={setPayPix} label="PIX" />
-              <Toggle value={payCard} onChange={setPayCard} label="Cartão de crédito" />
+              <Toggle value={payPix}    onChange={setPayPix}    label="PIX" />
+              <Toggle value={payCard}   onChange={setPayCard}   label="Cartão de crédito" />
               <Toggle value={payBoleto} onChange={setPayBoleto} label="Boleto bancário" />
             </div>
           </Section>
@@ -506,25 +681,39 @@ export function AdminSettings() {
           </Section>
 
           <Section title="Zonas de entrega" icon={MapPin}>
-            <p className="text-xs text-navy-400">Valores configurados por região. Clique para editar cada zona.</p>
+            <p className="text-xs text-navy-400">Valores configurados por região. {deliveryZones.length} zonas cadastradas.</p>
             <div className="divide-y divide-cream-100 rounded-xl border border-cream-200 overflow-hidden">
-              {deliveryZones.map((z, i) => (
-                <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-cream-50 transition-colors">
+              {deliveryZones.map((z) => (
+                <div key={z.id} className="flex items-center justify-between px-4 py-3 hover:bg-cream-50 transition-colors group">
                   <div>
                     <p className="font-bold text-navy-700 text-sm">{z.zone}</p>
                     <p className="text-xs text-navy-400">{z.days}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-orange-600 text-sm">
-                      {z.fee === 0 ? "Grátis" : `R$ ${z.fee.toFixed(2)}`}
-                    </p>
-                    {z.min > 0 && <p className="text-[10px] text-navy-400">Pedido mín. R$ {z.min}</p>}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="font-bold text-orange-600 text-sm">
+                        {z.fee === 0 ? "Grátis" : `R$ ${z.fee.toFixed(2)}`}
+                      </p>
+                      {z.min > 0 && <p className="text-[10px] text-navy-400">Pedido mín. R$ {z.min}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setZoneToDelete(z.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600"
+                      title="Remover zona"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-            <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Gestão de zonas em breve! 🚚", "info")}>
-              + Adicionar zona
+            <button
+              type="button"
+              className="btn-outline btn-sm"
+              onClick={() => setAddZoneOpen(true)}
+            >
+              <Plus size={14} /> Adicionar zona
             </button>
           </Section>
 
@@ -532,18 +721,15 @@ export function AdminSettings() {
             <Field label="Ativar frete grátis acima de (R$)" sublabel="0 = frete grátis desativado.">
               <input type="number" min={0} step={10} className="input" placeholder="Ex: 200" />
             </Field>
-            <Field label="Regiões com frete grátis ilimitado">
-              <div className="flex flex-wrap gap-2">
-                <span className="chip chip-active text-xs">Centro (SP)</span>
-                <button type="button" className="chip text-xs" onClick={() => showToast("Em breve!", "info")}>+ Adicionar</button>
-              </div>
-            </Field>
           </Section>
 
           <button
             type="button"
             className="btn-primary"
-            onClick={() => showToast("Configurações de entrega salvas! ✅", "success")}
+            onClick={() => {
+              updateSettings({ ...f, deliveryFee: Number(f.deliveryFee) || 0 });
+              showToast("Configurações de entrega salvas! ✅", "success");
+            }}
           >
             <Save size={16} /> Salvar entrega
           </button>
@@ -556,15 +742,15 @@ export function AdminSettings() {
       {tab === "notificacoes" && (
         <form onSubmit={saveNotif} className="space-y-5 max-w-2xl">
           <Section title="Canais de notificação" icon={Bell}>
-            <Toggle value={notifWA} onChange={setNotifWA} label="Notificações via WhatsApp" />
+            <Toggle value={notifWA}    onChange={setNotifWA}    label="Notificações via WhatsApp" />
             <Toggle value={notifEmail} onChange={setNotifEmail} label="Notificações via e-mail" />
           </Section>
 
           <Section title="Eventos" icon={Bell}>
-            <Toggle value={notifNewOrder} onChange={setNotifNewOrder} label="Novo pedido recebido" />
-            <Toggle value={notifPending} onChange={setNotifPending} label="Pedidos aguardando confirmação" />
-            <Toggle value={notifAbandoned} onChange={setNotifAbandoned} label="Carrinho abandonado (clientes)" />
-            <Toggle value={notifReview} onChange={setNotifReview} label="Nova avaliação enviada" />
+            <Toggle value={notifNewOrder}   onChange={setNotifNewOrder}   label="Novo pedido recebido" />
+            <Toggle value={notifPending}    onChange={setNotifPending}    label="Pedidos aguardando confirmação" />
+            <Toggle value={notifAbandoned}  onChange={setNotifAbandoned}  label="Carrinho abandonado (clientes)" />
+            <Toggle value={notifReview}     onChange={setNotifReview}     label="Nova avaliação enviada" />
           </Section>
 
           <Section title="E-mail de destino" icon={Mail}>
@@ -598,8 +784,7 @@ export function AdminSettings() {
                 { id: "pink",   label: "Rosa",    cls: "bg-pink-500"   },
               ].map((c) => (
                 <button
-                  key={c.id}
-                  type="button"
+                  key={c.id} type="button"
                   onClick={() => setAccentColor(c.id)}
                   className={`flex items-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-bold transition-all ${accentColor === c.id ? "border-navy-700 bg-white shadow" : "border-cream-200"}`}
                 >
@@ -617,20 +802,47 @@ export function AdminSettings() {
             <Toggle value={darkMode}   onChange={setDarkMode}   label={<>Modo escuro (admin) <ComingSoon /></>} />
           </Section>
 
+          {/* ── Logo upload REAL ── */}
           <Section title="Logo e identidade" icon={Store}>
-            <Field label="Logo da loja" sublabel="Recomendado: PNG transparente, 200×80px.">
+            <Field label="Logo da loja" sublabel="Recomendado: PNG transparente, 200×80px. Máx. 10 MB.">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-32 items-center justify-center rounded-xl border-2 border-dashed border-cream-300 bg-cream-50">
-                  <span className="text-xs text-navy-400">Logo atual</span>
+                <div className="flex h-16 w-36 items-center justify-center rounded-xl border-2 border-cream-300 bg-cream-50 overflow-hidden">
+                  {customLogo ? (
+                    <img src={customLogo} alt="Logo" className="h-full w-full object-contain p-1" />
+                  ) : (
+                    <span className="text-xs text-navy-400">Logo atual</span>
+                  )}
                 </div>
-                <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Upload de logo em breve!", "info")}>
-                  Alterar logo
-                </button>
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                  <button
+                    type="button"
+                    disabled={logoLoading}
+                    onClick={() => logoInputRef.current?.click()}
+                    className="btn-outline btn-sm disabled:opacity-60"
+                  >
+                    {logoLoading
+                      ? <><Loader2 size={13} className="animate-spin" /> Processando…</>
+                      : <><Upload size={13} /> {customLogo ? "Alterar logo" : "Enviar logo"}</>
+                    }
+                  </button>
+                  {customLogo && (
+                    <button type="button" onClick={removeLogo} className="btn-sm btn-ghost text-red-500 hover:bg-red-50">
+                      <X size={13} /> Remover
+                    </button>
+                  )}
+                </div>
               </div>
             </Field>
             <Field label="Mascote" sublabel="Personagem animado que aparece na loja.">
               <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Customização do mascote em breve!", "info")}>
-                Personalizar mascote
+                Personalizar mascote <ComingSoon />
               </button>
             </Field>
           </Section>
@@ -669,21 +881,83 @@ export function AdminSettings() {
             </button>
           </Section>
 
-          <Section title="Exportar dados" icon={Package}>
-            <p className="text-sm text-navy-500">Exporte produtos, pedidos e avaliações em formato JSON ou CSV.</p>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Exportação em breve! 📦", "info")}>
-                Exportar produtos (JSON)
+          {/* ── Export REAL ── */}
+          <Section title="Exportar dados" icon={Download}>
+            <p className="text-sm text-navy-500">
+              Exporte os dados da loja. Os arquivos são gerados direto no navegador.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={exportProductsJson}
+                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-cream-200 bg-cream-50 p-4 text-center transition-all hover:border-orange-300 hover:bg-orange-50"
+              >
+                <Package size={22} className="text-orange-500" />
+                <div>
+                  <p className="font-bold text-navy-700 text-sm">Produtos</p>
+                  <p className="text-[11px] text-navy-400">JSON · {products.length} itens</p>
+                </div>
+                <span className="rounded-full bg-navy-100 px-3 py-1 text-[11px] font-bold text-navy-600">
+                  <Download size={10} className="inline mr-1" />JSON
+                </span>
               </button>
-              <button type="button" className="btn-outline btn-sm" onClick={() => showToast("Exportação em breve! 📦", "info")}>
-                Exportar pedidos (CSV)
+
+              <button
+                type="button"
+                onClick={exportOrdersCsv}
+                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-cream-200 bg-cream-50 p-4 text-center transition-all hover:border-orange-300 hover:bg-orange-50"
+              >
+                <Truck size={22} className="text-orange-500" />
+                <div>
+                  <p className="font-bold text-navy-700 text-sm">Pedidos</p>
+                  <p className="text-[11px] text-navy-400">CSV · {orders.length} pedidos</p>
+                </div>
+                <span className="rounded-full bg-navy-100 px-3 py-1 text-[11px] font-bold text-navy-600">
+                  <Download size={10} className="inline mr-1" />CSV
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={exportReviewsCsv}
+                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-cream-200 bg-cream-50 p-4 text-center transition-all hover:border-orange-300 hover:bg-orange-50"
+              >
+                <PawPrint size={22} className="text-orange-500" />
+                <div>
+                  <p className="font-bold text-navy-700 text-sm">Avaliações</p>
+                  <p className="text-[11px] text-navy-400">CSV · {reviews.length} avaliações</p>
+                </div>
+                <span className="rounded-full bg-navy-100 px-3 py-1 text-[11px] font-bold text-navy-600">
+                  <Download size={10} className="inline mr-1" />CSV
+                </span>
               </button>
             </div>
           </Section>
         </div>
       )}
 
-      {/* Modal de confirmação de reset */}
+      {/* ── Modal: adicionar zona ── */}
+      <AddZoneModal
+        open={addZoneOpen}
+        onClose={() => setAddZoneOpen(false)}
+        onAdd={addZone}
+      />
+
+      {/* ── Modal: confirmar delete zona ── */}
+      <Modal open={!!zoneToDelete} onClose={() => setZoneToDelete(null)} title="Remover zona" size="sm">
+        <p className="text-navy-600">
+          Tem certeza que deseja remover a zona{" "}
+          <strong>{deliveryZones.find((z) => z.id === zoneToDelete)?.zone}</strong>?
+        </p>
+        <div className="mt-5 flex gap-3">
+          <button onClick={() => setZoneToDelete(null)} className="btn-ghost flex-1">Cancelar</button>
+          <button onClick={() => zoneToDelete && deleteZone(zoneToDelete)} className="btn flex-1 bg-red-500 text-white hover:bg-red-600">
+            <Trash2 size={15} /> Remover
+          </button>
+        </div>
+      </Modal>
+
+      {/* ── Modal: confirmar reset ── */}
       <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Restaurar dados" size="sm">
         <p className="text-navy-600">
           Isso vai substituir <strong>todos</strong> os dados atuais pelos dados de demonstração. Deseja continuar?

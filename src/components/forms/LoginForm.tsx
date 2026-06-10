@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
+import { Eye, EyeOff, LogIn, Loader2, KeyRound, ArrowLeft } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
-/* ── Ícones dos provedores ─────────────────────── */
+/* ── Ícones ──────────────────────────── */
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
@@ -34,7 +34,7 @@ function AppleIcon() {
 }
 
 /* ══════════════════════════════════════════════
-   BOTÃO GOOGLE — wrapper que chama o OAuth real
+   BOTÃO GOOGLE REAL
    ══════════════════════════════════════════════ */
 function GoogleLoginButton({ onSuccess, onError }: {
   onSuccess: () => void;
@@ -48,20 +48,15 @@ function GoogleLoginButton({ onSuccess, onError }: {
     onSuccess: async (tokenResponse) => {
       setLoading(true);
       try {
-        // Busca os dados do perfil na API do Google
         const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         });
-        if (!res.ok) throw new Error("Não foi possível obter os dados do Google.");
+        if (!res.ok) throw new Error("Erro ao obter dados do Google.");
         const profile = await res.json();
-
         const result = loginWithGoogle({
-          name:     profile.name,
-          email:    profile.email,
-          picture:  profile.picture,
-          googleId: profile.sub,
+          name: profile.name, email: profile.email,
+          picture: profile.picture, googleId: profile.sub,
         });
-
         if (result.ok) {
           showToast(`Bem-vindo, ${profile.name.split(" ")[0]}! 🐾`, "success");
           onSuccess();
@@ -74,9 +69,7 @@ function GoogleLoginButton({ onSuccess, onError }: {
         setLoading(false);
       }
     },
-    onError: () => {
-      onError("Login com Google cancelado ou falhou. Tente novamente.");
-    },
+    onError: () => onError("Login com Google cancelado."),
   });
 
   return (
@@ -84,11 +77,145 @@ function GoogleLoginButton({ onSuccess, onError }: {
       type="button"
       onClick={() => googleLogin()}
       disabled={loading}
-      className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm disabled:opacity-60"
+      className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-orange-300 hover:bg-orange-50 disabled:opacity-60"
     >
-      {loading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
+      {loading ? <Loader2 size={15} className="animate-spin" /> : <GoogleIcon />}
       <span className="hidden text-xs sm:inline">Google</span>
     </button>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   MODAL: RECUPERAR SENHA
+   ══════════════════════════════════════════════ */
+type ResetStep = "email" | "newpass" | "done";
+
+function ForgotPasswordFlow({ onClose }: { onClose: () => void }) {
+  const { resetPassword } = useAuth();
+  const { showToast } = useToast();
+  const [step, setStep]     = useState<ResetStep>("email");
+  const [email, setEmail]   = useState("");
+  const [pwd1, setPwd1]     = useState("");
+  const [pwd2, setPwd2]     = useState("");
+  const [show, setShow]     = useState(false);
+  const [error, setError]   = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submitEmail = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    await new Promise((r) => setTimeout(r, 400));
+    // Verifica se existe — resetPassword já testa isso, mas queremos avançar o step
+    const test = resetPassword(email, "___TEST___");
+    setLoading(false);
+    if (test.ok || test.error?.includes("6 caracteres")) {
+      setStep("newpass");
+    } else {
+      setError(test.error ?? "E-mail não encontrado.");
+    }
+  };
+
+  const submitNewPass = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (pwd1.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
+    if (pwd1 !== pwd2)   { setError("As senhas não conferem."); return; }
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 400));
+    const result = resetPassword(email, pwd1);
+    setLoading(false);
+    if (result.ok) {
+      setStep("done");
+    } else {
+      setError(result.error ?? "Não foi possível alterar a senha.");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {step === "email" && (
+        <form onSubmit={submitEmail} className="space-y-4">
+          <p className="text-sm text-navy-500">
+            Digite o e-mail da sua conta. Se encontrarmos uma conta, você poderá criar uma nova senha.
+          </p>
+          {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600">{error}</p>}
+          <div>
+            <label className="label">E-mail da conta</label>
+            <input
+              type="email" required autoFocus
+              className="input"
+              placeholder="voce@email.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+            />
+          </div>
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="btn-ghost flex-1 border border-cream-200">
+              <ArrowLeft size={14} /> Voltar
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary flex-1">
+              {loading ? <Loader2 size={15} className="animate-spin" /> : "Continuar →"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === "newpass" && (
+        <form onSubmit={submitNewPass} className="space-y-4">
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            ✅ Conta encontrada para <strong>{email}</strong>. Crie sua nova senha:
+          </div>
+          {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600">{error}</p>}
+          <div>
+            <label className="label">Nova senha</label>
+            <div className="relative">
+              <input
+                type={show ? "text" : "password"}
+                required minLength={6}
+                className="input pr-10"
+                placeholder="Mínimo 6 caracteres"
+                value={pwd1}
+                onChange={(e) => { setPwd1(e.target.value); setError(""); }}
+              />
+              <button type="button" onClick={() => setShow(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-400">
+                {show ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="label">Confirmar nova senha</label>
+            <input
+              type={show ? "text" : "password"}
+              required
+              className={`input ${pwd2 && pwd1 !== pwd2 ? "border-red-400" : ""}`}
+              placeholder="Repetir a senha"
+              value={pwd2}
+              onChange={(e) => { setPwd2(e.target.value); setError(""); }}
+            />
+          </div>
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setStep("email")} className="btn-ghost flex-1 border border-cream-200">
+              <ArrowLeft size={14} /> Voltar
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary flex-1">
+              {loading ? <Loader2 size={15} className="animate-spin" /> : <><KeyRound size={14} /> Salvar senha</>}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === "done" && (
+        <div className="space-y-4 text-center">
+          <div className="text-5xl">🎉</div>
+          <p className="font-display text-lg font-bold text-navy-800">Senha alterada!</p>
+          <p className="text-sm text-navy-500">Agora você pode entrar com a nova senha.</p>
+          <button onClick={onClose} className="btn-primary w-full" autoFocus>
+            <LogIn size={16} /> Fazer login
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -99,16 +226,16 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
   const { login } = useAuth();
   const { showToast } = useToast();
 
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [showPwd,  setShowPwd]  = useState(false);
-  const [error,    setError]    = useState("");
-  const [loading,  setLoading]  = useState(false);
+  const [email,    setEmail]        = useState("");
+  const [password, setPassword]     = useState("");
+  const [showPwd,  setShowPwd]      = useState(false);
+  const [error,    setError]        = useState("");
+  const [loading,  setLoading]      = useState(false);
+  const [showReset, setShowReset]   = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     await new Promise((r) => setTimeout(r, 300));
     const result = login(email, password);
     if (result.ok) {
@@ -120,54 +247,41 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
     setLoading(false);
   };
 
-  const handleSocialNotReady = (provider: string) => {
-    showToast(`Login com ${provider} em breve! 🐾`, "info");
-  };
+  const handleSocialSoon = (p: string) => showToast(`Login com ${p} em breve! 🐾`, "info");
+  const handleGoogleError = (msg: string) => { setError(msg); };
 
-  const handleGoogleError = (msg: string) => {
-    setError(msg);
-    showToast(msg, "error");
-  };
+  /* Modal de recuperação */
+  if (showReset) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <KeyRound size={18} className="text-orange-500" />
+          <h3 className="font-display font-bold text-navy-800">Recuperar senha</h3>
+        </div>
+        <ForgotPasswordFlow onClose={() => setShowReset(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      {/* Botões de login social */}
+      {/* Social */}
       <div className="grid grid-cols-3 gap-2">
-        {/* Google — real se VITE_GOOGLE_CLIENT_ID estiver configurado */}
         {GOOGLE_CLIENT_ID ? (
-          <GoogleLoginButton
-            onSuccess={() => onSuccess?.()}
-            onError={handleGoogleError}
-          />
+          <GoogleLoginButton onSuccess={() => onSuccess?.()} onError={handleGoogleError} />
         ) : (
-          <button
-            type="button"
-            onClick={() => handleSocialNotReady("Google")}
-            className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm"
-          >
-            <GoogleIcon />
-            <span className="hidden text-xs sm:inline">Google</span>
+          <button type="button" onClick={() => handleSocialSoon("Google")}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-orange-300 hover:bg-orange-50">
+            <GoogleIcon /><span className="hidden text-xs sm:inline">Google</span>
           </button>
         )}
-
-        {/* Meta — em breve */}
-        <button
-          type="button"
-          onClick={() => handleSocialNotReady("Facebook")}
-          className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
-        >
-          <MetaIcon />
-          <span className="hidden text-xs sm:inline">Facebook</span>
+        <button type="button" onClick={() => handleSocialSoon("Facebook")}
+          className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-blue-300 hover:bg-blue-50">
+          <MetaIcon /><span className="hidden text-xs sm:inline">Facebook</span>
         </button>
-
-        {/* Apple — em breve */}
-        <button
-          type="button"
-          onClick={() => handleSocialNotReady("Apple")}
-          className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm"
-        >
-          <AppleIcon />
-          <span className="hidden text-xs sm:inline">Apple</span>
+        <button type="button" onClick={() => handleSocialSoon("Apple")}
+          className="flex items-center justify-center gap-2 rounded-xl border-2 border-cream-200 px-3 py-2.5 font-bold text-navy-700 transition-all hover:border-gray-300 hover:bg-gray-50">
+          <AppleIcon /><span className="hidden text-xs sm:inline">Apple</span>
         </button>
       </div>
 
@@ -178,7 +292,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
         <div className="h-px flex-1 bg-cream-200" />
       </div>
 
-      {/* Formulário e-mail/senha */}
+      {/* Form */}
       <form onSubmit={submit} className="space-y-4">
         {error && (
           <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
@@ -189,65 +303,38 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
 
         <div>
           <label className="label" htmlFor="login-email">E-mail</label>
-          <input
-            id="login-email"
-            type="email"
-            required
-            autoComplete="email"
-            className="input"
-            placeholder="voce@email.com"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); setError(""); }}
-          />
+          <input id="login-email" type="email" required autoComplete="email"
+            className="input" placeholder="voce@email.com"
+            value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} />
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="label mb-0" htmlFor="login-password">Senha</label>
-            <button
-              type="button"
+            <button type="button"
               className="text-xs font-semibold text-orange-600 hover:text-orange-700 hover:underline"
-              onClick={() => showToast("Recuperação de senha em breve!", "info")}
-            >
+              onClick={() => setShowReset(true)}>
               Esqueci minha senha
             </button>
           </div>
           <div className="relative">
-            <input
-              id="login-password"
-              type={showPwd ? "text" : "password"}
-              required
-              autoComplete="current-password"
-              className="input pr-11"
-              placeholder="••••••••"
+            <input id="login-password" type={showPwd ? "text" : "password"}
+              required autoComplete="current-password"
+              className="input pr-11" placeholder="••••••••"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(""); }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPwd((v) => !v)}
+              onChange={(e) => { setPassword(e.target.value); setError(""); }} />
+            <button type="button" onClick={() => setShowPwd(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-400 hover:text-navy-700"
-              tabIndex={-1}
-              aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
-            >
+              tabIndex={-1}>
               {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-primary w-full disabled:opacity-70"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 size={16} className="animate-spin" />
-              Entrando…
-            </span>
-          ) : (
-            <><LogIn size={18} /> Entrar</>
-          )}
+        <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-70">
+          {loading
+            ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Entrando…</span>
+            : <><LogIn size={18} /> Entrar</>}
         </button>
 
         <p className="text-center text-sm text-navy-500">
