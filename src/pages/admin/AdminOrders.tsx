@@ -39,6 +39,18 @@ export function AdminOrders() {
     [orders, statusFilter, search]
   );
 
+  const summary = useMemo(() => {
+    const waiting = ["Solicitação enviada", "Verificando disponibilidade", "Aguardando pagamento"];
+    const running = ["Pedido confirmado", "Em separação", "Pronto para retirada", "Saiu para entrega"];
+    return {
+      waiting:   orders.filter((o) => waiting.includes(o.status)).length,
+      running:   orders.filter((o) => running.includes(o.status)).length,
+      done:      orders.filter((o) => o.status === "Finalizado").length,
+      cancelled: orders.filter((o) => o.status === "Cancelado").length,
+      revenue:   orders.filter((o) => o.status !== "Cancelado").reduce((s, o) => s + o.total, 0),
+    };
+  }, [orders]);
+
   const changeStatus = (order: Order, status: string) => {
     updateOrderStatus(order.id, status as Order["status"]);
     showToast("Status atualizado com sucesso! ✅", "success");
@@ -52,11 +64,29 @@ export function AdminOrders() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold text-navy-700">Pedidos</h1>
-      <p className="mt-1 text-navy-500">{orders.length} pedidos recebidos.</p>
+      <h1 className="font-display text-2xl font-bold text-navy-800 sm:text-3xl">Pedidos</h1>
+      <p className="mt-1 text-sm text-navy-500">{orders.length} pedidos recebidos no total.</p>
+
+      {/* Resumo por status */}
+      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {[
+          { label: "Aguardando",   value: summary.waiting,   tone: "border-orange-400 text-orange-600", emoji: "🕐" },
+          { label: "Em andamento", value: summary.running,   tone: "border-sky-400 text-sky-600",       emoji: "📦" },
+          { label: "Finalizados",  value: summary.done,      tone: "border-green-500 text-green-600",   emoji: "🎉" },
+          { label: "Cancelados",   value: summary.cancelled, tone: "border-red-400 text-red-500",       emoji: "❌" },
+          { label: "Receita",      value: formatBRL(summary.revenue), tone: "border-navy-400 text-navy-700", emoji: "💰", wide: true },
+        ].map((s) => (
+          <div key={s.label} className={`card border-l-4 ${s.tone.split(" ")[0]} p-3.5 ${s.wide ? "col-span-2 lg:col-span-1" : ""}`}>
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-navy-400">
+              <span>{s.emoji}</span> {s.label}
+            </p>
+            <p className={`mt-1 font-display text-xl font-bold ${s.tone.split(" ").slice(1).join(" ")}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
 
       {/* Filtros */}
-      <div className="card mt-6 space-y-3 p-4">
+      <div className="card mt-5 space-y-3 p-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-300" size={18} />
           <input className="input pl-11" placeholder="Buscar por pedido ou cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
