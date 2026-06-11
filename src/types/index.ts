@@ -99,6 +99,7 @@ export interface User {
   phone: string;
   email: string;
   password: string; // simulado (somente demonstração)
+  googleId?: string; // sub do Google, quando login via Google
   avatar?: string;  // base64 JPEG ou URL
   address: Address;
   preference: Fulfillment;

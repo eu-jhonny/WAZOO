@@ -53,7 +53,7 @@ function GoogleLoginButton({ onSuccess, onError }: {
         });
         if (!res.ok) throw new Error("Erro ao obter dados do Google.");
         const profile = await res.json();
-        const result = loginWithGoogle({
+        const result = await loginWithGoogle({
           name: profile.name, email: profile.email,
           picture: profile.picture, googleId: profile.sub,
         });
@@ -237,7 +237,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
     e.preventDefault();
     setLoading(true); setError("");
     await new Promise((r) => setTimeout(r, 300));
-    const result = login(email, password);
+    const result = await login(email, password);
     if (result.ok) {
       showToast("Bem-vindo de volta! 🐾", "success");
       onSuccess?.();

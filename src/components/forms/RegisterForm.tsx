@@ -23,9 +23,9 @@ export function RegisterForm({ onSuccess }: { onSuccess?: () => void }) {
   const set = (key: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = register({
+    const result = await register({
       name: form.name,
       phone: form.phone,
       email: form.email,

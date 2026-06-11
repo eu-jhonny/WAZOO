@@ -1,13 +1,17 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import { STORAGE_KEYS, site } from "@/config/site";
 import { seedUsers } from "@/data/users";
 import { uid } from "@/lib/format";
+import { isCloudEnabled } from "@/lib/supabase";
+import { cloudLogin, cloudRegister, cloudSave, type CloudProfileData } from "@/lib/cloudProfile";
 import type { Pet, User } from "@/types";
 
 export interface AuthResult {
@@ -35,10 +39,12 @@ interface AuthContextValue {
   user: User | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
+  /** True quando a sincronização em nuvem está ativa (Supabase configurado). */
+  cloudSync: boolean;
 
-  register: (data: RegisterInput) => AuthResult;
-  login: (email: string, password: string) => AuthResult;
-  loginWithGoogle: (profile: GoogleProfile) => AuthResult;
+  register: (data: RegisterInput) => Promise<AuthResult>;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  loginWithGoogle: (profile: GoogleProfile) => Promise<AuthResult>;
   logout: () => void;
   updateProfile: (data: Partial<Omit<User, "id" | "pets">>) => void;
   resetPassword: (email: string, newPassword: string) => AuthResult;
@@ -52,6 +58,26 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** Extrai só os campos do perfil que vão para a nuvem (sem id/senha). */
+function toCloud(u: {
+  name?: string; phone?: string; avatar?: string; googleId?: string;
+  address?: User["address"]; preference?: User["preference"]; pets?: Pet[]; createdAt?: number;
+}): CloudProfileData {
+  return {
+    name: u.name,
+    phone: u.phone,
+    avatar: u.avatar,
+    googleId: u.googleId,
+    address: u.address,
+    preference: u.preference,
+    pets: u.pets,
+    createdAt: u.createdAt,
+  };
+}
+
+/** Segredo usado nas RPCs: senha (e-mail) ou googleId (Google). */
+const secretOf = (u: User) => u.password || u.googleId || "";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = usePersistentState<User[]>(
@@ -72,42 +98,98 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [users, currentUserId]
   );
 
-  /** Aplica uma transformação ao usuário atual e garante persistência imediata. */
+  /** Aplica uma transformação ao usuário atual e persiste de imediato. */
   const mutateCurrent = (fn: (u: User) => User) => {
     if (!currentUserId) return;
-    // setUsers já usa o setter síncrono do usePersistentState (salva no localStorage
-    // dentro do próprio updater, sem depender do useEffect assíncrono)
     setUsers((prev) => prev.map((u) => (u.id === currentUserId ? fn(u) : u)));
   };
+
+  /** Insere/atualiza um usuário a partir dos dados da nuvem e o torna o atual. */
+  const hydrateFromCloud = (
+    email: string,
+    secret: string,
+    data: CloudProfileData,
+    googleId?: string,
+  ) => {
+    const emailLc = email.toLowerCase();
+    const existing = users.find((u) => u.email.toLowerCase() === emailLc);
+    const id = existing?.id ?? uid("u-");
+    const merged: User = {
+      id,
+      name: data.name ?? existing?.name ?? "",
+      email,
+      phone: data.phone ?? existing?.phone ?? "",
+      password: googleId ? "" : secret,
+      googleId: googleId ?? existing?.googleId,
+      avatar: data.avatar ?? existing?.avatar,
+      address: data.address ?? existing?.address ?? { street: "", neighborhood: "", city: "" },
+      preference: data.preference ?? existing?.preference ?? "entrega",
+      pets: (data.pets as Pet[]) ?? existing?.pets ?? [],
+      createdAt: data.createdAt ?? existing?.createdAt ?? Date.now(),
+    };
+    setUsers((prev) =>
+      existing ? prev.map((u) => (u.id === id ? merged : u)) : [...prev, merged],
+    );
+    setCurrentUserId(id);
+  };
+
+  /* ── Push do perfil para a nuvem quando ele muda (debounce) ── */
+  const lastPush = useRef<string>("");
+  useEffect(() => {
+    if (!isCloudEnabled || !user) return;
+    const secret = secretOf(user);
+    if (!secret) return;
+    const payload = toCloud(user);
+    const sig = `${user.email}:${JSON.stringify(payload)}`;
+    if (sig === lastPush.current) return;
+    const t = setTimeout(() => {
+      cloudSave(user.email, secret, payload)
+        .then(() => { lastPush.current = sig; })
+        .catch(() => { /* melhor esforço */ });
+    }, 700);
+    return () => clearTimeout(t);
+  }, [user]);
 
   const value = useMemo<AuthContextValue>(() => {
     return {
       user,
       isLoggedIn: !!user,
       isAdmin,
+      cloudSync: isCloudEnabled,
 
-      register: (data) => {
-        const exists = users.some(
-          (u) => u.email.toLowerCase() === data.email.toLowerCase()
-        );
-        if (exists) {
+      register: async (data) => {
+        const emailLc = data.email.toLowerCase().trim();
+        if (users.some((u) => u.email.toLowerCase() === emailLc)) {
           return { ok: false, error: "Este e-mail já está cadastrado." };
         }
-        const newUser: User = {
-          ...data,
-          id: uid("u-"),
-          pets: [],
-          createdAt: Date.now(),
-        };
+        if (isCloudEnabled) {
+          const r = await cloudRegister(emailLc, data.password, toCloud({
+            name: data.name, phone: data.phone, address: data.address,
+            preference: data.preference, pets: [], createdAt: Date.now(),
+          }));
+          if (r.exists) {
+            return { ok: false, error: "Este e-mail já está cadastrado. Faça login." };
+          }
+        }
+        const newUser: User = { ...data, id: uid("u-"), pets: [], createdAt: Date.now() };
         setUsers((prev) => [...prev, newUser]);
         setCurrentUserId(newUser.id);
         return { ok: true };
       },
 
-      login: (email, password) => {
+      login: async (email, password) => {
+        const emailLc = email.trim().toLowerCase();
+        if (isCloudEnabled) {
+          const data = await cloudLogin(emailLc, password);
+          if (data) {
+            hydrateFromCloud(emailLc, password, data);
+            return { ok: true };
+          }
+          // Não achou na nuvem → tenta conta local (ex.: criada antes da nuvem)
+        }
         const found = users.find(
           (u) =>
-            u.email.toLowerCase() === email.trim().toLowerCase() &&
+            u.email.toLowerCase() === emailLc &&
             u.password === password
         );
         if (!found) {
@@ -117,26 +199,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: true };
       },
 
-      loginWithGoogle: (profile) => {
-        const email = profile.email.trim().toLowerCase();
+      loginWithGoogle: async (profile) => {
+        const emailLc = profile.email.trim().toLowerCase();
+        const gid = profile.googleId || "google";
 
-        // Verifica se já existe uma conta com esse e-mail
-        const existing = users.find((u) => u.email.toLowerCase() === email);
+        if (isCloudEnabled) {
+          let data = await cloudLogin(emailLc, gid);
+          if (!data) {
+            const seed: CloudProfileData = {
+              name: profile.name,
+              avatar: profile.picture,
+              googleId: gid,
+              address: { street: "", neighborhood: "", city: "" },
+              preference: "entrega",
+              pets: [],
+              createdAt: Date.now(),
+            };
+            await cloudRegister(emailLc, gid, seed);
+            data = seed;
+          }
+          hydrateFromCloud(emailLc, gid, data, gid);
+          return { ok: true };
+        }
+
+        // Modo local
+        const existing = users.find((u) => u.email.toLowerCase() === emailLc);
         if (existing) {
           setCurrentUserId(existing.id);
           return { ok: true };
         }
-
-        // Cria nova conta automática com dados do Google
         const newUser: User = {
-          id:        uid("u-"),
-          name:      profile.name,
-          email:     profile.email,
-          phone:     "",
-          password:  "", // usuário Google não tem senha local
-          address:   { street: "", neighborhood: "", city: "" },
+          id: uid("u-"),
+          name: profile.name,
+          email: profile.email,
+          phone: "",
+          password: "",
+          googleId: gid,
+          avatar: profile.picture,
+          address: { street: "", neighborhood: "", city: "" },
           preference: "entrega",
-          pets:      [],
+          pets: [],
           createdAt: Date.now(),
         };
         setUsers((prev) => [...prev, newUser]);
@@ -155,6 +257,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUsers((prev) =>
           prev.map((u) => (u.id === found.id ? { ...u, password: newPassword } : u)),
         );
+        // Sincroniza a nova senha como segredo na nuvem (melhor esforço).
+        if (isCloudEnabled) {
+          cloudSave(found.email, newPassword, toCloud(found)).catch(() => {});
+        }
         return { ok: true };
       },
 
