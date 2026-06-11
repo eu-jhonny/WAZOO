@@ -22,6 +22,7 @@ import { formatBRL } from "@/lib/format";
 import { getAdminPaymentConfig } from "@/lib/adminConfig";
 import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
+import { PixQrCode } from "@/components/ui/PixQrCode";
 
 /* ── Tipos ──────────────────────────────────────────────────── */
 interface CustomerForm { name: string; email: string; phone: string; cpf: string; }
@@ -100,6 +101,7 @@ export function Checkout() {
   const [couponFreeShip, setCouponFreeShip] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [paidTotal, setPaidTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
   /* ── Cálculo de totais ─────────────────────────────────── */
@@ -147,6 +149,7 @@ export function Checkout() {
         ].filter(Boolean).join(" · "),
       });
       setOrderNumber(order.id);
+      setPaidTotal(total);
       clear();
       setStep("success");
     } finally {
@@ -158,11 +161,18 @@ export function Checkout() {
   const waMessage = useMemo(() => {
     const lines = [
       `Olá! Acabei de enviar o pedido *${orderNumber}* pelo site. 🐾`,
-      `Total estimado: ${formatBRL(total)} (${paymentMethod === "pix" ? "PIX" : paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
+      `Total estimado: ${formatBRL(paidTotal)} (${paymentMethod === "pix" ? "PIX" : paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
       `Gostaria de confirmar a disponibilidade e o pagamento.`,
     ];
     return lines.join("\n");
-  }, [orderNumber, total, paymentMethod]);
+  }, [orderNumber, paidTotal, paymentMethod]);
+
+  /* Chave PIX: usa a configurada no admin; senão, o WhatsApp como chave telefone. */
+  const pixKey = useMemo(() => {
+    if (payCfg.pixChave.trim()) return payCfg.pixChave.trim();
+    const digits = (settings.whatsapp || "").replace(/\D/g, "");
+    return digits ? `+${digits.startsWith("55") ? digits : "55" + digits}` : "";
+  }, [payCfg.pixChave, settings.whatsapp]);
 
   if (!items.length && step !== "success") {
     return (
@@ -187,6 +197,18 @@ export function Checkout() {
           Número do pedido: <strong className="text-navy-700">{orderNumber}</strong>
         </p>
 
+        {/* QR Code PIX gerado no próprio sistema */}
+        {paymentMethod === "pix" && pixKey && (
+          <div className="mt-6">
+            <PixQrCode
+              pixKey={pixKey}
+              merchantName={settings.storeName}
+              amount={paidTotal}
+              txid={orderNumber}
+            />
+          </div>
+        )}
+
         <div className="mt-6 rounded-3xl border border-cream-200 bg-cream-50 p-5 text-left text-sm text-navy-600">
           <p className="flex items-center gap-2 font-bold text-navy-700">
             <Sparkles size={16} className="text-orange-500" /> Próximos passos
@@ -194,7 +216,9 @@ export function Checkout() {
           <ol className="mt-3 space-y-2">
             <li>1. Vamos verificar a disponibilidade dos itens.</li>
             <li>2. Confirmamos o valor final e o prazo com você.</li>
-            <li>3. Combinamos o pagamento ({paymentMethod === "pix" ? "PIX" : paymentMethod === "credit_card" ? "cartão" : "boleto"}) e a {deliveryMethod === "DELIVERY" ? "entrega" : "retirada"}.</li>
+            <li>3. {paymentMethod === "pix"
+              ? "Pague com o PIX acima e nos envie o comprovante."
+              : `Combinamos o pagamento (${paymentMethod === "credit_card" ? "cartão" : "boleto"}).`} {deliveryMethod === "DELIVERY" ? "Combinamos a entrega." : "Combinamos a retirada."}</li>
           </ol>
         </div>
 

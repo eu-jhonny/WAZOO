@@ -35,6 +35,7 @@ export interface AdminPaymentConfig {
   payBoleto:   boolean;
   pixDiscount: number; // % de desconto no PIX
   maxInstall:  number; // máximo de parcelas no cartão
+  pixChave:    string; // chave PIX do recebedor (gera o QR Code)
 }
 
 const PAYMENT_DEFAULTS: AdminPaymentConfig = {
@@ -43,6 +44,7 @@ const PAYMENT_DEFAULTS: AdminPaymentConfig = {
   payBoleto:   true,
   pixDiscount: 5,
   maxInstall:  10,
+  pixChave:    "",
 };
 
 /** Lê a config de pagamento do admin (mesma chave do config geral). */
@@ -57,6 +59,7 @@ export function getAdminPaymentConfig(): AdminPaymentConfig {
         payBoleto:   obj.payBoleto   ?? PAYMENT_DEFAULTS.payBoleto,
         pixDiscount: Number(obj.pixDiscount ?? PAYMENT_DEFAULTS.pixDiscount),
         maxInstall:  Number(obj.maxInstall  ?? PAYMENT_DEFAULTS.maxInstall),
+        pixChave:    String(obj.pixChave ?? PAYMENT_DEFAULTS.pixChave),
       };
     }
   } catch { /* JSON inválido */ }
