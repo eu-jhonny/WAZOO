@@ -104,6 +104,9 @@ export function Checkout() {
   const [paidTotal, setPaidTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  /* Referência do PIX (mostrada antes do pedido existir). */
+  const pendingTxid = useMemo(() => "WZ" + Date.now().toString().slice(-8), []);
+
   /* ── Cálculo de totais ─────────────────────────────────── */
   const subtotal = cartTotal;
   const baseShipping = deliveryMethod === "DELIVERY" ? (settings.deliveryFee || 0) : 0;
@@ -141,7 +144,7 @@ export function Checkout() {
         })),
         total,
         note: [
-          paymentMethod === "pix" ? "Pagamento: PIX" : paymentMethod === "credit_card" ? "Pagamento: Cartão" : "Pagamento: Boleto",
+          paymentMethod === "pix" ? "Pagamento: PIX (informado pelo cliente)" : paymentMethod === "credit_card" ? "Pagamento: Cartão (a combinar)" : "Pagamento: Boleto (a combinar)",
           couponCode ? `Cupom: ${couponCode.toUpperCase()}` : "",
           deliveryMethod === "DELIVERY" && address.street
             ? `Entrega: ${address.street}, ${address.number} - ${address.neighborhood}, ${address.city}/${address.state}, CEP ${address.zip}`
@@ -159,12 +162,17 @@ export function Checkout() {
 
   /* ── Mensagem de WhatsApp para a tela de sucesso ────────── */
   const waMessage = useMemo(() => {
-    const lines = [
+    if (paymentMethod === "pix") {
+      return [
+        `Olá! Acabei de pagar o pedido *${orderNumber}* via PIX. 🐾`,
+        `Valor: ${formatBRL(paidTotal)}. Segue o comprovante 👇`,
+      ].join("\n");
+    }
+    return [
       `Olá! Acabei de enviar o pedido *${orderNumber}* pelo site. 🐾`,
-      `Total estimado: ${formatBRL(paidTotal)} (${paymentMethod === "pix" ? "PIX" : paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
+      `Total estimado: ${formatBRL(paidTotal)} (${paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
       `Gostaria de confirmar a disponibilidade e o pagamento.`,
-    ];
-    return lines.join("\n");
+    ].join("\n");
   }, [orderNumber, paidTotal, paymentMethod]);
 
   /* Chave PIX: usa a configurada no admin; senão, o WhatsApp como chave telefone. */
@@ -192,20 +200,16 @@ export function Checkout() {
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 animate-pop">
           <CheckCircle size={44} className="text-green-500" />
         </div>
-        <h1 className="section-title mt-6">Pedido enviado! 🎉</h1>
+        <h1 className="section-title mt-6">
+          {paymentMethod === "pix" ? "Pagamento informado! 🎉" : "Pedido enviado! 🎉"}
+        </h1>
         <p className="mt-3 text-navy-500">
           Número do pedido: <strong className="text-navy-700">{orderNumber}</strong>
         </p>
 
-        {/* QR Code PIX gerado no próprio sistema */}
-        {paymentMethod === "pix" && pixKey && (
-          <div className="mt-6">
-            <PixQrCode
-              pixKey={pixKey}
-              merchantName={settings.storeName}
-              amount={paidTotal}
-              txid={orderNumber}
-            />
+        {paymentMethod === "pix" && (
+          <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
+            💚 Recebemos a confirmação do seu PIX de {formatBRL(paidTotal)}. Para agilizar, envie o comprovante pelo WhatsApp.
           </div>
         )}
 
@@ -214,10 +218,10 @@ export function Checkout() {
             <Sparkles size={16} className="text-orange-500" /> Próximos passos
           </p>
           <ol className="mt-3 space-y-2">
-            <li>1. Vamos verificar a disponibilidade dos itens.</li>
+            <li>1. {paymentMethod === "pix" ? "Conferimos o recebimento do PIX." : "Vamos verificar a disponibilidade dos itens."}</li>
             <li>2. Confirmamos o valor final e o prazo com você.</li>
             <li>3. {paymentMethod === "pix"
-              ? "Pague com o PIX acima e nos envie o comprovante."
+              ? "Enviamos o seu pedido."
               : `Combinamos o pagamento (${paymentMethod === "credit_card" ? "cartão" : "boleto"}).`} {deliveryMethod === "DELIVERY" ? "Combinamos a entrega." : "Combinamos a retirada."}</li>
           </ol>
         </div>
@@ -228,7 +232,7 @@ export function Checkout() {
           rel="noopener noreferrer"
           className="btn-green mt-6 w-full"
         >
-          <WhatsAppIcon size={18} /> Agilizar pelo WhatsApp
+          <WhatsAppIcon size={18} /> {paymentMethod === "pix" ? "Enviar comprovante pelo WhatsApp" : "Agilizar pelo WhatsApp"}
         </a>
 
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -434,7 +438,7 @@ export function Checkout() {
             {step === "payment" && (
               <div className="animate-fade-in">
                 <h2 className="font-display text-xl font-bold text-navy-700">Forma de pagamento</h2>
-                <p className="mt-1 text-sm text-navy-400">Você combina o pagamento com a gente após a confirmação.</p>
+                <p className="mt-1 text-sm text-navy-400">Escolha como pagar. O pedido só é registrado depois do pagamento.</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   {methods.map((m) => {
                     const Icon = m.icon;
@@ -450,26 +454,57 @@ export function Checkout() {
                   })}
                 </div>
 
-                {paymentMethod === "pix" && payCfg.pixDiscount > 0 && (
-                  <div className="mt-4 rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-700">
-                    💚 Pagando com PIX você ganha <strong>{payCfg.pixDiscount}% de desconto</strong> ({formatBRL(pixDiscount)}).
-                  </div>
-                )}
-                {paymentMethod === "credit_card" && (
-                  <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-700">
-                    💳 Parcele em até {payCfg.maxInstall}x. Os dados do cartão são combinados de forma segura na confirmação.
-                  </div>
-                )}
-                {paymentMethod === "boleto" && (
-                  <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
-                    📄 O boleto é enviado após a confirmação da disponibilidade. Vencimento em 3 dias úteis.
+                {/* ── PIX: paga AGORA, e só então registra o pedido ── */}
+                {paymentMethod === "pix" && (
+                  <div className="mt-5">
+                    {payCfg.pixDiscount > 0 && (
+                      <div className="mb-4 rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-700">
+                        💚 Pagando com PIX você ganha <strong>{payCfg.pixDiscount}% de desconto</strong> ({formatBRL(pixDiscount)}).
+                      </div>
+                    )}
+                    {pixKey ? (
+                      <>
+                        <PixQrCode
+                          pixKey={pixKey}
+                          merchantName={settings.storeName}
+                          amount={total}
+                          txid={pendingTxid}
+                        />
+                        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                          <span className="text-base leading-none">⚠️</span>
+                          <span>Faça o PIX no app do seu banco. <strong>Só depois</strong> clique no botão abaixo — o pedido será registrado apenas após o pagamento.</span>
+                        </div>
+                        <button onClick={handleFinalize} disabled={loading} className="btn-green mt-4 w-full disabled:opacity-60">
+                          {loading ? <><Loader2 size={18} className="animate-spin" /> Registrando...</> : <><CheckCircle size={18} /> Já fiz o pagamento — registrar pedido</>}
+                        </button>
+                      </>
+                    ) : (
+                      <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
+                        Chave PIX não configurada pela loja. Escolha outra forma de pagamento ou combine pelo WhatsApp.
+                      </div>
+                    )}
                   </div>
                 )}
 
-                <button onClick={handleFinalize} disabled={loading} className="btn-primary mt-6 w-full disabled:opacity-60">
-                  {loading ? <><Loader2 size={18} className="animate-spin" /> Enviando...</> : <>🐾 Enviar pedido</>}
-                </button>
-                <p className="mt-2 text-center text-xs text-navy-400">Sem cobrança agora — combinamos tudo pelo WhatsApp.</p>
+                {/* ── Cartão / Boleto: combinados na confirmação ── */}
+                {paymentMethod !== "pix" && (
+                  <div className="mt-5">
+                    {paymentMethod === "credit_card" && (
+                      <div className="rounded-2xl bg-blue-50 p-4 text-sm text-blue-700">
+                        💳 Parcele em até {payCfg.maxInstall}x. Os dados do cartão são combinados de forma segura ao confirmar o pedido — sem cobrança automática agora.
+                      </div>
+                    )}
+                    {paymentMethod === "boleto" && (
+                      <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
+                        📄 O boleto é enviado após a confirmação da disponibilidade. Vencimento em 3 dias úteis.
+                      </div>
+                    )}
+                    <button onClick={handleFinalize} disabled={loading} className="btn-primary mt-4 w-full disabled:opacity-60">
+                      {loading ? <><Loader2 size={18} className="animate-spin" /> Enviando...</> : <>🐾 Enviar solicitação de pedido</>}
+                    </button>
+                    <p className="mt-2 text-center text-xs text-navy-400">Sem cobrança agora — combinamos o pagamento pelo WhatsApp.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
