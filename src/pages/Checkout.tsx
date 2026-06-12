@@ -21,8 +21,10 @@ import { useAuth } from "@/context/AuthContext";
 import { formatBRL } from "@/lib/format";
 import { getAdminPaymentConfig } from "@/lib/adminConfig";
 import { whatsappLink } from "@/lib/whatsapp";
+import { isPixAuto } from "@/lib/pixProvider";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { PixQrCode } from "@/components/ui/PixQrCode";
+import { PixAutoPayment } from "@/components/ui/PixAutoPayment";
 
 /* ── Tipos ──────────────────────────────────────────────────── */
 interface CustomerForm { name: string; email: string; phone: string; cpf: string; }
@@ -253,6 +255,30 @@ export function Checkout() {
   const stepIdx = steps.findIndex((s) => s.key === step);
   const canAddress = customer.name && customer.email && customer.phone && customer.cpf;
 
+  /* PIX estático (manual) — usado quando o pagamento automático não está
+     ativo, ou como fallback se a cobrança automática falhar. */
+  const staticPix = pixKey ? (
+    <>
+      <PixQrCode
+        pixKey={pixKey}
+        merchantName={settings.storeName}
+        amount={total}
+        txid={pendingTxid}
+      />
+      <div className="mt-4 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+        <span className="text-base leading-none">⚠️</span>
+        <span>Faça o PIX no app do seu banco. <strong>Só depois</strong> clique no botão abaixo — o pedido será registrado apenas após o pagamento.</span>
+      </div>
+      <button onClick={handleFinalize} disabled={loading} className="btn-green mt-4 w-full disabled:opacity-60">
+        {loading ? <><Loader2 size={18} className="animate-spin" /> Registrando...</> : <><CheckCircle size={18} /> Já fiz o pagamento — registrar pedido</>}
+      </button>
+    </>
+  ) : (
+    <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
+      Chave PIX não configurada pela loja. Escolha outra forma de pagamento ou combine pelo WhatsApp.
+    </div>
+  );
+
   return (
     <div className="bg-cream-50 py-8 sm:py-12">
       <div className="container-app max-w-4xl">
@@ -462,26 +488,18 @@ export function Checkout() {
                         💚 Pagando com PIX você ganha <strong>{payCfg.pixDiscount}% de desconto</strong> ({formatBRL(pixDiscount)}).
                       </div>
                     )}
-                    {pixKey ? (
-                      <>
-                        <PixQrCode
-                          pixKey={pixKey}
-                          merchantName={settings.storeName}
-                          amount={total}
-                          txid={pendingTxid}
-                        />
-                        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                          <span className="text-base leading-none">⚠️</span>
-                          <span>Faça o PIX no app do seu banco. <strong>Só depois</strong> clique no botão abaixo — o pedido será registrado apenas após o pagamento.</span>
-                        </div>
-                        <button onClick={handleFinalize} disabled={loading} className="btn-green mt-4 w-full disabled:opacity-60">
-                          {loading ? <><Loader2 size={18} className="animate-spin" /> Registrando...</> : <><CheckCircle size={18} /> Já fiz o pagamento — registrar pedido</>}
-                        </button>
-                      </>
+                    {isPixAuto ? (
+                      <PixAutoPayment
+                        amount={total}
+                        payerEmail={customer.email}
+                        payerName={customer.name}
+                        description={`Pedido Wazoo ${pendingTxid}`}
+                        txid={pendingTxid}
+                        onPaid={handleFinalize}
+                        fallback={staticPix}
+                      />
                     ) : (
-                      <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
-                        Chave PIX não configurada pela loja. Escolha outra forma de pagamento ou combine pelo WhatsApp.
-                      </div>
+                      staticPix
                     )}
                   </div>
                 )}
