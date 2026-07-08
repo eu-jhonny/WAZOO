@@ -19,6 +19,7 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { KitCard } from "@/components/product/KitCard";
 import { ReviewCard } from "@/components/product/ReviewCard";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
+import { NewsletterForm } from "@/components/ui/NewsletterForm";
 import { Decor } from "@/components/ui/Decor";
 import { Confetti } from "@/components/ui/Confetti";
 import { CopaDecor } from "@/components/ui/CopaDecor";
@@ -492,14 +493,7 @@ export function Home() {
               </span>
               <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">Receba ofertas exclusivas 🎁</h2>
               <p className="mt-3 text-cream-300">Promoções, lançamentos e dicas para tutores apaixonados — direto no seu e-mail.</p>
-              <form
-                className="mt-6 flex flex-col gap-3 sm:flex-row"
-                onSubmit={(e) => { e.preventDefault(); alert("Obrigado! Em breve você receberá nossas novidades. 🐾"); }}
-              >
-                <input type="email" required placeholder="seu@email.com" className="input flex-1 bg-white/10 border-white/20 text-white placeholder:text-cream-400 focus:border-orange-400" />
-                <button type="submit" className="btn-primary shrink-0">Quero receber!</button>
-              </form>
-              <p className="mt-2 text-xs text-cream-400">Sem spam. Cancele quando quiser.</p>
+              <NewsletterForm />
             </div>
           </Reveal>
         </div>

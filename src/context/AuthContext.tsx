@@ -12,6 +12,7 @@ import { seedUsers } from "@/data/users";
 import { uid } from "@/lib/format";
 import { isCloudEnabled } from "@/lib/supabase";
 import { cloudLogin, cloudRegister, cloudSave, type CloudProfileData } from "@/lib/cloudProfile";
+import { emails } from "@/lib/email";
 import type { Pet, User } from "@/types";
 
 export interface AuthResult {
@@ -174,6 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const newUser: User = { ...data, id: uid("u-"), pets: [], createdAt: Date.now() };
         setUsers((prev) => [...prev, newUser]);
         setCurrentUserId(newUser.id);
+        // E-mail de boas-vindas com cupom de primeira compra (melhor esforço).
+        void emails.welcome(newUser.email, newUser.name, "BEMVINDO");
         return { ok: true };
       },
 
@@ -261,6 +264,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isCloudEnabled) {
           cloudSave(found.email, newPassword, toCloud(found)).catch(() => {});
         }
+        // Aviso de segurança por e-mail.
+        void emails.passwordChanged(found.email, found.name);
         return { ok: true };
       },
 

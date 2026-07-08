@@ -10,6 +10,7 @@ import { seedProducts } from "@/data/products";
 import { seedOrders } from "@/data/orders";
 import { seedReviews } from "@/data/reviews";
 import { uid } from "@/lib/format";
+import { emails } from "@/lib/email";
 import type {
   Order,
   OrderItem,
@@ -32,9 +33,13 @@ const defaultSettings: SiteSettings = {
 export interface NewOrderInput {
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   petName?: string;
   fulfillment: Fulfillment;
   items: OrderItem[];
+  subtotal?: number;
+  discountAmount?: number;
+  shippingAmount?: number;
   total: number;
   note?: string;
   userId?: string;
@@ -133,16 +138,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       orders,
       addOrder: (input) => {
         const now = Date.now();
-        const subtotal = input.items.reduce((s, i) => s + i.price * i.quantity, 0);
+        const subtotal =
+          input.subtotal ?? input.items.reduce((s, i) => s + i.price * i.quantity, 0);
         const order: Order = {
           id: nextOrderId(orders),
           userId: input.userId,
           customerName: input.customerName,
           customerPhone: input.customerPhone,
+          customerEmail: input.customerEmail,
           petName: input.petName,
           fulfillment: input.fulfillment,
           items: input.items,
           subtotal,
+          discountAmount: input.discountAmount,
+          shippingAmount: input.shippingAmount,
           total: input.total,
           note: input.note,
           status: "Solicitação enviada",
@@ -150,19 +159,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           createdAt: now,
         };
         setOrders((prev) => [order, ...prev]);
+        // E-mail de confirmação de pedido (melhor esforço — não bloqueia o fluxo).
+        if (order.customerEmail) void emails.orderConfirmation(order);
         return order;
       },
       updateOrderStatus: (id, status) =>
         setOrders((prev) =>
-          prev.map((o) =>
-            o.id === id && o.status !== status
-              ? {
-                  ...o,
-                  status,
-                  history: [...o.history, { status, at: Date.now() }],
-                }
-              : o
-          )
+          prev.map((o) => {
+            if (o.id !== id || o.status === status) return o;
+            const updated: Order = {
+              ...o,
+              status,
+              history: [...o.history, { status, at: Date.now() }],
+            };
+            // Avisa o cliente sobre a mudança de status por e-mail.
+            if (updated.customerEmail) {
+              if (status === "Pedido confirmado") void emails.paymentConfirmed(updated);
+              else void emails.orderStatus(updated, status);
+              // Após finalizar, convida o cliente a avaliar a compra.
+              if (status === "Finalizado") {
+                void emails.reviewRequest(
+                  updated.customerEmail,
+                  updated.customerName,
+                  updated.id,
+                  updated.petName,
+                );
+              }
+            }
+            return updated;
+          })
         ),
       setOrderInternalNote: (id, note) =>
         setOrders((prev) =>

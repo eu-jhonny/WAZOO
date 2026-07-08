@@ -136,6 +136,7 @@ export function Checkout() {
       const order = addOrder({
         customerName: customer.name,
         customerPhone: customer.phone.replace(/\D/g, ""),
+        customerEmail: customer.email.trim(),
         fulfillment: deliveryMethod === "DELIVERY" ? "entrega" : "retirada",
         userId: user?.id,
         items: items.map((i) => ({
@@ -144,6 +145,9 @@ export function Checkout() {
           price: i.price,
           note: i.note,
         })),
+        subtotal,
+        discountAmount: couponDiscount + pixDiscount || undefined,
+        shippingAmount: shippingAmount || undefined,
         total,
         note: [
           paymentMethod === "pix" ? "Pagamento: PIX (informado pelo cliente)" : paymentMethod === "credit_card" ? "Pagamento: Cartão (a combinar)" : "Pagamento: Boleto (a combinar)",
@@ -208,6 +212,11 @@ export function Checkout() {
         <p className="mt-3 text-navy-500">
           Número do pedido: <strong className="text-navy-700">{orderNumber}</strong>
         </p>
+        {customer.email.trim() && (
+          <p className="mt-1 text-sm text-navy-400">
+            📧 Enviamos a confirmação para <strong className="text-navy-600">{customer.email.trim()}</strong>
+          </p>
+        )}
 
         {paymentMethod === "pix" && (
           <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
