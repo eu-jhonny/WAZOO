@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Heart, Menu, ShoppingCart, User as UserIcon } from "lucide-react";
+import { Heart, Menu, Search, ShoppingCart, User as UserIcon } from "lucide-react";
 import { img } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
 import { MobileMenu } from "./MobileMenu";
 import { NotificationBell } from "../ui/NotificationSystem";
+import { SearchOverlay } from "../ui/SearchOverlay";
 
 /** Logo customizado salvo pelo admin (base64) ou null se não houver. */
 function useCustomLogo() {
@@ -38,6 +39,7 @@ const navItems = [
 export function Header() {
   const [scrolled, setScrolled]  = useState(false);
   const [menuOpen, setMenuOpen]  = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { count }                = useCart();
   const { count: wishCount }     = useWishlist();
   const { isLoggedIn, user }     = useAuth();
@@ -111,6 +113,15 @@ export function Header() {
             </span>
           </Link>
 
+          {/* Busca */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-cream-100 text-navy-700 transition-all hover:bg-orange-50 hover:text-orange-600"
+            aria-label="Buscar produtos"
+          >
+            <Search size={20} />
+          </button>
+
           {/* Favoritos */}
           <Link
             to="/favoritos"
@@ -158,6 +169,7 @@ export function Header() {
       </div>
 
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} nav={navItems} />
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   );
 }

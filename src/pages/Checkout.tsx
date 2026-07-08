@@ -18,6 +18,8 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
+import { useLoyalty } from "@/context/LoyaltyContext";
+import { BRL_PER_POINT } from "@/lib/loyalty";
 import { formatBRL } from "@/lib/format";
 import { getAdminPaymentConfig } from "@/lib/adminConfig";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -76,7 +78,10 @@ export function Checkout() {
   const { items, total: cartTotal, clear } = useCart();
   const { settings, addOrder } = useStore();
   const { user } = useAuth();
+  const loyalty = useLoyalty();
   const navigate = useNavigate();
+
+  const [usePoints, setUsePoints] = useState(false);
 
   const payCfg = useMemo(() => getAdminPaymentConfig(), []);
   const methods = useMemo(() => {
@@ -117,7 +122,15 @@ export function Checkout() {
   const pixDiscount = paymentMethod === "pix" && payCfg.pixDiscount > 0
     ? Math.round((subtotal - couponDiscount) * (payCfg.pixDiscount / 100) * 100) / 100
     : 0;
-  const total = Math.max(0, subtotal - couponDiscount - pixDiscount + shippingAmount);
+
+  /* Resgate de patinhas (fidelidade): usa o saldo até o valor restante. */
+  const spendableBefore = Math.max(0, subtotal - couponDiscount - pixDiscount);
+  const redeemablePoints = usePoints && loyalty.enabled
+    ? Math.min(loyalty.balance, Math.floor(spendableBefore / BRL_PER_POINT))
+    : 0;
+  const pointsDiscount = Math.round(redeemablePoints * BRL_PER_POINT * 100) / 100;
+
+  const total = Math.max(0, subtotal - couponDiscount - pixDiscount - pointsDiscount + shippingAmount);
 
   /* ── Cupom (validação local) ───────────────────────────── */
   function applyCoupon() {
@@ -147,17 +160,20 @@ export function Checkout() {
           note: i.note,
         })),
         subtotal,
-        discountAmount: couponDiscount + pixDiscount || undefined,
+        discountAmount: couponDiscount + pixDiscount + pointsDiscount || undefined,
         shippingAmount: shippingAmount || undefined,
         total,
         note: [
           paymentMethod === "pix" ? "Pagamento: PIX (informado pelo cliente)" : paymentMethod === "credit_card" ? "Pagamento: Cartão (a combinar)" : "Pagamento: Boleto (a combinar)",
           couponCode ? `Cupom: ${couponCode.toUpperCase()}` : "",
+          redeemablePoints > 0 ? `Resgate: ${redeemablePoints} patinhas (-${formatBRL(pointsDiscount)})` : "",
           deliveryMethod === "DELIVERY" && address.street
             ? `Entrega: ${address.street}, ${address.number} - ${address.neighborhood}, ${address.city}/${address.state}, CEP ${address.zip}`
             : deliveryMethod === "PICKUP" ? "Retirada na loja" : "",
         ].filter(Boolean).join(" · "),
       });
+      // Debita as patinhas resgatadas do saldo do cliente.
+      if (redeemablePoints > 0) loyalty.redeem(redeemablePoints);
       setOrderNumber(order.id);
       setPaidTotal(total);
       clear();
@@ -365,6 +381,25 @@ export function Checkout() {
                   <p className="mt-1.5 text-xs text-navy-400">Experimente: WAZOO10, BEMVINDO ou FRETEGRATIS</p>
                 </div>
 
+                {/* Patinhas Wazoo (fidelidade) */}
+                {loyalty.enabled && loyalty.balance > 0 && (
+                  <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-cream-200 p-4 transition-all hover:border-orange-200">
+                    <input
+                      type="checkbox"
+                      checked={usePoints}
+                      onChange={(e) => setUsePoints(e.target.checked)}
+                      className="h-5 w-5 shrink-0 accent-orange-500"
+                    />
+                    <span className="flex-1 text-sm">
+                      <span className="font-bold text-navy-700">🐾 Usar minhas patinhas</span>
+                      <span className="block text-navy-400">
+                        Você tem <strong className="text-navy-600">{loyalty.balance}</strong> patinhas
+                        (até {formatBRL(loyalty.balanceBRL)} de desconto)
+                      </span>
+                    </span>
+                  </label>
+                )}
+
                 <button onClick={() => setStep("customer")} className="btn-primary mt-6 w-full">Continuar → Dados pessoais</button>
               </div>
             )}
@@ -555,6 +590,12 @@ export function Checkout() {
                 <div className="flex justify-between text-green-600">
                   <span><QrCode size={13} className="inline mr-1" />Desconto PIX</span>
                   <span>- {formatBRL(pixDiscount)}</span>
+                </div>
+              )}
+              {pointsDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>🐾 Patinhas ({redeemablePoints})</span>
+                  <span>- {formatBRL(pointsDiscount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-navy-500">

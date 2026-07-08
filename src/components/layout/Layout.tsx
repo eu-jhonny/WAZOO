@@ -7,6 +7,7 @@ import { WazooAI } from "../ui/WazooAI";
 import { ThemeApplier } from "../ui/ThemeApplier";
 import { BackToTop } from "../ui/BackToTop";
 import { AbandonedCartWatcher } from "../ui/AbandonedCartWatcher";
+import { ComparisonBar } from "../ui/ComparisonBar";
 
 /** Layout público: header + conteúdo + footer + botão de WhatsApp. */
 export function Layout() {
@@ -23,6 +24,7 @@ export function Layout() {
       <WazooAI />
       <ThemeApplier />
       <AbandonedCartWatcher />
+      <ComparisonBar />
     </div>
   );
 }

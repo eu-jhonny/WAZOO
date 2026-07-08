@@ -25,6 +25,7 @@ import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { ProductCard } from "@/components/product/ProductCard";
 import { RecentlyViewed } from "@/components/product/RecentlyViewed";
 import { WishlistButton } from "@/components/ui/WishlistButton";
+import { CompareButton } from "@/components/ui/CompareButton";
 import { Reveal } from "@/components/ui/Reveal";
 import { pushRecentlyViewed } from "@/lib/recentlyViewed";
 import { NotFound } from "./NotFound";
@@ -220,6 +221,7 @@ export function ProductDetail() {
                 </button>
 
                 <WishlistButton product={product} variant="inline" className="sm:w-auto" />
+                <CompareButton product={product} variant="inline" className="sm:w-auto" />
               </div>
 
               <a

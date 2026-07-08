@@ -5,6 +5,8 @@ import { StoreProvider } from "./StoreContext";
 import { AuthProvider } from "./AuthContext";
 import { CartProvider } from "./CartContext";
 import { WishlistProvider } from "./WishlistContext";
+import { ComparisonProvider } from "./ComparisonContext";
+import { LoyaltyProvider } from "./LoyaltyContext";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
@@ -15,7 +17,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <StoreProvider>
         <AuthProvider>
           <CartProvider>
-            <WishlistProvider>{children}</WishlistProvider>
+            <WishlistProvider>
+              <ComparisonProvider>
+                <LoyaltyProvider>{children}</LoyaltyProvider>
+              </ComparisonProvider>
+            </WishlistProvider>
           </CartProvider>
         </AuthProvider>
       </StoreProvider>

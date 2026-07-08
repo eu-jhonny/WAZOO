@@ -10,6 +10,7 @@ import { whatsappLink, buildProductMessage } from "@/lib/whatsapp";
 import { ProductImage } from "../ui/ProductImage";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
 import { WishlistButton } from "../ui/WishlistButton";
+import { CompareButton } from "../ui/CompareButton";
 
 const audienceLabel: Record<Product["audience"], string> = {
   cachorro: "Para cães",
@@ -106,7 +107,10 @@ export function ProductCard({ product, compact = false }: Props) {
           )}
         </div>
 
-        <WishlistButton product={product} className="absolute right-3 top-3" />
+        <div className="absolute right-3 top-3 flex flex-col gap-1.5">
+          <WishlistButton product={product} />
+          <CompareButton product={product} />
+        </div>
       </Link>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">

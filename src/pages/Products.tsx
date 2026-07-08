@@ -20,7 +20,7 @@ export function Products() {
     [active]
   );
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(params.get("q") ?? "");
   const [category, setCategory] = useState(params.get("cat") ?? "todos");
   const [pet, setPet] = useState(params.get("pet") ?? "todos");
   const [sort, setSort] = useState<SortKey>("recentes");
@@ -30,6 +30,8 @@ export function Products() {
   useEffect(() => {
     setCategory(params.get("cat") ?? "todos");
     setPet(params.get("pet") ?? "todos");
+    const q = params.get("q");
+    if (q !== null) setSearch(q);
   }, [params]);
 
   useEffect(() => setMaxPrice(maxPriceAvailable), [maxPriceAvailable]);

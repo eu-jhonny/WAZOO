@@ -64,8 +64,9 @@ export function Footer() {
                     ["Início", "/"],
                     ["Produtos", "/produtos"],
                     ["Kits", "/kits"],
+                    ["Favoritos", "/favoritos"],
+                    ["Rastrear pedido", "/rastrear"],
                     ["Avaliações", "/avaliacoes"],
-                    ["Carrinho", "/carrinho"],
                   ] as [string, string][]
                 ).map(([label, to]) => (
                   <li key={to}>

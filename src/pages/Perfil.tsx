@@ -8,6 +8,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { useToast } from "@/context/ToastContext";
+import { useLoyalty } from "@/context/LoyaltyContext";
 import { formatBRL, formatDate } from "@/lib/format";
 import { statusStyle } from "@/lib/orderStatus";
 import { compressImage } from "@/lib/imageUtils";
@@ -137,6 +138,7 @@ export function Perfil() {
   const { user, logout, addPet, updatePet, removePet, updateProfile } = useAuth();
   const { orders }    = useStore();
   const { showToast } = useToast();
+  const loyalty       = useLoyalty();
 
   const [editProfile, setEditProfile] = useState(false);
   const [petModal, setPetModal]       = useState<{ mode: "add" | "edit"; pet?: Pet } | null>(null);
@@ -343,6 +345,53 @@ export function Perfil() {
                     {formatBRL(myOrders.reduce((s, o) => s + o.total, 0))}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Fidelidade — Patinhas Wazoo */}
+            <div className="card overflow-hidden">
+              <div className="bg-gradient-to-br from-navy-800 to-navy-900 p-5 text-white">
+                <div className="flex items-center justify-between">
+                  <h2 className="flex items-center gap-2 font-display font-bold">
+                    🐾 Patinhas Wazoo
+                  </h2>
+                  <span className={`badge ${loyalty.tier.color}`}>
+                    {loyalty.tier.emoji} {loyalty.tier.name}
+                  </span>
+                </div>
+                <p className="mt-3 font-display text-3xl font-extrabold">
+                  {loyalty.balance} <span className="text-lg font-bold text-cream-300">patinhas</span>
+                </p>
+                <p className="text-sm text-cream-300">
+                  = {formatBRL(loyalty.balanceBRL)} em desconto
+                </p>
+              </div>
+              <div className="p-5">
+                {loyalty.next ? (
+                  <>
+                    <div className="mb-1.5 flex justify-between text-xs font-semibold text-navy-500">
+                      <span>Nível {loyalty.tier.name}</span>
+                      <span>{loyalty.next.emoji} {loyalty.next.name}</span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-cream-200">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600 transition-all"
+                        style={{ width: `${loyalty.progress}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-navy-500">
+                      Faltam <strong className="text-navy-700">{Math.max(0, loyalty.next.min - loyalty.lifetime)}</strong> patinhas
+                      para o nível {loyalty.next.name} — {loyalty.next.perk.toLowerCase()}.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-semibold text-navy-600">
+                    🎉 Você chegou ao nível máximo! Aproveite todos os benefícios.
+                  </p>
+                )}
+                <p className="mt-3 rounded-xl bg-cream-50 px-3 py-2 text-xs text-navy-500">
+                  Ganhe <strong>1 patinha</strong> a cada R$ 1 em compras. Use as patinhas como desconto no checkout.
+                </p>
               </div>
             </div>
           </div>

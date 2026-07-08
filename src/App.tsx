@@ -15,6 +15,8 @@ import { Products } from "@/pages/Products";
 import { ProductDetail } from "@/pages/ProductDetail";
 import { Kits } from "@/pages/Kits";
 import { Favoritos } from "@/pages/Favoritos";
+import { Comparar } from "@/pages/Comparar";
+import { Rastrear } from "@/pages/Rastrear";
 import { ComoFunciona } from "@/pages/ComoFunciona";
 import { Cart } from "@/pages/Cart";
 import { Login } from "@/pages/Login";
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="produtos/:id" element={<ProductDetail />} />
           <Route path="kits" element={<Kits />} />
           <Route path="favoritos" element={<Favoritos />} />
+          <Route path="comparar" element={<Comparar />} />
+          <Route path="rastrear" element={<Rastrear />} />
           <Route path="como-funciona" element={<ComoFunciona />} />
           <Route path="carrinho" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
