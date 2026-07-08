@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, ShoppingCart, User as UserIcon } from "lucide-react";
+import { Heart, Menu, ShoppingCart, User as UserIcon } from "lucide-react";
 import { img } from "@/config/site";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
 import { MobileMenu } from "./MobileMenu";
 import { NotificationBell } from "../ui/NotificationSystem";
@@ -38,6 +39,7 @@ export function Header() {
   const [scrolled, setScrolled]  = useState(false);
   const [menuOpen, setMenuOpen]  = useState(false);
   const { count }                = useCart();
+  const { count: wishCount }     = useWishlist();
   const { isLoggedIn, user }     = useAuth();
   const customLogo               = useCustomLogo();
 
@@ -107,6 +109,20 @@ export function Header() {
             <span className="hidden xl:inline">
               {isLoggedIn ? user?.name.split(" ")[0] : "Entrar"}
             </span>
+          </Link>
+
+          {/* Favoritos */}
+          <Link
+            to="/favoritos"
+            className="relative hidden h-11 w-11 items-center justify-center rounded-full bg-cream-100 text-navy-700 transition-all hover:bg-red-50 hover:text-red-500 sm:inline-flex"
+            aria-label="Favoritos"
+          >
+            <Heart size={20} className={wishCount > 0 ? "fill-red-500 text-red-500" : ""} />
+            {wishCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow">
+                {wishCount}
+              </span>
+            )}
           </Link>
 
           {/* Sino de notificações */}

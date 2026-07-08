@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -23,7 +23,10 @@ import { ProductImage } from "@/components/ui/ProductImage";
 import { OnDemandNotice } from "@/components/ui/OnDemandNotice";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { ProductCard } from "@/components/product/ProductCard";
+import { RecentlyViewed } from "@/components/product/RecentlyViewed";
+import { WishlistButton } from "@/components/ui/WishlistButton";
 import { Reveal } from "@/components/ui/Reveal";
+import { pushRecentlyViewed } from "@/lib/recentlyViewed";
 import { NotFound } from "./NotFound";
 import type { Product } from "@/types";
 
@@ -54,6 +57,11 @@ export function ProductDetail() {
     return list.length > 0 ? list : [""];
   }, [product]);
   const [selected, setSelected] = useState(0);
+
+  // Registra o produto no histórico de "vistos recentemente".
+  useEffect(() => {
+    if (product) pushRecentlyViewed(product.id);
+  }, [product]);
 
   const related = useMemo(
     () =>
@@ -210,6 +218,8 @@ export function ProductDetail() {
                 >
                   <ShoppingCart size={18} /> Adicionar ao carrinho
                 </button>
+
+                <WishlistButton product={product} variant="inline" className="sm:w-auto" />
               </div>
 
               <a
@@ -240,6 +250,9 @@ export function ProductDetail() {
               </div>
             </div>
           )}
+
+          {/* Vistos recentemente */}
+          <RecentlyViewed excludeId={product.id} />
         </div>
       </section>
     </div>

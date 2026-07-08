@@ -9,6 +9,7 @@ import { useStore } from "@/context/StoreContext";
 import { whatsappLink, buildProductMessage } from "@/lib/whatsapp";
 import { ProductImage } from "../ui/ProductImage";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
+import { WishlistButton } from "../ui/WishlistButton";
 
 const audienceLabel: Record<Product["audience"], string> = {
   cachorro: "Para cães",
@@ -55,6 +56,7 @@ export function ProductCard({ product, compact = false }: Props) {
               <Tag size={10} /> {promoTag}
             </span>
           )}
+          <WishlistButton product={product} className="absolute right-2 top-2 h-8 w-8" />
         </Link>
         <div className="flex flex-1 flex-col p-3">
           <h3 className="line-clamp-2 text-sm font-bold text-navy-700 leading-snug">
@@ -99,13 +101,12 @@ export function ProductCard({ product, compact = false }: Props) {
               <Tag size={12} /> {promoTag}
             </span>
           )}
+          {product.featured && (
+            <span className="badge bg-navy-700 text-white shadow-sm">Destaque ⭐</span>
+          )}
         </div>
 
-        {product.featured && (
-          <span className="badge absolute right-3 top-3 bg-navy-700 text-white shadow-sm">
-            Destaque ⭐
-          </span>
-        )}
+        <WishlistButton product={product} className="absolute right-3 top-3" />
       </Link>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">

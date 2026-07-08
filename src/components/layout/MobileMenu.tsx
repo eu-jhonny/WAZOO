@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { X, ShoppingCart, User as UserIcon, LogIn, LogOut } from "lucide-react";
+import { X, ShoppingCart, User as UserIcon, LogIn, LogOut, Heart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { useStore } from "@/context/StoreContext";
 import { whatsappLink, defaultContactMessage } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
@@ -23,6 +24,7 @@ interface MobileMenuProps {
 export function MobileMenu({ open, onClose, nav }: MobileMenuProps) {
   const { isLoggedIn, user, logout } = useAuth();
   const { count }   = useCart();
+  const { count: wishCount } = useWishlist();
   const { settings } = useStore();
 
   useEffect(() => {
@@ -75,11 +77,27 @@ export function MobileMenu({ open, onClose, nav }: MobileMenuProps) {
             </NavLink>
           ))}
 
+          {/* Favoritos */}
+          <Link
+            to="/favoritos"
+            onClick={onClose}
+            className="mt-1 flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-navy-700 hover:bg-cream-100"
+          >
+            <span className="flex items-center gap-2">
+              <Heart size={20} className={wishCount > 0 ? "fill-red-500 text-red-500" : ""} /> Favoritos
+            </span>
+            {wishCount > 0 && (
+              <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+                {wishCount}
+              </span>
+            )}
+          </Link>
+
           {/* Carrinho */}
           <Link
             to="/carrinho"
             onClick={onClose}
-            className="mt-1 flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-navy-700 hover:bg-cream-100"
+            className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-navy-700 hover:bg-cream-100"
           >
             <span className="flex items-center gap-2">
               <ShoppingCart size={20} /> Carrinho

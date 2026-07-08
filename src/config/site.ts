@@ -82,4 +82,6 @@ export const STORAGE_KEYS = {
   user: "wazoo:user:v1",
   users: "wazoo:users:v1",
   admin: "wazoo:admin:v1",
+  wishlist: "wazoo:wishlist:v1",
+  recentlyViewed: "wazoo:recently_viewed:v1",
 } as const;

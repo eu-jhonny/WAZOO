@@ -39,6 +39,7 @@ type Step = "cart" | "customer" | "address" | "payment" | "success";
 const COUPONS: Record<string, { type: "PERCENTAGE" | "FIXED" | "FREE_SHIPPING"; value: number; min?: number }> = {
   WAZOO10:     { type: "PERCENTAGE", value: 10 },
   BEMVINDO:    { type: "PERCENTAGE", value: 15, min: 100 },
+  VOLTA10:     { type: "PERCENTAGE", value: 10 },
   FRETEGRATIS: { type: "FREE_SHIPPING", value: 0 },
 };
 
