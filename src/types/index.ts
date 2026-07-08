@@ -169,6 +169,8 @@ export interface Review {
   petName?: string;
   rating: number; // 1 a 5
   text: string;
+  productId?: string; // avaliação de um produto específico (vazio = geral/loja)
+  productName?: string; // nome do produto no momento da avaliação
   approved: boolean;
   featured: boolean;
   createdAt: number;

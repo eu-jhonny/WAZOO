@@ -6,6 +6,8 @@ import { formatBRL } from "@/lib/format";
 import { getCategoryName } from "@/data/categories";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
+import { ratingForProduct } from "@/lib/ratings";
+import { Stars } from "../ui/Stars";
 import { whatsappLink, buildProductMessage } from "@/lib/whatsapp";
 import { ProductImage } from "../ui/ProductImage";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
@@ -31,7 +33,8 @@ interface Props {
 
 export function ProductCard({ product, compact = false }: Props) {
   const { addProduct } = useCart();
-  const { settings } = useStore();
+  const { settings, reviews } = useStore();
+  const rating = ratingForProduct(reviews, product.id);
   const discount = calcDiscount(product.price, product.comparePrice);
   const promoTag = product.promoLabel ?? (discount ? `-${discount}%` : null);
 
@@ -125,6 +128,15 @@ export function ProductCard({ product, compact = false }: Props) {
             {product.name}
           </Link>
         </h3>
+
+        {rating.count > 0 && (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <Stars value={Math.round(rating.average)} size={13} />
+            <span className="text-xs font-semibold text-navy-500">
+              {rating.average.toFixed(1)} <span className="text-navy-400">({rating.count})</span>
+            </span>
+          </div>
+        )}
 
         <p className="mt-1 line-clamp-2 text-sm text-navy-500">{product.shortDescription}</p>
 

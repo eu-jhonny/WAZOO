@@ -1,7 +1,7 @@
 import { Outlet, NavLink, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Package, ClipboardList, Star, Settings,
-  ExternalLink, LogOut, PawPrint, Mail,
+  ExternalLink, LogOut, PawPrint, Mail, Ticket,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { site } from "@/config/site";
@@ -12,6 +12,7 @@ const NAV = [
   { to: "/admin/produtos",      label: "Produtos",      icon: Package },
   { to: "/admin/pedidos",       label: "Pedidos",       icon: ClipboardList },
   { to: "/admin/avaliacoes",    label: "Avaliações",    icon: Star },
+  { to: "/admin/cupons",        label: "Cupons",        icon: Ticket },
   { to: "/admin/emails",        label: "E-mails",       icon: Mail },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];

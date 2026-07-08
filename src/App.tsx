@@ -36,6 +36,7 @@ import { AdminDashboard } from "@/pages/admin/AdminDashboard";
 import { AdminProducts } from "@/pages/admin/AdminProducts";
 import { AdminOrders } from "@/pages/admin/AdminOrders";
 import { AdminReviews } from "@/pages/admin/AdminReviews";
+import { AdminCoupons } from "@/pages/admin/AdminCoupons";
 import { AdminEmails } from "@/pages/admin/AdminEmails";
 import { AdminSettings } from "@/pages/admin/AdminSettings";
 
@@ -99,6 +100,7 @@ export default function App() {
           <Route path="produtos" element={<AdminProducts />} />
           <Route path="pedidos" element={<AdminOrders />} />
           <Route path="avaliacoes" element={<AdminReviews />} />
+          <Route path="cupons" element={<AdminCoupons />} />
           <Route path="emails" element={<AdminEmails />} />
           <Route path="configuracoes" element={<AdminSettings />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />

@@ -20,6 +20,7 @@ import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLoyalty } from "@/context/LoyaltyContext";
 import { BRL_PER_POINT } from "@/lib/loyalty";
+import { validateCoupon, readCoupons } from "@/lib/coupons";
 import { formatBRL } from "@/lib/format";
 import { getAdminPaymentConfig } from "@/lib/adminConfig";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -36,14 +37,6 @@ interface AddressForm {
 }
 type PaymentMethod = "pix" | "credit_card" | "boleto";
 type Step = "cart" | "customer" | "address" | "payment" | "success";
-
-/* ── Cupons locais (demo) ───────────────────────────────────── */
-const COUPONS: Record<string, { type: "PERCENTAGE" | "FIXED" | "FREE_SHIPPING"; value: number; min?: number }> = {
-  WAZOO10:     { type: "PERCENTAGE", value: 10 },
-  BEMVINDO:    { type: "PERCENTAGE", value: 15, min: 100 },
-  VOLTA10:     { type: "PERCENTAGE", value: 10 },
-  FRETEGRATIS: { type: "FREE_SHIPPING", value: 0 },
-};
 
 /* ── Formatadores ─────────────────────────────────────────── */
 function fmtCPF(v: string) {
@@ -82,6 +75,12 @@ export function Checkout() {
   const navigate = useNavigate();
 
   const [usePoints, setUsePoints] = useState(false);
+
+  /* Códigos de cupom ativos (dica exibida ao cliente). */
+  const activeCouponCodes = useMemo(
+    () => readCoupons().filter((c) => c.active).map((c) => c.code).slice(0, 3),
+    [],
+  );
 
   const payCfg = useMemo(() => getAdminPaymentConfig(), []);
   const methods = useMemo(() => {
@@ -132,15 +131,13 @@ export function Checkout() {
 
   const total = Math.max(0, subtotal - couponDiscount - pixDiscount - pointsDiscount + shippingAmount);
 
-  /* ── Cupom (validação local) ───────────────────────────── */
+  /* ── Cupom (validação via cupons do admin) ─────────────── */
   function applyCoupon() {
     setCouponError(""); setCouponDiscount(0); setCouponFreeShip(false);
-    const c = COUPONS[couponCode.trim().toUpperCase()];
-    if (!c) { setCouponError("Cupom inválido ou expirado."); return; }
-    if (c.min && subtotal < c.min) { setCouponError(`Válido para pedidos acima de ${formatBRL(c.min)}.`); return; }
-    if (c.type === "PERCENTAGE") setCouponDiscount(Math.round(subtotal * (c.value / 100) * 100) / 100);
-    else if (c.type === "FIXED") setCouponDiscount(c.value);
-    else if (c.type === "FREE_SHIPPING") setCouponFreeShip(true);
+    const r = validateCoupon(couponCode, subtotal);
+    if (!r.ok) { setCouponError(r.error ?? "Cupom inválido."); return; }
+    setCouponDiscount(r.discount);
+    setCouponFreeShip(r.freeShipping);
   }
 
   /* ── Finalizar: cria o pedido localmente ───────────────── */
@@ -378,7 +375,9 @@ export function Checkout() {
                       ✅ {couponFreeShip ? "Frete grátis aplicado!" : `Desconto de ${formatBRL(couponDiscount)} aplicado!`}
                     </p>
                   )}
-                  <p className="mt-1.5 text-xs text-navy-400">Experimente: WAZOO10, BEMVINDO ou FRETEGRATIS</p>
+                  {activeCouponCodes.length > 0 && (
+                    <p className="mt-1.5 text-xs text-navy-400">Experimente: {activeCouponCodes.join(", ")}</p>
+                  )}
                 </div>
 
                 {/* Patinhas Wazoo (fidelidade) */}

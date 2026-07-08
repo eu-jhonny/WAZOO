@@ -8,6 +8,7 @@ import {
 import { useStore } from "@/context/StoreContext";
 import { formatBRL, formatDate } from "@/lib/format";
 import { statusStyle } from "@/lib/orderStatus";
+import { SalesReport } from "@/components/admin/SalesReport";
 
 const WAITING   = ["Solicitação enviada", "Verificando disponibilidade"];
 const STATUS_ICON: Record<string, string> = {
@@ -189,6 +190,9 @@ export function AdminDashboard() {
         <Stat label="Finalizados"        value={stats.finished}              icon={CheckCircle2}  color="text-green-600"  bg="bg-green-100"  border="border-green-400"  link="/admin/pedidos" />
         <Stat label="Cancelados"         value={stats.cancelled}             icon={PackageX}      color="text-red-500"    bg="bg-red-100"    border="border-red-400"    link="/admin/pedidos" />
       </div>
+
+      {/* Relatório de vendas */}
+      <SalesReport orders={orders} />
 
       {/* Grid inferior: Pedidos recentes + Status breakdown */}
       <div className="grid gap-6 lg:grid-cols-3">

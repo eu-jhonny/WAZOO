@@ -64,6 +64,11 @@ export function AdminReviews() {
                       <span className="badge bg-green-100 text-green-700">Publicada</span>
                     )}
                     {r.featured && <span className="badge bg-navy-700 text-white">Destaque</span>}
+                    {r.productId ? (
+                      <span className="badge bg-teal-100 text-teal-700">🛍️ {r.productName ?? "Produto"}</span>
+                    ) : (
+                      <span className="badge bg-cream-200 text-navy-500">Geral / loja</span>
+                    )}
                   </div>
                   <p className="mt-2 text-navy-600">“{r.text}”</p>
                   <p className="mt-2 text-sm font-semibold text-navy-700">

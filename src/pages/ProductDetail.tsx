@@ -24,6 +24,9 @@ import { OnDemandNotice } from "@/components/ui/OnDemandNotice";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { ProductCard } from "@/components/product/ProductCard";
 import { RecentlyViewed } from "@/components/product/RecentlyViewed";
+import { ProductReviews } from "@/components/product/ProductReviews";
+import { Stars } from "@/components/ui/Stars";
+import { ratingForProduct } from "@/lib/ratings";
 import { WishlistButton } from "@/components/ui/WishlistButton";
 import { CompareButton } from "@/components/ui/CompareButton";
 import { Reveal } from "@/components/ui/Reveal";
@@ -45,7 +48,7 @@ const sizeLabel: Record<Product["size"], string> = {
 
 export function ProductDetail() {
   const { id } = useParams();
-  const { products, getProduct, settings } = useStore();
+  const { products, getProduct, settings, reviews } = useStore();
   const { addProduct } = useCart();
 
   const product = id ? getProduct(id) : undefined;
@@ -140,6 +143,18 @@ export function ProductDetail() {
               <h1 className="mt-4 font-display text-3xl font-bold text-navy-700 sm:text-4xl">
                 {product.name}
               </h1>
+
+              {(() => {
+                const rs = ratingForProduct(reviews, product.id);
+                if (rs.count === 0) return null;
+                return (
+                  <a href="#avaliacoes" className="mt-2 inline-flex items-center gap-2 text-sm">
+                    <Stars value={Math.round(rs.average)} size={16} />
+                    <span className="font-bold text-navy-700">{rs.average.toFixed(1)}</span>
+                    <span className="text-navy-400">({rs.count} {rs.count === 1 ? "avaliação" : "avaliações"})</span>
+                  </a>
+                );
+              })()}
 
               <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
                 <div>
@@ -252,6 +267,11 @@ export function ProductDetail() {
               </div>
             </div>
           )}
+
+          {/* Avaliações do produto */}
+          <div id="avaliacoes" className="scroll-mt-24">
+            <ProductReviews productId={product.id} productName={product.name} />
+          </div>
 
           {/* Vistos recentemente */}
           <RecentlyViewed excludeId={product.id} />
