@@ -151,7 +151,7 @@ export function Checkout() {
         fulfillment: deliveryMethod === "DELIVERY" ? "entrega" : "retirada",
         userId: user?.id,
         items: items.map((i) => ({
-          name: i.name,
+          name: i.variant ? `${i.name} (${i.variant})` : i.name,
           quantity: i.quantity,
           price: i.price,
           note: i.note,

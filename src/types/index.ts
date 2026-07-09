@@ -6,6 +6,18 @@ export type PetAudience = "cachorro" | "gato" | "ambos";
 export type PetSize = "pequeno" | "medio" | "grande" | "todos";
 export type Fulfillment = "entrega" | "retirada";
 
+/** Uma opção dentro de um grupo de variação (ex.: "Grande", "Frango"). */
+export interface VariantOption {
+  label: string;
+  priceDelta?: number; // ajuste no preço em relação ao preço base (R$)
+}
+
+/** Grupo de variação de um produto (ex.: "Tamanho", "Sabor"). */
+export interface VariantGroup {
+  name: string;
+  options: VariantOption[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -26,7 +38,8 @@ export interface Product {
   size: PetSize;
   availability: string; // disponibilidade estimada
   tags?: string[];       // para filtros: "copa", "festajunina", "novidade" etc.
-  stock?: number;        // null/undefined = sob encomenda ilimitado
+  stock?: number;        // null/undefined = sob encomenda ilimitado; 0 = esgotado
+  variants?: VariantGroup[]; // opções (tamanho, sabor...) — vazio = sem variação
   createdAt: number;
 }
 
@@ -67,12 +80,14 @@ export interface CartItem {
   id: string;
   kind: CartKind;
   name: string;
-  price: number;
+  price: number;      // preço unitário final (base + variação)
   image: string;
   leadTime: string;
   category?: string;
   quantity: number;
   note?: string;
+  variant?: string;     // rótulo legível da variação (ex.: "Tamanho: Grande")
+  variantKey?: string;  // chave estável da variação (para identidade da linha)
 }
 
 export interface Pet {

@@ -21,7 +21,7 @@ import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 
 export function Cart() {
   const {
-    items, note, total, count,
+    items, note, total, count, lineId,
     setNote, updateQuantity, removeItem, updateItemNote, clear,
   } = useCart();
   const { user, isLoggedIn } = useAuth();
@@ -41,7 +41,7 @@ export function Cart() {
       petName,
       fulfillment:  user?.preference ?? "entrega",
       items: items.map((i) => ({
-        name:     `${i.name}${i.kind === "kit" ? " (Kit)" : ""}`,
+        name:     `${i.name}${i.variant ? ` (${i.variant})` : ""}${i.kind === "kit" ? " (Kit)" : ""}`,
         quantity: i.quantity,
         price:    i.price,
         note:     i.note,
@@ -105,9 +105,11 @@ export function Cart() {
 
           {/* ── Itens ───────────────────────────────────────────── */}
           <div className="space-y-3 lg:col-span-2">
-            {items.map((item) => (
+            {items.map((item) => {
+              const id = lineId(item);
+              return (
               <div
-                key={`${item.kind}-${item.id}`}
+                key={id}
                 className="card flex gap-4 p-4"
               >
                 {/* Imagem */}
@@ -127,12 +129,15 @@ export function Cart() {
                       <h3 className="font-display font-bold leading-tight text-navy-800 line-clamp-2">
                         {item.name}
                       </h3>
+                      {item.variant && (
+                        <p className="mt-0.5 text-xs font-semibold text-teal-600">{item.variant}</p>
+                      )}
                       <span className="badge-encomenda mt-1">
                         <Tag size={10} /> Sob encomenda
                       </span>
                     </div>
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(id)}
                       className="shrink-0 rounded-lg p-1.5 text-navy-300 transition-colors hover:bg-red-50 hover:text-red-500"
                       aria-label="Remover"
                     >
@@ -145,7 +150,7 @@ export function Cart() {
                     {/* Seletor de quantidade */}
                     <div className="flex items-center gap-1 rounded-xl border border-cream-200 bg-cream-50 p-1">
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(id, item.quantity - 1)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-navy-600 transition-colors hover:bg-white"
                         aria-label="Diminuir"
                       >
@@ -155,7 +160,7 @@ export function Cart() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(id, item.quantity + 1)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-navy-600 transition-colors hover:bg-white"
                         aria-label="Aumentar"
                       >
@@ -181,11 +186,12 @@ export function Cart() {
                     className="input py-2 text-xs"
                     placeholder="Observação deste item (opcional)"
                     value={item.note ?? ""}
-                    onChange={(e) => updateItemNote(item.id, e.target.value)}
+                    onChange={(e) => updateItemNote(id, e.target.value)}
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             <Link
               to="/produtos"

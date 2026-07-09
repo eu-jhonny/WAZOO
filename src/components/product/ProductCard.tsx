@@ -39,6 +39,8 @@ export function ProductCard({ product, compact = false }: Props) {
   const promoTag = product.promoLabel ?? (discount ? `-${discount}%` : null);
 
   const [added, setAdded] = useState(false);
+  const outOfStock = typeof product.stock === "number" && product.stock <= 0;
+  const hasVariants = (product.variants?.length ?? 0) > 0;
   const handleAdd = (qty = 1) => {
     addProduct(product, qty);
     setAdded(true);
@@ -74,12 +76,18 @@ export function ProductCard({ product, compact = false }: Props) {
             )}
             <p className="font-display text-base font-bold text-orange-600">{formatBRL(product.price)}</p>
           </div>
-          <button
-            onClick={() => handleAdd()}
-            className={`btn-sm mt-2 w-full text-xs transition-all ${added ? "btn-green" : "btn-primary"}`}
-          >
-            {added ? <><Check size={14} /> Adicionado!</> : <><ShoppingCart size={14} /> Adicionar</>}
-          </button>
+          {outOfStock ? (
+            <span className="btn-sm mt-2 w-full cursor-not-allowed bg-cream-200 text-center text-xs font-bold text-navy-400">Esgotado</span>
+          ) : hasVariants ? (
+            <Link to={`/produtos/${product.id}`} className="btn-primary btn-sm mt-2 w-full text-xs">Escolher opções</Link>
+          ) : (
+            <button
+              onClick={() => handleAdd()}
+              className={`btn-sm mt-2 w-full text-xs transition-all ${added ? "btn-green" : "btn-primary"}`}
+            >
+              {added ? <><Check size={14} /> Adicionado!</> : <><ShoppingCart size={14} /> Adicionar</>}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -107,6 +115,9 @@ export function ProductCard({ product, compact = false }: Props) {
           )}
           {product.featured && (
             <span className="badge bg-navy-700 text-white shadow-sm">Destaque ⭐</span>
+          )}
+          {outOfStock && (
+            <span className="badge bg-navy-900/80 text-white shadow-sm">Esgotado</span>
           )}
         </div>
 
@@ -158,12 +169,18 @@ export function ProductCard({ product, compact = false }: Props) {
         </div>
 
         <div className="mt-4 flex gap-2">
-          <button
-            onClick={() => handleAdd()}
-            className={`btn-sm flex-1 transition-all ${added ? "btn-green" : "btn-primary"}`}
-          >
-            {added ? <><Check size={16} /> Adicionado!</> : <><ShoppingCart size={16} /> Adicionar</>}
-          </button>
+          {outOfStock ? (
+            <span className="btn-sm flex-1 cursor-not-allowed bg-cream-200 text-center font-bold text-navy-400">Esgotado</span>
+          ) : hasVariants ? (
+            <Link to={`/produtos/${product.id}`} className="btn-primary btn-sm flex-1">Escolher opções</Link>
+          ) : (
+            <button
+              onClick={() => handleAdd()}
+              className={`btn-sm flex-1 transition-all ${added ? "btn-green" : "btn-primary"}`}
+            >
+              {added ? <><Check size={16} /> Adicionado!</> : <><ShoppingCart size={16} /> Adicionar</>}
+            </button>
+          )}
           <a
             href={whatsappLink(buildProductMessage(product), settings.whatsapp)}
             target="_blank"

@@ -54,6 +54,13 @@ export function ProductDetail() {
   const product = id ? getProduct(id) : undefined;
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
+  const [variantSel, setVariantSel] = useState<number[]>([]);
+
+  // Reseta seleção de variação e quantidade ao trocar de produto.
+  useEffect(() => {
+    setVariantSel((product?.variants ?? []).map(() => 0));
+    setQty(1);
+  }, [product?.id]);
 
   const gallery = useMemo(() => {
     if (!product) return [];
@@ -80,6 +87,28 @@ export function ProductDetail() {
   if (!product) return <NotFound />;
 
   const AudienceIcon = product.audience === "gato" ? Cat : Dog;
+
+  /* ── Variações ─────────────────────────────────────────── */
+  const variants = product.variants ?? [];
+  const selOption = (gi: number) => variants[gi]?.options[variantSel[gi] ?? 0];
+  const priceDelta = variants.reduce((s, _g, gi) => s + (selOption(gi)?.priceDelta ?? 0), 0);
+  const finalPrice = product.price + priceDelta;
+  const variantLabel = variants.map((g, gi) => `${g.name}: ${selOption(gi)?.label ?? ""}`).join(" · ");
+  const variantKey = variants.map((g, gi) => `${g.name}=${selOption(gi)?.label ?? ""}`).join("|");
+
+  /* ── Estoque ───────────────────────────────────────────── */
+  const hasStock = typeof product.stock === "number";
+  const outOfStock = hasStock && (product.stock as number) <= 0;
+  const lowStock = hasStock && (product.stock as number) > 0 && (product.stock as number) <= 5;
+  const maxQty = hasStock && (product.stock as number) > 0 ? (product.stock as number) : Infinity;
+
+  const addToCart = () =>
+    addProduct(
+      product,
+      qty,
+      note || undefined,
+      variants.length ? { key: variantKey, label: variantLabel, price: finalPrice } : undefined,
+    );
 
   return (
     <div>
@@ -160,8 +189,13 @@ export function ProductDetail() {
                 <div>
                   <span className="text-sm font-medium text-navy-400">Preço estimado</span>
                   <p className="price-sale text-4xl">
-                    {formatBRL(product.price)}
+                    {formatBRL(finalPrice)}
                   </p>
+                  {priceDelta !== 0 && (
+                    <span className="text-xs text-navy-400">
+                      base {formatBRL(product.price)} {priceDelta > 0 ? "+" : "−"} {formatBRL(Math.abs(priceDelta))}
+                    </span>
+                  )}
                 </div>
                 {product.comparePrice && product.comparePrice > product.price && (
                   <div className="flex items-center gap-2 pb-1">
@@ -185,9 +219,20 @@ export function ProductDetail() {
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-2 text-sm text-navy-500">
-                <PackageCheck size={18} className="text-green-500" />
-                Disponibilidade: <strong className="text-navy-700">{product.availability}</strong>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-navy-500">
+                <span className="flex items-center gap-2">
+                  <PackageCheck size={18} className="text-green-500" />
+                  Disponibilidade: <strong className="text-navy-700">{product.availability}</strong>
+                </span>
+                {hasStock && (
+                  outOfStock ? (
+                    <span className="font-bold text-red-500">● Esgotado</span>
+                  ) : lowStock ? (
+                    <span className="font-bold text-amber-600">● Últimas {product.stock} unidades!</span>
+                  ) : (
+                    <span className="font-semibold text-green-600">● {product.stock} em estoque</span>
+                  )
+                )}
               </div>
 
               <p className="mt-5 leading-relaxed text-navy-600">{product.description}</p>
@@ -195,6 +240,38 @@ export function ProductDetail() {
               <div className="mt-6">
                 <OnDemandNotice />
               </div>
+
+              {/* Variações (tamanho, sabor...) */}
+              {variants.map((group, gi) => (
+                <div key={group.name} className="mt-5">
+                  <label className="label">
+                    {group.name}
+                    <span className="ml-1 font-normal text-navy-400">· {selOption(gi)?.label}</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {group.options.map((opt, oi) => {
+                      const active = (variantSel[gi] ?? 0) === oi;
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          onClick={() => setVariantSel((prev) => { const n = [...prev]; n[gi] = oi; return n; })}
+                          className={`rounded-xl border-2 px-4 py-2 text-sm font-bold transition-all ${
+                            active ? "border-orange-500 bg-orange-50 text-orange-600" : "border-cream-200 text-navy-600 hover:border-orange-200"
+                          }`}
+                        >
+                          {opt.label}
+                          {opt.priceDelta ? (
+                            <span className="ml-1 text-xs font-semibold text-navy-400">
+                              {opt.priceDelta > 0 ? "+" : "−"}{formatBRL(Math.abs(opt.priceDelta))}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
 
               {/* Observação */}
               <div className="mt-6">
@@ -220,8 +297,9 @@ export function ProductDetail() {
                   </button>
                   <span className="font-display text-lg font-bold text-navy-700">{qty}</span>
                   <button
-                    onClick={() => setQty((q) => q + 1)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-navy-600 hover:bg-cream-100"
+                    onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+                    disabled={qty >= maxQty}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-navy-600 hover:bg-cream-100 disabled:opacity-40"
                     aria-label="Aumentar"
                   >
                     <Plus size={16} />
@@ -229,10 +307,11 @@ export function ProductDetail() {
                 </div>
 
                 <button
-                  onClick={() => addProduct(product, qty, note || undefined)}
-                  className="btn-primary flex-1"
+                  onClick={addToCart}
+                  disabled={outOfStock}
+                  className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <ShoppingCart size={18} /> Adicionar ao carrinho
+                  <ShoppingCart size={18} /> {outOfStock ? "Esgotado" : "Adicionar ao carrinho"}
                 </button>
 
                 <WishlistButton product={product} variant="inline" className="sm:w-auto" />

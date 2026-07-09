@@ -30,6 +30,17 @@ export const seedProducts: Product[] = [
     audience: "ambos",
     size: "medio",
     availability: "Geralmente disponível",
+    stock: 14,
+    variants: [
+      {
+        name: "Tamanho",
+        options: [
+          { label: "Pequeno", priceDelta: -15 },
+          { label: "Médio", priceDelta: 0 },
+          { label: "Grande", priceDelta: 25 },
+        ],
+      },
+    ],
     createdAt: daysAgo(0),
   },
   {
@@ -50,6 +61,25 @@ export const seedProducts: Product[] = [
     audience: "cachorro",
     size: "todos",
     availability: "Alta disponibilidade",
+    stock: 4,
+    variants: [
+      {
+        name: "Tamanho",
+        options: [
+          { label: "P", priceDelta: 0 },
+          { label: "M", priceDelta: 0 },
+          { label: "G", priceDelta: 5 },
+        ],
+      },
+      {
+        name: "Cor",
+        options: [
+          { label: "Vermelho" },
+          { label: "Azul" },
+          { label: "Preto" },
+        ],
+      },
+    ],
     createdAt: daysAgo(1),
   },
   {
@@ -68,7 +98,8 @@ export const seedProducts: Product[] = [
     onDemand: true,
     audience: "cachorro",
     size: "todos",
-    availability: "Geralmente disponível",
+    availability: "Temporariamente esgotado",
+    stock: 0,
     createdAt: daysAgo(2),
   },
   {
@@ -87,6 +118,16 @@ export const seedProducts: Product[] = [
     audience: "cachorro",
     size: "todos",
     availability: "Sob consulta",
+    variants: [
+      {
+        name: "Peso",
+        options: [
+          { label: "3 kg", priceDelta: 0 },
+          { label: "10,1 kg", priceDelta: 180 },
+          { label: "15 kg", priceDelta: 260 },
+        ],
+      },
+    ],
     createdAt: daysAgo(3),
   },
   {

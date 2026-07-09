@@ -38,7 +38,9 @@ export const buildCartMessage = ({
   lines.push("");
 
   items.forEach((item) => {
-    let line = `${item.quantity}x ${item.name} - ${formatBRL(item.price)}`;
+    let line = `${item.quantity}x ${item.name}`;
+    if (item.variant) line += ` [${item.variant}]`;
+    line += ` - ${formatBRL(item.price)}`;
     if (item.note) line += ` (Obs: ${item.note})`;
     lines.push(line);
   });

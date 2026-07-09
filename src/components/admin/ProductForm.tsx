@@ -1,8 +1,8 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { ImagePlus, Link as LinkIcon, Trash2, Upload } from "lucide-react";
+import { ImagePlus, Link as LinkIcon, Trash2, Upload, Plus, Layers } from "lucide-react";
 import { productCategories } from "@/data/categories";
 import { ProductImage } from "../ui/ProductImage";
-import type { PetAudience, PetSize, Product } from "@/types";
+import type { PetAudience, PetSize, Product, VariantGroup } from "@/types";
 
 /* ── Comprime imagem via Canvas e retorna base64 ─────────────── */
 function compressImage(file: File, maxW = 800, quality = 0.82): Promise<string> {
@@ -85,10 +85,24 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
     size:             (initial?.size            ?? "todos")  as PetSize,
     availability:     initial?.availability     ?? "Sob consulta",
     promoLabel:       initial?.promoLabel       ?? "",
+    stock:            (initial?.stock ?? undefined) as number | undefined,
+    variants:         (initial?.variants ?? []) as VariantGroup[],
   });
 
   const set = <K extends keyof typeof f>(key: K, value: (typeof f)[K]) =>
     setF((p) => ({ ...p, [key]: value }));
+
+  /* ── Variações ─────────────────────────────────────────── */
+  const addGroup = () => set("variants", [...f.variants, { name: "", options: [{ label: "", priceDelta: 0 }] }]);
+  const removeGroup = (gi: number) => set("variants", f.variants.filter((_, i) => i !== gi));
+  const patchGroup = (gi: number, patch: Partial<VariantGroup>) =>
+    set("variants", f.variants.map((g, i) => (i === gi ? { ...g, ...patch } : g)));
+  const addOption = (gi: number) =>
+    patchGroup(gi, { options: [...f.variants[gi].options, { label: "", priceDelta: 0 }] });
+  const removeOption = (gi: number, oi: number) =>
+    patchGroup(gi, { options: f.variants[gi].options.filter((_, i) => i !== oi) });
+  const patchOption = (gi: number, oi: number, patch: { label?: string; priceDelta?: number }) =>
+    patchGroup(gi, { options: f.variants[gi].options.map((o, i) => (i === oi ? { ...o, ...patch } : o)) });
 
   /* ── Upload de arquivo ─────────────────────────────────────── */
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -102,10 +116,22 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    // Limpa variações: remove grupos/opções sem rótulo.
+    const cleanVariants = f.variants
+      .map((g) => ({
+        name: g.name.trim(),
+        options: g.options
+          .filter((o) => o.label.trim())
+          .map((o) => ({ label: o.label.trim(), priceDelta: Number(o.priceDelta) || 0 })),
+      }))
+      .filter((g) => g.name && g.options.length > 0);
+
     onSubmit({
       ...f,
       price:        Number(f.price)        || 0,
       comparePrice: f.comparePrice ? Number(f.comparePrice) : undefined,
+      stock:        f.stock === undefined || (f.stock as unknown as string) === "" ? undefined : Number(f.stock),
+      variants:     cleanVariants.length ? cleanVariants : undefined,
     });
   };
 
@@ -205,6 +231,15 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
             onChange={(e) => set("availability", e.target.value)}
             placeholder="Ex.: Alta disponibilidade, Sob consulta..." />
         </div>
+        <div>
+          <label className="label">
+            Estoque <span className="font-normal text-navy-400">— vazio = sob encomenda (ilimitado)</span>
+          </label>
+          <input type="number" min={0} step={1} className="input"
+            placeholder="Ex.: 12"
+            value={f.stock ?? ""}
+            onChange={(e) => set("stock", e.target.value === "" ? undefined : Number(e.target.value))} />
+        </div>
       </div>
 
       {/* Descrições */}
@@ -299,6 +334,72 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
             )}
           </div>
         </div>
+      </div>
+
+      {/* Variações */}
+      <div className="rounded-xl border border-cream-200 bg-cream-50 p-4">
+        <div className="mb-1 flex items-center justify-between">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-navy-700">
+            <Layers size={15} className="text-orange-500" /> Variações (opcional)
+          </p>
+          <button type="button" onClick={addGroup} className="btn-ghost btn-sm border border-cream-200">
+            <Plus size={13} /> Grupo
+          </button>
+        </div>
+        <p className="mb-3 text-xs text-navy-400">
+          Ex.: "Tamanho" (P, M, G) ou "Sabor" (Frango, Carne). Cada opção pode ajustar o preço.
+        </p>
+
+        {f.variants.length === 0 ? (
+          <p className="rounded-lg bg-white px-3 py-2 text-xs text-navy-400">Nenhuma variação. O produto é vendido em versão única.</p>
+        ) : (
+          <div className="space-y-3">
+            {f.variants.map((group, gi) => (
+              <div key={gi} className="rounded-xl border border-cream-200 bg-white p-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    className="input flex-1 py-2 text-sm"
+                    placeholder="Nome do grupo (ex.: Tamanho)"
+                    value={group.name}
+                    onChange={(e) => patchGroup(gi, { name: e.target.value })}
+                  />
+                  <button type="button" onClick={() => removeGroup(gi)} className="rounded-lg p-2 text-navy-400 hover:bg-red-50 hover:text-red-500" title="Remover grupo">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {group.options.map((opt, oi) => (
+                    <div key={oi} className="flex items-center gap-2">
+                      <input
+                        className="input flex-1 py-1.5 text-sm"
+                        placeholder="Opção (ex.: Grande)"
+                        value={opt.label}
+                        onChange={(e) => patchOption(gi, oi, { label: e.target.value })}
+                      />
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-semibold text-navy-400">R$</span>
+                        <input
+                          type="number" step="0.01"
+                          className="input w-24 py-1.5 text-sm"
+                          placeholder="+/- 0"
+                          value={opt.priceDelta ?? 0}
+                          onChange={(e) => patchOption(gi, oi, { priceDelta: Number(e.target.value) })}
+                          title="Ajuste no preço (ex.: 20 ou -5)"
+                        />
+                      </div>
+                      <button type="button" onClick={() => removeOption(gi, oi)} className="rounded-lg p-1.5 text-navy-300 hover:bg-red-50 hover:text-red-500" title="Remover opção">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addOption(gi)} className="text-xs font-bold text-orange-600 hover:text-orange-700">
+                    + Adicionar opção
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Toggles */}

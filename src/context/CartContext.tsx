@@ -9,17 +9,30 @@ import { STORAGE_KEYS } from "@/config/site";
 import { useToast } from "./ToastContext";
 import type { CartItem, Kit, Product } from "@/types";
 
+/** Variação escolhida ao adicionar um produto ao carrinho. */
+export interface SelectedVariant {
+  key: string;   // chave estável (identidade da linha)
+  label: string; // rótulo legível
+  price: number; // preço unitário final (base + ajustes)
+}
+
+/** Identidade única de uma linha do carrinho (produto + variação). */
+export function cartLineId(item: Pick<CartItem, "kind" | "id" | "variantKey">): string {
+  return `${item.kind}:${item.id}:${item.variantKey ?? ""}`;
+}
+
 interface CartContextValue {
   items: CartItem[];
   note: string;
   count: number;
   subtotal: number;
   total: number;
-  addProduct: (product: Product, quantity?: number, note?: string) => void;
+  lineId: (item: Pick<CartItem, "kind" | "id" | "variantKey">) => string;
+  addProduct: (product: Product, quantity?: number, note?: string, variant?: SelectedVariant) => void;
   addKit: (kit: Kit, quantity?: number) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  updateItemNote: (id: string, note: string) => void;
+  removeItem: (lineId: string) => void;
+  updateQuantity: (lineId: string, quantity: number) => void;
+  updateItemNote: (lineId: string, note: string) => void;
   setNote: (note: string) => void;
   clear: () => void;
 }
@@ -38,13 +51,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
 
   const upsert = (incoming: CartItem) => {
+    const key = cartLineId(incoming);
     setItems((prev) => {
-      const existing = prev.find(
-        (i) => i.id === incoming.id && i.kind === incoming.kind
-      );
+      const existing = prev.find((i) => cartLineId(i) === key);
       if (existing) {
         return prev.map((i) =>
-          i.id === incoming.id && i.kind === incoming.kind
+          cartLineId(i) === key
             ? {
                 ...i,
                 quantity: i.quantity + incoming.quantity,
@@ -67,18 +79,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
       count,
       subtotal,
       total: subtotal,
+      lineId: cartLineId,
 
-      addProduct: (product, quantity = 1, itemNote) => {
+      addProduct: (product, quantity = 1, itemNote, variant) => {
         upsert({
           id: product.id,
           kind: "product",
           name: product.name,
-          price: product.price,
+          price: variant ? variant.price : product.price,
           image: product.image,
           leadTime: product.leadTime,
           category: product.category,
           quantity,
           note: itemNote,
+          variant: variant?.label,
+          variantKey: variant?.key,
         });
         showToast(`${product.name} adicionado ao carrinho! 🛒`, "success");
       },
@@ -96,20 +111,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
         showToast(`${kit.name} adicionado ao carrinho! 🛒`, "success");
       },
 
-      removeItem: (id) => setItems((prev) => prev.filter((i) => i.id !== id)),
+      removeItem: (lineId) =>
+        setItems((prev) => prev.filter((i) => cartLineId(i) !== lineId)),
 
-      updateQuantity: (id, quantity) =>
+      updateQuantity: (lineId, quantity) =>
         setItems((prev) =>
           prev
             .map((i) =>
-              i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i
+              cartLineId(i) === lineId ? { ...i, quantity: Math.max(1, quantity) } : i
             )
             .filter((i) => i.quantity > 0)
         ),
 
-      updateItemNote: (id, itemNote) =>
+      updateItemNote: (lineId, itemNote) =>
         setItems((prev) =>
-          prev.map((i) => (i.id === id ? { ...i, note: itemNote } : i))
+          prev.map((i) => (cartLineId(i) === lineId ? { ...i, note: itemNote } : i))
         ),
 
       setNote: (value) => setNoteState(value),
