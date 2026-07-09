@@ -1,30 +1,30 @@
 import { useMemo } from "react";
 
 /**
- * Confetti — chuva de confetes animada com as cores da Copa (Brasil).
- * 100% CSS, sem dependências. Use dentro de um container `relative overflow-hidden`.
+ * Confetti — chuva de confetes animada (100% CSS, sem dependências).
+ * Use dentro de um container `relative overflow-hidden`.
  * Cada peça tem posição, atraso, duração, cor, tamanho e formato aleatórios.
  */
 interface ConfettiProps {
   /** Quantidade de peças (padrão 36). */
   count?: number;
-  /** Paleta de cores. Padrão: cores da Copa / Brasil. */
+  /** Paleta de cores. Padrão: cores da marca (laranja/azul). */
   colors?: string[];
   className?: string;
 }
 
-const COPA_COLORS = [
-  "#009C3B", // verde Brasil
-  "#FFDF00", // amarelo
-  "#002776", // azul
+const BRAND_COLORS = [
+  "#F97316", // laranja
+  "#FDBA74", // laranja claro
+  "#38BDF8", // azul céu
+  "#0EA5E9", // azul
   "#FFFFFF", // branco
-  "#00A859",
-  "#FFC400",
+  "#EA580C", // laranja escuro
 ];
 
 export function Confetti({
   count = 36,
-  colors = COPA_COLORS,
+  colors = BRAND_COLORS,
   className = "",
 }: ConfettiProps) {
   const pieces = useMemo(

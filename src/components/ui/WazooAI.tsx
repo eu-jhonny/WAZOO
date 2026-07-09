@@ -127,17 +127,14 @@ function getResponse(
     };
   }
 
-  /* Copa / Festa Junina */
-  if (match(m, ["copa", "brasil", "futebol", "bandeira"])) {
+  /* Dia dos Pais */
+  if (match(m, ["dia dos pais", "pai", "papai", "paidog", "presente para o pai", "presente pai"])) {
     return {
-      text: `⚽ Coleção Copa 2026! Bandanas, roupinhas e acessórios com as cores do Brasil para o seu pet torcer junto! 🟡🟢`,
-      links: [{ label: "Ver coleção Copa →", to: "/produtos" }],
-    };
-  }
-  if (match(m, ["festa junina", "arraiá", "arraial", "forró", "caipira", "palha"])) {
-    return {
-      text: `🌽 Arraiá Pet! Chapéus de palha, bandanas xadrez e kits temáticos para o seu pet brilhar na festa! 🎉`,
-      links: [{ label: "Ver kits Festa Junina →", to: "/kits" }],
+      text: `👔 Especial Dia dos Pais! Kits presente, bandanas “Time do Papai” e acessórios combinando para a dupla pai & pet. 🐾`,
+      links: [
+        { label: "Ver presentes →", to: "/produtos" },
+        { label: "Ver kits →", to: "/kits" },
+      ],
     };
   }
 

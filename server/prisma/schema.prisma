@@ -233,7 +233,7 @@ model Banner {
   cta       String   @default("Ver mais")
   ctaStyle  String?
   link      String   @default("/produtos")
-  category  String   @default("geral") // geral | cachorros | gatos | copa | festas
+  category  String   @default("geral") // geral | cachorros | gatos | diadospais
   order     Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())

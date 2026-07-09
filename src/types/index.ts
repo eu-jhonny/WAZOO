@@ -37,7 +37,7 @@ export interface Product {
   audience: PetAudience; // indicado para
   size: PetSize;
   availability: string; // disponibilidade estimada
-  tags?: string[];       // para filtros: "copa", "festajunina", "novidade" etc.
+  tags?: string[];       // para filtros: "diadospais", "novidade", "promo" etc.
   stock?: number;        // null/undefined = sob encomenda ilimitado; 0 = esgotado
   variants?: VariantGroup[]; // opções (tamanho, sabor...) — vazio = sem variação
   createdAt: number;

@@ -59,8 +59,7 @@ interface AdminConfig {
   accentColor: string;
   darkMode:    boolean;
   showBanner:  boolean;
-  showCopa:    boolean;
-  showFesta:   boolean;
+  showDiaDosPais: boolean;
 }
 
 const DEFAULT_CFG: AdminConfig = {
@@ -73,7 +72,7 @@ const DEFAULT_CFG: AdminConfig = {
   notifWA: true, notifEmail: true, notifNewOrder: true, notifPending: true,
   notifAbandoned: false, notifReview: true, alertEmail: "",
   accentColor: "orange", darkMode: false,
-  showBanner: true, showCopa: true, showFesta: true,
+  showBanner: true, showDiaDosPais: true,
 };
 
 /* ── Tipos ────────────────────────────────── */
@@ -302,7 +301,7 @@ export function AdminSettings() {
   };
   const saveAparencia = (e: FormEvent) => {
     e.preventDefault();
-    setCfg({ accentColor: cfg.accentColor, darkMode: cfg.darkMode, showBanner: cfg.showBanner, showCopa: cfg.showCopa, showFesta: cfg.showFesta });
+    setCfg({ accentColor: cfg.accentColor, darkMode: cfg.darkMode, showBanner: cfg.showBanner, showDiaDosPais: cfg.showDiaDosPais });
     showToast("Configurações de aparência salvas! ✅", "success");
   };
   const doReset = () => { resetStore(); setConfirmReset(false); showToast("Dados de demonstração restaurados.", "success"); };
@@ -665,8 +664,7 @@ export function AdminSettings() {
 
           <Section title="Elementos visuais" icon={PawPrint}>
             <Toggle value={cfg.showBanner} onChange={(v) => setCfg({ showBanner: v })} label="Mostrar banner carrossel na home" />
-            <Toggle value={cfg.showCopa}   onChange={(v) => setCfg({ showCopa: v })}   label="Mostrar seção Copa 2026" />
-            <Toggle value={cfg.showFesta}  onChange={(v) => setCfg({ showFesta: v })}  label="Mostrar seção Festa Junina" />
+            <Toggle value={cfg.showDiaDosPais} onChange={(v) => setCfg({ showDiaDosPais: v })} label="Mostrar seção Dia dos Pais" />
             <Toggle value={cfg.darkMode}   onChange={(v) => setCfg({ darkMode: v })}   label={<>Modo escuro (admin) <ComingSoon /></>} />
           </Section>
 

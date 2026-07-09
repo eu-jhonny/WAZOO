@@ -228,27 +228,27 @@ export function Cachorros() {
         </section>
       )}
 
-      {/* ══ DESTAQUE COPA ══════════════════════════════════════ */}
-      <section className="section" style={{ background:"linear-gradient(135deg,#071444 0%,#0A3A1A 50%,#071444 100%)" }}>
+      {/* ══ DESTAQUE DIA DOS PAIS ══════════════════════════════ */}
+      <section className="section" style={{ background:"linear-gradient(135deg,#0F2A4A 0%,#123a63 50%,#0b2038 100%)" }}>
         <div className="container-app">
           <Reveal>
             <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
               <div className="flex-1">
-                <span className="inline-flex items-center gap-2 rounded-full bg-[#FFDF00]/15 px-4 py-1.5 text-sm font-extrabold text-[#FFDF00]">⚽ Copa dos Pets</span>
-                <h2 className="mt-4 font-display text-3xl font-bold text-white sm:text-4xl">Seu cachorro merece<br />torcer com estilo! 🏆</h2>
-                <p className="mt-3 text-blue-200">Bandanas, camisas e kits temáticos com as cores do Brasil para seu cão torcer na Copa 2026.</p>
+                <span className="inline-flex items-center gap-2 rounded-full bg-orange-400/15 px-4 py-1.5 text-sm font-extrabold text-orange-300">👔 Dia dos Pais</span>
+                <h2 className="mt-4 font-display text-3xl font-bold text-white sm:text-4xl">O melhor amigo do papai<br />merece um presente! 🐾</h2>
+                <p className="mt-3 text-sky-200">Kits presente, bandanas “Time do Papai” e acessórios combinando para a dupla pai &amp; cão.</p>
                 <div className="mt-6 flex flex-wrap justify-center gap-3 sm:justify-start">
-                  <Link to="/produtos" className="btn bg-[#FFDF00] px-6 py-3 font-bold text-[#002776] hover:-translate-y-0.5 hover:bg-yellow-300">Ver coleção Copa</Link>
-                  <a href={wa} target="_blank" rel="noopener noreferrer" className="btn bg-[#009C3B] px-6 py-3 font-bold text-white hover:-translate-y-0.5">
+                  <Link to="/produtos" className="btn bg-orange-500 px-6 py-3 font-bold text-white hover:-translate-y-0.5 hover:bg-orange-600">Ver presentes</Link>
+                  <a href={wa} target="_blank" rel="noopener noreferrer" className="btn bg-white/15 px-6 py-3 font-bold text-white backdrop-blur-sm hover:-translate-y-0.5 hover:bg-white/25">
                     <WhatsAppIcon size={18} /> Pedir kit
                   </a>
                 </div>
               </div>
               <div className="relative hidden sm:block">
-                <div className="flex h-40 w-40 flex-col items-center justify-center rounded-full border-4 border-[#FFDF00] shadow-soft-lg"
-                  style={{ background:"linear-gradient(135deg,#002776,#004A1C)" }}>
-                  <span className="text-5xl">⚽</span>
-                  <span className="mt-1 font-display text-xs font-bold text-[#FFDF00]">COPA 2026</span>
+                <div className="flex h-40 w-40 flex-col items-center justify-center rounded-full border-4 border-orange-300 shadow-soft-lg"
+                  style={{ background:"linear-gradient(135deg,#123a63,#0b2038)" }}>
+                  <span className="text-5xl">👔</span>
+                  <span className="mt-1 font-display text-xs font-bold text-orange-200">DIA DOS PAIS</span>
                 </div>
               </div>
             </div>

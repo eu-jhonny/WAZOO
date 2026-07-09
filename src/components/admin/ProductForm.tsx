@@ -212,7 +212,7 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
 
         <div className="mt-3">
           <label className="label">Etiqueta promocional personalizada <span className="font-normal text-navy-400">(opcional)</span></label>
-          <input className="input bg-white" placeholder='Ex.: "Lançamento", "Kit Copa", "-30%"'
+          <input className="input bg-white" placeholder='Ex.: "Lançamento", "Dia dos Pais", "-30%"'
             value={f.promoLabel ?? ""}
             onChange={(e) => set("promoLabel", e.target.value || undefined as any)} />
         </div>

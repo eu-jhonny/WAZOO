@@ -6,22 +6,22 @@ const INTERVAL_MS = 6000;
 
 const SLIDES = [
   {
-    id: "copa",
-    image: "/images/banners/copa.jpg",
-    fallbackColor: "#071444",
-    badge: "⚽ Edição Especial · Copa 2026",
-    badgeColor: "bg-[#FFDF00]/20 text-[#FFDF00] border-[#FFDF00]/30",
-    title: "Copa dos Pets! 🏆",
-    subtitle: "Vista seu pet com as cores do Brasil.\nBandanas, roupinhas e kits temáticos.",
+    id: "diapais",
+    image: "/images/modelo-homem-golden.webp",
+    fallbackColor: "#0F2A4A",
+    badge: "👔 Especial · Dia dos Pais",
+    badgeColor: "bg-orange-400/20 text-orange-200 border-orange-300/30",
+    title: "Dia dos Pais Pet! 🐾",
+    subtitle: "Presenteie a dupla favorita: pai & pet.\nKits, mimos e acessórios combinando.",
     ctas: [
-      { to: "/produtos", label: "Ver coleção Copa →", style: "bg-[#FFDF00] text-[#002776] hover:bg-yellow-300 font-bold" },
-      { to: "/kits",     label: "Ver kits",           style: "bg-[#009C3B] text-white hover:bg-green-700 font-bold" },
+      { to: "/produtos", label: "Ver presentes →", style: "bg-orange-500 text-white hover:bg-orange-600 font-bold" },
+      { to: "/kits",     label: "Ver kits",        style: "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border border-white/30 font-bold" },
     ],
     extra: (
       <div className="absolute right-8 bottom-6 hidden sm:flex lg:right-16">
-        <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-4 border-[#FFDF00] text-center shadow-lg sm:h-28 sm:w-28 bg-[#002776]">
-          <span className="text-2xl sm:text-3xl">🏆</span>
-          <span className="font-display text-[10px] font-extrabold uppercase text-[#FFDF00] sm:text-xs">Copa<br/>2026</span>
+        <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-4 border-orange-300 text-center shadow-lg sm:h-28 sm:w-28 bg-navy-800">
+          <span className="text-2xl sm:text-3xl">👔</span>
+          <span className="font-display text-[10px] font-extrabold uppercase text-orange-200 sm:text-xs">Dia dos<br/>Pais</span>
         </div>
       </div>
     ),
@@ -51,20 +51,6 @@ const SLIDES = [
     ctas: [
       { to: "/gatos", label: "Ver produtos para gatos →", style: "bg-purple-500 text-white hover:bg-purple-600 shadow-lg" },
       { to: "/kits",  label: "Ver kits",                  style: "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border border-white/30" },
-    ],
-    extra: null,
-  },
-  {
-    id: "festa",
-    image: "/images/banners/festajunina.jpg",
-    fallbackColor: "#9A3412",
-    badge: "🎉 Arraiá Pet 2025",
-    badgeColor: "bg-yellow-400/20 text-yellow-200 border-yellow-400/30",
-    title: "Festa Junina\ndos Pets! 🌽",
-    subtitle: "Chapéus de palha, bandanas xadrez e kits temáticos.\nFaça seu pet brilhar no arraial!",
-    ctas: [
-      { to: "/kits", label: "Ver kits Festa Junina →", style: "bg-white text-orange-700 hover:bg-cream-50 font-bold" },
-      { to: "/produtos", label: "Ver tudo", style: "bg-orange-500/80 text-white hover:bg-orange-600 backdrop-blur-sm" },
     ],
     extra: null,
   },

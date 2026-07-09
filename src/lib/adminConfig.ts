@@ -6,17 +6,15 @@
 export const ADMIN_CFG_KEY = "wazoo:admin_config:v1";
 
 export interface AdminDisplayConfig {
-  accentColor: string;
-  showCopa:    boolean;
-  showFesta:   boolean;
-  showBanner:  boolean;
+  accentColor:   string;
+  showDiaDosPais: boolean;
+  showBanner:    boolean;
 }
 
 const DEFAULTS: AdminDisplayConfig = {
-  accentColor: "orange",
-  showCopa:    true,
-  showFesta:   true,
-  showBanner:  true,
+  accentColor:   "orange",
+  showDiaDosPais: true,
+  showBanner:    true,
 };
 
 /** Lê o config do localStorage de forma síncrona (sem React). */

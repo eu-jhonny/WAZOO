@@ -20,8 +20,7 @@ export function Kits() {
         chips={[
           { label: "🎁 Kits completos" },
           { label: "🌟 Curadoria especial" },
-          { label: "⚽ Copa 2026" },
-          { label: "🎉 Festa Junina" },
+          { label: "👔 Dia dos Pais" },
         ]}
       />
 
