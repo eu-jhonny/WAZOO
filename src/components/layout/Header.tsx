@@ -97,7 +97,7 @@ export function Header() {
           {/* Perfil / Entrar */}
           <Link
             to={isLoggedIn ? "/perfil" : "/login"}
-            className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-orange-600 sm:flex"
+            className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-orange-600 lg:flex"
           >
             {isLoggedIn && user?.avatar ? (
               <img
@@ -113,10 +113,10 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Busca */}
+          {/* Busca (desktop; no mobile fica na barra inferior) */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-cream-100 text-navy-700 transition-all hover:bg-orange-50 hover:text-orange-600"
+            className="hidden h-11 w-11 items-center justify-center rounded-full bg-cream-100 text-navy-700 transition-all hover:bg-orange-50 hover:text-orange-600 lg:inline-flex"
             aria-label="Buscar produtos"
           >
             <Search size={20} />
@@ -125,7 +125,7 @@ export function Header() {
           {/* Favoritos */}
           <Link
             to="/favoritos"
-            className="relative hidden h-11 w-11 items-center justify-center rounded-full bg-cream-100 text-navy-700 transition-all hover:bg-red-50 hover:text-red-500 sm:inline-flex"
+            className="relative hidden h-11 w-11 items-center justify-center rounded-full bg-cream-100 text-navy-700 transition-all hover:bg-red-50 hover:text-red-500 lg:inline-flex"
             aria-label="Favoritos"
           >
             <Heart size={20} className={wishCount > 0 ? "fill-red-500 text-red-500" : ""} />
@@ -139,10 +139,10 @@ export function Header() {
           {/* Sino de notificações */}
           <NotificationBell />
 
-          {/* Carrinho */}
+          {/* Carrinho (desktop; no mobile fica na barra inferior) */}
           <Link
             to="/carrinho"
-            className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full transition-all ${
+            className={`relative hidden h-11 w-11 items-center justify-center rounded-full transition-all lg:inline-flex ${
               count > 0
                 ? "bg-orange-500 text-white shadow-glow hover:bg-orange-600"
                 : "bg-cream-100 text-navy-700 hover:bg-cream-200"

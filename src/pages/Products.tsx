@@ -70,6 +70,10 @@ export function Products() {
     return list;
   }, [active, category, pet, maxPrice, search, sort]);
 
+  const [showFilters, setShowFilters] = useState(false);
+  const activeCount =
+    (category !== "todos" ? 1 : 0) + (pet !== "todos" ? 1 : 0) + (maxPrice !== maxPriceAvailable ? 1 : 0);
+
   const hasFilters =
     category !== "todos" || pet !== "todos" || search !== "" || maxPrice !== maxPriceAvailable;
 
@@ -130,6 +134,25 @@ export function Products() {
                 </div>
               </div>
 
+              {/* Botão de filtros (só mobile) */}
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className="flex items-center justify-between rounded-xl border border-cream-200 bg-cream-50 px-4 py-2.5 text-sm font-bold text-navy-700 lg:hidden"
+              >
+                <span className="flex items-center gap-2">
+                  <SlidersHorizontal size={16} className="text-orange-500" />
+                  Filtros
+                  {activeCount > 0 && (
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-orange-500 px-1 text-xs text-white">
+                      {activeCount}
+                    </span>
+                  )}
+                </span>
+                <span className={`text-navy-400 transition-transform ${showFilters ? "rotate-180" : ""}`}>▾</span>
+              </button>
+
+              {/* Filtros avançados — recolhíveis no mobile */}
+              <div className={`${showFilters ? "flex" : "hidden"} flex-col gap-4 lg:flex`}>
               {/* Chips de categoria */}
               <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                 <button
@@ -185,6 +208,7 @@ export function Products() {
                     aria-label="Preço máximo"
                   />
                 </div>
+              </div>
               </div>
             </div>
           </div>

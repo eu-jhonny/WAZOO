@@ -357,7 +357,7 @@ export function NotificationSystem() {
     <>
       {toast && (
         <div
-          className="fixed bottom-6 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]"
+          className="fixed bottom-20 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] lg:bottom-6"
           style={{ animation: "slide-in-left 0.4s ease-out both" }}
         >
           <div className={`card flex gap-3 p-4 shadow-xl border-l-4 ${toast.color.replace("text-", "border-")} ${toast.bg}`}>

@@ -11,7 +11,7 @@ export function WhatsAppButton() {
       href={whatsappLink(defaultContactMessage, settings.whatsapp)}
       target="_blank"
       rel="noopener noreferrer"
-      className="group fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-green-500 px-4 py-4 text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5 hover:bg-green-600 sm:px-5"
+      className="group fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full bg-green-500 px-4 py-4 text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5 hover:bg-green-600 sm:px-5 lg:bottom-5 lg:right-5"
       aria-label="Fale conosco no WhatsApp"
     >
       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-20" />

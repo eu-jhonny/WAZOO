@@ -35,7 +35,7 @@ export function PageHero({ eyebrow, title, subtitle, icon: Icon, mascot, chips }
 
       <Decor />
 
-      <div className="container-app relative grid items-center gap-6 py-12 sm:py-16 md:grid-cols-[1fr_auto] md:py-20">
+      <div className="container-app relative grid items-center gap-6 py-9 sm:py-16 md:grid-cols-[1fr_auto] md:py-20">
         {/* Texto */}
         <div
           className="text-center md:text-left"

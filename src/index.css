@@ -177,6 +177,12 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Impede rolagem horizontal acidental no mobile (clip não quebra sticky). */
+  html, body { overflow-x: clip; }
+
+  /* Segurança: mídia nunca estoura a largura do container. */
+  img, video, svg, canvas { max-width: 100%; }
+
   h1, h2, h3, h4, h5 {
     @apply font-display text-navy-800;
     text-wrap: balance;
@@ -348,3 +354,4 @@
     background-size: 24px 24px;
   }
 }
+

@@ -275,7 +275,7 @@ export function WazooAI() {
       {/* Botão flutuante */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`fixed bottom-24 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-xl transition-all duration-300 sm:right-6 sm:bottom-28 ${
+        className={`fixed bottom-36 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-xl transition-all duration-300 lg:bottom-28 lg:right-6 ${
           open ? "bg-navy-800 text-white rotate-0" : "bg-gradient-to-br from-teal-500 to-teal-600 text-white hover:scale-110"
         }`}
         aria-label="Assistente Wazoo"
@@ -291,7 +291,7 @@ export function WazooAI() {
       {/* Painel de chat */}
       {open && (
         <div
-          className="fixed bottom-44 right-4 z-50 flex w-80 max-h-[70vh] flex-col rounded-2xl border border-cream-200 bg-white shadow-2xl overflow-hidden sm:right-6 sm:bottom-48 sm:w-96"
+          className="fixed bottom-56 right-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] max-h-[64vh] flex-col rounded-2xl border border-cream-200 bg-white shadow-2xl overflow-hidden lg:bottom-48 lg:right-6 lg:w-96"
           style={{ animation: "slide-in-left 0.35s ease-out" }}
         >
           {/* Header */}

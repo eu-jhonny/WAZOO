@@ -19,7 +19,7 @@ export function ComparisonBar() {
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[60] animate-slide-in-right">
+    <div className="fixed inset-x-0 bottom-16 z-[60] animate-slide-in-right lg:bottom-0">
       <div className="container-app pb-3 sm:pb-4">
         <div className="flex items-center gap-3 rounded-2xl border border-cream-200 bg-white/95 p-3 shadow-soft-lg backdrop-blur">
           <span className="hidden shrink-0 items-center gap-2 px-2 font-display font-bold text-navy-700 sm:flex">

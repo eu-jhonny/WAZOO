@@ -55,12 +55,21 @@ export function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const [variantSel, setVariantSel] = useState<number[]>([]);
+  const [showStickyBar, setShowStickyBar] = useState(false);
 
   // Reseta seleção de variação e quantidade ao trocar de produto.
   useEffect(() => {
     setVariantSel((product?.variants ?? []).map(() => 0));
     setQty(1);
   }, [product?.id]);
+
+  // Mostra a barra fixa de compra (mobile) depois de rolar um pouco.
+  useEffect(() => {
+    const onScroll = () => setShowStickyBar(window.scrollY > 480);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const gallery = useMemo(() => {
     if (!product) return [];
@@ -355,7 +364,35 @@ export function ProductDetail() {
           {/* Vistos recentemente */}
           <RecentlyViewed excludeId={product.id} />
         </div>
+
+        {/* Espaço para a barra fixa de compra não cobrir o conteúdo (mobile) */}
+        <div className="h-16 lg:hidden" aria-hidden />
       </section>
+
+      {/* Barra fixa de compra — só mobile, aparece ao rolar */}
+      <div
+        className={`fixed inset-x-0 bottom-16 z-40 border-t border-cream-200 bg-white/95 backdrop-blur transition-transform duration-300 lg:hidden ${
+          showStickyBar ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <div className="container-app flex items-center gap-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-navy-400">
+              {variantLabel || getCategoryName(product.category)}
+            </p>
+            <p className="font-display text-lg font-bold leading-tight text-orange-600">
+              {formatBRL(finalPrice)}
+            </p>
+          </div>
+          <button
+            onClick={addToCart}
+            disabled={outOfStock}
+            className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <ShoppingCart size={18} /> {outOfStock ? "Esgotado" : "Adicionar"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
