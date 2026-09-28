@@ -22,9 +22,7 @@ import { BRL_PER_POINT } from "@/lib/loyalty";
 import { validateCoupon, readCoupons } from "@/lib/coupons";
 import { formatBRL } from "@/lib/format";
 import { getAdminPaymentConfig } from "@/lib/adminConfig";
-import { whatsappLink } from "@/lib/whatsapp";
 import { isPixAuto } from "@/lib/pixProvider";
-import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { PixQrCode } from "@/components/ui/PixQrCode";
 import { PixAutoPayment } from "@/components/ui/PixAutoPayment";
 
@@ -85,8 +83,8 @@ export function Checkout() {
   const methods = useMemo(() => {
     const all: { key: PaymentMethod; label: string; icon: typeof QrCode; desc: string; enabled: boolean }[] = [
       { key: "pix",         label: "PIX",            icon: QrCode,     desc: payCfg.pixDiscount > 0 ? `${payCfg.pixDiscount}% de desconto` : "Aprovação imediata", enabled: payCfg.payPix },
-      { key: "credit_card", label: "Cartão de crédito", icon: CreditCard, desc: `Até ${payCfg.maxInstall}x`, enabled: payCfg.payCard },
-      { key: "boleto",      label: "Boleto",         icon: FileText,   desc: "Vence em 3 dias", enabled: payCfg.payBoleto },
+      { key: "credit_card", label: "Cartão de crédito", icon: CreditCard, desc: `Até ${payCfg.maxInstall}x`, enabled: false },
+      { key: "boleto",      label: "Boleto",         icon: FileText,   desc: "Em breve", enabled: false },
     ];
     return all.filter((m) => m.enabled);
   }, [payCfg]);
@@ -179,21 +177,6 @@ export function Checkout() {
     }
   }
 
-  /* ── Mensagem de WhatsApp para a tela de sucesso ────────── */
-  const waMessage = useMemo(() => {
-    if (paymentMethod === "pix") {
-      return [
-        `Olá! Acabei de pagar o pedido *${orderNumber}* via PIX. 🐾`,
-        `Valor: ${formatBRL(paidTotal)}. Segue o comprovante 👇`,
-      ].join("\n");
-    }
-    return [
-      `Olá! Acabei de enviar o pedido *${orderNumber}* pelo site. 🐾`,
-      `Total: ${formatBRL(paidTotal)} (${paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
-      `Gostaria de confirmar a disponibilidade e o pagamento.`,
-    ].join("\n");
-  }, [orderNumber, paidTotal, paymentMethod]);
-
   /* Chave PIX: usa a configurada no admin; senão, o WhatsApp como chave telefone. */
   const pixKey = useMemo(() => {
     if (payCfg.pixChave.trim()) return payCfg.pixChave.trim();
@@ -220,7 +203,7 @@ export function Checkout() {
           <CheckCircle size={44} className="text-green-500" />
         </div>
         <h1 className="section-title mt-6">
-          {paymentMethod === "pix" ? "Pagamento informado! 🎉" : "Pedido enviado! 🎉"}
+          "Pedido recebido! 🎉"
         </h1>
         <p className="mt-3 text-navy-500">
           Número do pedido: <strong className="text-navy-700">{orderNumber}</strong>
@@ -233,7 +216,7 @@ export function Checkout() {
 
         {paymentMethod === "pix" && (
           <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
-            💚 Recebemos a confirmação do seu PIX de {formatBRL(paidTotal)}. Para agilizar, envie o comprovante pelo WhatsApp.
+            💚 Pagamento PIX informado no valor de {formatBRL(paidTotal)}. Você pode acompanhar o pedido pela sua conta.
           </div>
         )}
 
@@ -242,22 +225,11 @@ export function Checkout() {
             <Sparkles size={16} className="text-orange-500" /> Próximos passos
           </p>
           <ol className="mt-3 space-y-2">
-            <li>1. {paymentMethod === "pix" ? "Confirmamos o recebimento do PIX." : "Seu pagamento será processado conforme a opção escolhida."}</li>
-            <li>2. Confirmamos o valor final e o prazo com você.</li>
-            <li>3. {paymentMethod === "pix"
-              ? "Enviamos o seu pedido."
-              : `Combinamos o pagamento (${paymentMethod === "credit_card" ? "cartão" : "boleto"}).`} {deliveryMethod === "DELIVERY" ? "Combinamos a entrega." : "Combinamos a retirada."}</li>
+            <li>1. Confirmamos o pagamento.</li>
+            <li>2. Seu pedido segue para separação.</li>
+            <li>3. {deliveryMethod === "DELIVERY" ? "Você acompanha a entrega pela sua conta." : "Avisaremos quando estiver pronto para retirada."}</li>
           </ol>
         </div>
-
-        <a
-          href={whatsappLink(waMessage, settings.whatsapp)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-green mt-6 w-full"
-        >
-          <WhatsAppIcon size={18} /> {paymentMethod === "pix" ? "Enviar comprovante pelo WhatsApp" : "Agilizar pelo WhatsApp"}
-        </a>
 
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Link to="/pedidos" className="btn-outline-orange flex-1">Meus pedidos</Link>
@@ -547,23 +519,23 @@ export function Checkout() {
                   </div>
                 )}
 
-                {/* ── Cartão / Boleto: combinados na confirmação ── */}
+                {/* ── Métodos adicionais serão reativados quando o gateway estiver conectado ao frontend ── */}
                 {paymentMethod !== "pix" && (
                   <div className="mt-5">
                     {paymentMethod === "credit_card" && (
                       <div className="rounded-2xl bg-blue-50 p-4 text-sm text-blue-700">
-                        💳 Parcele em até {payCfg.maxInstall}x. Os dados do cartão são combinados de forma segura ao confirmar o pedido — sem cobrança automática agora.
+                        💳 O pagamento por cartão será processado pelo gateway seguro da Wazoo.
                       </div>
                     )}
                     {paymentMethod === "boleto" && (
                       <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
-                        📄 O boleto é enviado após a confirmação da disponibilidade. Vencimento em 3 dias úteis.
+                        📄 O boleto será gerado pelo gateway de pagamento.
                       </div>
                     )}
                     <button onClick={handleFinalize} disabled={loading} className="btn-primary mt-4 w-full disabled:opacity-60">
                       {loading ? <><Loader2 size={18} className="animate-spin" /> Enviando...</> : <>Finalizar compra</>}
                     </button>
-                    <p className="mt-2 text-center text-xs text-navy-400">Sem cobrança agora — combinamos o pagamento pelo WhatsApp.</p>
+                    
                   </div>
                 )}
               </div>
