@@ -1,5 +1,5 @@
 import {
-  Send, Search, CreditCard, CheckCircle2, Package,
+  ShoppingBag, CreditCard, CheckCircle2, Package,
   Truck, Store, PartyPopper, type LucideIcon,
 } from "lucide-react";
 import type { Order, OrderStatus } from "@/types";
@@ -11,13 +11,12 @@ function buildSteps(order: Order): { status: OrderStatus; icon: LucideIcon }[] {
       ? { status: "Pronto para retirada" as OrderStatus, icon: Store }
       : { status: "Saiu para entrega" as OrderStatus, icon: Truck };
   return [
-    { status: "Solicitação enviada", icon: Send },
-    { status: "Verificando disponibilidade", icon: Search },
-    { status: "Aguardando pagamento", icon: CreditCard },
-    { status: "Pedido confirmado", icon: CheckCircle2 },
+    { status: "Pedido recebido", icon: ShoppingBag },
+    { status: "Pagamento pendente", icon: CreditCard },
+    { status: "Pagamento confirmado", icon: CheckCircle2 },
     { status: "Em separação", icon: Package },
     deliveryStep,
-    { status: "Finalizado", icon: PartyPopper },
+    { status: "Entregue", icon: PartyPopper },
   ];
 }
 
