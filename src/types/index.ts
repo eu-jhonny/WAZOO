@@ -104,8 +104,12 @@ export interface Pet {
 
 export interface Address {
   street: string;
+  number?: string;
+  complement?: string;
   neighborhood: string;
   city: string;
+  state?: string;
+  zip?: string;
 }
 
 export interface User {
@@ -197,4 +201,5 @@ export interface SiteSettings {
   hours: string;
   institutionalText: string;
   deliveryFee: number;
+  freeShippingThreshold: number;
 }
