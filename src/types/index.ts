@@ -103,6 +103,9 @@ export interface Pet {
 }
 
 export interface Address {
+  id?: string;
+  label?: string;
+  isDefault?: boolean;
   street: string;
   number?: string;
   complement?: string;
