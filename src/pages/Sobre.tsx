@@ -16,16 +16,16 @@ import { Decor } from "@/components/ui/Decor";
 
 const values = [
   { icon: HandHeart, title: "Atendimento humano", text: "Gente de verdade para ajudar você a escolher o melhor para o seu pet." },
-  { icon: PackageSearch, title: "Variedade sob encomenda", text: "Buscamos opções com fornecedores parceiros: mais escolha, menos desperdício." },
-  { icon: ShieldCheck, title: "Compra segura", text: "Você só confirma depois que verificamos disponibilidade, prazo e valor." },
+  { icon: PackageSearch, title: "Variedade para o seu pet", text: "Uma seleção completa para alimentação, passeio, higiene, conforto e diversão." },
+  { icon: ShieldCheck, title: "Compra segura", text: "Pagamento online, acompanhamento do pedido e informações claras do início ao fim." },
   { icon: Heart, title: "Feito com carinho", text: "Cuidamos de cada pedido como se fosse para o nosso próprio pet." },
 ];
 
 const stats = [
   { n: "+500", l: "Pets atendidos", c: "text-orange-500" },
   { n: "4.9", l: "Nota média", c: "text-brand-teal" },
-  { n: "100%", l: "Sob encomenda", c: "text-brand-purple" },
-  { n: "2 a 7", l: "Dias de prazo", c: "text-green-600" },
+  { n: "100%", l: "Compra online", c: "text-brand-purple" },
+  { n: "24h", l: "Loja online", c: "text-green-600" },
 ];
 
 export function Sobre() {
@@ -37,7 +37,7 @@ export function Sobre() {
         variant="cream"
         eyebrow="Sobre nós"
         icon={PawPrint}
-        title="Sobre a Wazoo Pet Express"
+        title="Sobre a Wazoo"
         subtitle={site.slogan}
         mascot={img.mascot.saudacao}
       />
