@@ -109,7 +109,7 @@ model Product {
   gallery          String[]
   audience         String   @default("ambos") // "cachorro" | "gato" | "ambos"
   size             String   @default("todos")
-  leadTime         String   @default("5-7 dias úteis")
+  leadTime         String   @default("Envio em até 1 dia útil")
   availability     String   @default("Em estoque")
   tags             String[]
   variants         Json?
@@ -138,7 +138,7 @@ model Kit {
   accent      String   @default("orange")
   items       String[]
   audience    String   @default("ambos")
-  leadTime    String   @default("7-10 dias úteis")
+  leadTime    String   @default("Envio em até 2 dias úteis")
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
