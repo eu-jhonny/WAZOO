@@ -24,12 +24,12 @@ export function Footer() {
             <div className="lg:col-span-1">
               <img
                 src={img.logo}
-                alt="Wazoo Pet Express"
+                alt="Wazoo"
                 className="h-12 w-auto"
               />
               <p className="mt-4 text-sm leading-relaxed text-navy-500">
-                Produtos pet sob encomenda para cães e gatos. Você pede, a
-                gente encontra e entrega com carinho. 🐾
+                Tudo para o bem-estar do seu pet: produtos, cuidados,
+                diversão e uma compra online mais simples. 🐾
               </p>
               <div className="mt-5 flex gap-3">
                 <a
@@ -91,7 +91,7 @@ export function Footer() {
                   [
                     ["Sobre a loja", "/sobre"],
                     ["Como funciona", "/como-funciona"],
-                    ["Compra sob encomenda", "/politica-sob-encomenda"],
+                    ["Política de compra e entrega", "/politica-compra"],
                     ["Política de troca", "/politica-troca"],
                   ] as [string, string][]
                 ).map(([label, to]) => (
@@ -124,7 +124,7 @@ export function Footer() {
                     rel="noopener noreferrer"
                     className="font-semibold text-navy-500 transition-colors hover:text-orange-600"
                   >
-                    Pedidos pelo WhatsApp
+                    Atendimento pelo WhatsApp
                   </a>
                 </li>
                 <li className="flex items-start gap-2.5">
@@ -158,16 +158,12 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Aviso sob encomenda */}
+          {/* Compromisso de compra */}
           <div className="mt-10 flex items-start gap-3 rounded-2xl border border-orange-100 bg-orange-50 p-4 text-sm text-navy-600">
             <PawPrint className="mt-0.5 shrink-0 text-orange-500" size={18} />
             <p>
-              <strong className="text-navy-700">
-                Trabalhamos sob encomenda:
-              </strong>{" "}
-              os valores e prazos exibidos são estimativas. A confirmação final
-              acontece após verificarmos a disponibilidade com nossos
-              fornecedores parceiros.
+              <strong className="text-navy-700">Compra simples e transparente:</strong>{" "}
+              confira preços, disponibilidade, frete e pagamento antes de finalizar. Depois, acompanhe o pedido pela sua conta.
             </p>
           </div>
         </div>
