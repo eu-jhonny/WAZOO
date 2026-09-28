@@ -143,6 +143,7 @@ export interface ApiOrderItem {
 export interface ApiOrder {
   id: string;
   number: string;
+  publicToken: string;
   status: string;
   paymentStatus: string;
   customerName: string;
@@ -179,6 +180,7 @@ export function validateApiCoupon(code: string, subtotal: number) {
 
 export function createApiPayment(input: {
   orderId: string;
+  publicToken: string;
   method: "pix" | "credit_card" | "boleto";
   email: string;
   cpf: string;
@@ -229,13 +231,13 @@ export function getApiOrderTracking(number: string) {
   return request<ApiTrackingOrder>(`/orders/track/${encodeURIComponent(number)}`);
 }
 
-export function getApiPaymentStatus(orderId: string) {
+export function getApiPaymentStatus(orderId: string, publicToken: string) {
   return request<{
     paymentStatus: string;
     status: string;
     number: string;
     paidAt?: string | null;
-  }>(`/payments/status/${encodeURIComponent(orderId)}`);
+  }>(`/payments/status/${encodeURIComponent(orderId)}?token=${encodeURIComponent(publicToken)}`);
 }
 
 export interface ApiProduct {
