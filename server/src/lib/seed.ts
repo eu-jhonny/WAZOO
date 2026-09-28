@@ -30,7 +30,7 @@ async function main() {
     ["whatsapp", "5511999999999"],
     ["instagram", "@wazoo.pet"],
     ["hours", "Seg–Sex 9h–18h | Sáb 9h–13h"],
-    ["institutionalText", "Loja pet sob encomenda em São Paulo. Qualidade e carinho para seu melhor amigo!"],
+    ["institutionalText", "Tudo para o bem-estar do seu pet, com compra online segura e prática."],
     ["deliveryFee", "15"],
     ["freeShippingThreshold", "200"],
   ];
