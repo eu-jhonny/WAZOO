@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  Wazoo Pet Express — Templates de e-mail (HTML responsivo)
+ *  Wazoo — Templates de e-mail (HTML responsivo)
  * ============================================================
  *
  * E-mails de verdade rodam em clientes muito antigos (Outlook, Gmail,
@@ -31,12 +31,12 @@ export interface EmailBrand {
 }
 
 export const DEFAULT_BRAND: EmailBrand = {
-  storeName: "Wazoo Pet Express",
+  storeName: "Wazoo",
   accent: "#F97316",
   accentDark: "#EA580C",
   siteUrl: "https://wazoo.com.br",
   whatsapp: "5511999999999",
-  instagram: "@wazoopetexpress",
+  instagram: "@wazoo",
   supportEmail: "contato@wazoo.com",
   address: "São Paulo · SP e região",
 };
@@ -123,7 +123,7 @@ function footer(brand: EmailBrand): string {
       </p>
       <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;color:#475569;">
         Você recebeu este e-mail porque tem uma conta ou fez um pedido na ${esc(brand.storeName)}.<br/>
-        © ${new Date().getFullYear()} ${esc(brand.storeName)} · Produtos pet sob encomenda com carinho.
+        © ${new Date().getFullYear()} ${esc(brand.storeName)} · Tudo para o bem-estar do seu pet.
       </p>
     </td>
   </tr>`;
@@ -264,7 +264,7 @@ export function welcomeEmail(brand: EmailBrand, opts: { name: string; coupon?: s
   const inner =
     body(
       h1(`Bem-vindo(a), ${esc(first)}! 🐾`) +
-      p(`Que alegria ter você na <strong>${esc(brand.storeName)}</strong>! Aqui a gente encontra os melhores produtos sob encomenda para o seu pet — você escolhe, a gente busca com os parceiros e entrega com carinho.`) +
+      p(`Que alegria ter você na <strong>${esc(brand.storeName)}</strong>! Aqui você encontra produtos para o seu pet com uma experiência de compra simples, segura e cheia de carinho.`) +
       (opts.coupon
         ? callout(`🎁 Presente de boas-vindas: use o cupom <strong>${esc(opts.coupon)}</strong> e ganhe desconto no seu primeiro pedido!`, "success")
         : "") +
@@ -275,7 +275,7 @@ export function welcomeEmail(brand: EmailBrand, opts: { name: string; coupon?: s
   const text = [
     `Bem-vindo(a), ${first}!`,
     ``,
-    `Que alegria ter você na ${brand.storeName}. Aqui você encontra produtos pet sob encomenda com carinho.`,
+    `Que alegria ter você na ${brand.storeName}. Aqui você encontra tudo para o bem-estar do seu pet.`,
     opts.coupon ? `\nCupom de boas-vindas: ${opts.coupon}` : "",
     ``,
     `Ver produtos: ${brand.siteUrl}/produtos`,
@@ -294,17 +294,17 @@ export function orderConfirmationEmail(brand: EmailBrand, o: OrderLike): EmailCo
   const inner =
     body(
       h1("Recebemos o seu pedido! 🎉") +
-      p(`Oi, ${esc(first)}! Seu pedido <strong>${esc(o.id)}</strong> chegou pra gente. Já estamos verificando a disponibilidade com os parceiros e em breve confirmamos o prazo e o valor final.`) +
+      p(`Oi, ${esc(first)}! Seu pedido <strong>${esc(o.id)}</strong> foi recebido com sucesso. Você pode acompanhar cada etapa pela sua conta.`) +
       callout(`📦 ${o.fulfillment === "retirada" ? "Você optou por <strong>retirada na loja</strong>." : "Você optou por <strong>entrega</strong>."} Avisaremos por aqui e pelo WhatsApp a cada etapa.`) +
       `<h2 style="margin:6px 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:800;color:${C.ink};">Resumo do pedido</h2>` +
       itemsTable(brand, o) +
       button(brand, "📍 Acompanhar meu pedido", `${brand.siteUrl}/pedidos`) +
-      small("Quer agilizar? Envie o comprovante ou tire dúvidas pelo WhatsApp."),
+      small("Se precisar de ajuda, nosso atendimento está disponível pelo WhatsApp."),
     );
   const text = [
     `Recebemos o seu pedido ${o.id}!`,
     ``,
-    `Oi, ${first}! Já estamos verificando a disponibilidade dos itens.`,
+    `Oi, ${first}! Seu pedido foi recebido e já está no nosso sistema.`,
     ``,
     `Itens:`,
     orderItemsText(o),
@@ -315,7 +315,7 @@ export function orderConfirmationEmail(brand: EmailBrand, o: OrderLike): EmailCo
   ].join("\n");
   return {
     subject: `Pedido ${o.id} recebido — ${brand.storeName} 🐾`,
-    preheader: `Estamos verificando a disponibilidade dos seus itens. Total: ${formatBRL(o.total)}.`,
+    preheader: `Pedido recebido. Total: ${formatBRL(o.total)}.`,
     html: shell(brand, `Recebemos o pedido ${o.id}. Total ${formatBRL(o.total)}.`, inner),
     text,
   };
@@ -323,22 +323,21 @@ export function orderConfirmationEmail(brand: EmailBrand, o: OrderLike): EmailCo
 
 /* Copy amigável por status. */
 const STATUS_COPY: Record<OrderStatus, { emoji: string; title: string; line: string; tone: "info" | "success" | "warn" }> = {
-  "Solicitação enviada": { emoji: "📨", title: "Solicitação enviada", line: "Recebemos o seu pedido e ele entrou na fila de análise.", tone: "info" },
-  "Verificando disponibilidade": { emoji: "🔎", title: "Verificando disponibilidade", line: "Estamos conferindo os itens com nossos parceiros. Já já confirmamos tudo.", tone: "info" },
-  "Aguardando pagamento": { emoji: "💳", title: "Aguardando pagamento", line: "Tudo certo com a disponibilidade! Falta só o pagamento para seguirmos.", tone: "warn" },
-  "Pedido confirmado": { emoji: "✅", title: "Pedido confirmado", line: "Pagamento e disponibilidade confirmados. Seu pedido está garantido!", tone: "success" },
-  "Em separação": { emoji: "📦", title: "Em separação", line: "Estamos separando os mimos do seu pet com todo o cuidado.", tone: "info" },
-  "Pronto para retirada": { emoji: "🏬", title: "Pronto para retirada", line: "Seu pedido está pronto! Pode vir buscar quando quiser.", tone: "success" },
-  "Saiu para entrega": { emoji: "🚚", title: "Saiu para entrega", line: "Seu pedido está a caminho! Fique de olho, logo chega aí.", tone: "success" },
-  "Finalizado": { emoji: "🎉", title: "Pedido finalizado", line: "Pedido concluído! Esperamos que o seu pet ame os produtos.", tone: "success" },
+  "Pedido recebido": { emoji: "🧾", title: "Pedido recebido", line: "Recebemos sua compra e ela já aparece no acompanhamento.", tone: "info" },
+  "Pagamento pendente": { emoji: "💳", title: "Pagamento pendente", line: "Estamos aguardando a confirmação do pagamento.", tone: "warn" },
+  "Pagamento confirmado": { emoji: "✅", title: "Pagamento confirmado", line: "Pagamento aprovado. Seu pedido seguirá para separação.", tone: "success" },
+  "Em separação": { emoji: "📦", title: "Em separação", line: "Estamos separando os produtos do seu pedido com todo o cuidado.", tone: "info" },
+  "Pronto para retirada": { emoji: "🏬", title: "Pronto para retirada", line: "Seu pedido está pronto para retirada.", tone: "success" },
+  "Saiu para entrega": { emoji: "🚚", title: "Saiu para entrega", line: "Seu pedido está a caminho. Fique de olho!", tone: "success" },
+  "Entregue": { emoji: "🎉", title: "Pedido entregue", line: "Entrega concluída. Esperamos que seu pet ame os produtos.", tone: "success" },
   "Cancelado": { emoji: "❌", title: "Pedido cancelado", line: "Seu pedido foi cancelado. Se tiver qualquer dúvida, fale com a gente.", tone: "warn" },
 };
 
 /** 3) Atualização de status do pedido. */
 export function orderStatusEmail(brand: EmailBrand, o: OrderLike & { status: OrderStatus }): EmailContent {
   const first = o.customerName.split(" ")[0] || "amigo(a)";
-  const c = STATUS_COPY[o.status] ?? STATUS_COPY["Solicitação enviada"];
-  const showReview = o.status === "Finalizado";
+  const c = STATUS_COPY[o.status] ?? STATUS_COPY["Pedido recebido"];
+  const showReview = o.status === "Entregue";
   const inner =
     body(
       `<div style="text-align:center;margin:0 0 8px;font-size:40px;line-height:1;">${c.emoji}</div>` +
@@ -346,7 +345,7 @@ export function orderStatusEmail(brand: EmailBrand, o: OrderLike & { status: Ord
       p(`Oi, ${esc(first)}! O status do seu pedido <strong>${esc(o.id)}</strong> mudou:`) +
       callout(c.line, c.tone) +
       button(brand, "📍 Ver detalhes do pedido", `${brand.siteUrl}/pedidos`) +
-      (o.status === "Aguardando pagamento"
+      (o.status === "Pagamento pendente"
         ? small("Assim que confirmarmos o pagamento, seguimos com a separação. 💛")
         : "") +
       (showReview
@@ -439,7 +438,7 @@ export function abandonedCartEmail(brand: EmailBrand, opts: {
         ? callout(`🎁 Volte agora e use o cupom <strong>${esc(opts.coupon)}</strong> para um desconto especial!`, "success")
         : "") +
       button(brand, "🛒 Finalizar meu pedido", `${brand.siteUrl}/carrinho`) +
-      small("Os itens são sob encomenda e o preço é estimado — a disponibilidade final é confirmada pela loja."),
+      small("Os valores e condições exibidos no checkout compõem o resumo da compra."),
     );
   const text = [
     `${first ? `Oi, ${first}! ` : ""}Você deixou itens no carrinho:`,
