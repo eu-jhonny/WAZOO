@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Clock, PawPrint, ShoppingCart, Tag } from "lucide-react";
+import { Check, Clock, PackageCheck, ShoppingCart, Tag } from "lucide-react";
 import type { Product } from "@/types";
 import { formatBRL } from "@/lib/format";
 import { getCategoryName } from "@/data/categories";
@@ -8,9 +8,7 @@ import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
 import { ratingForProduct } from "@/lib/ratings";
 import { Stars } from "../ui/Stars";
-import { whatsappLink, buildProductMessage } from "@/lib/whatsapp";
 import { ProductImage } from "../ui/ProductImage";
-import { WhatsAppIcon } from "../ui/WhatsAppIcon";
 import { WishlistButton } from "../ui/WishlistButton";
 import { CompareButton } from "../ui/CompareButton";
 
@@ -33,7 +31,7 @@ interface Props {
 
 export function ProductCard({ product, compact = false }: Props) {
   const { addProduct } = useCart();
-  const { settings, reviews } = useStore();
+  const { reviews } = useStore();
   const rating = ratingForProduct(reviews, product.id);
   const discount = calcDiscount(product.price, product.comparePrice);
   const promoTag = product.promoLabel ?? (discount ? `-${discount}%` : null);
@@ -105,8 +103,8 @@ export function ProductCard({ product, compact = false }: Props) {
 
         {/* Badges */}
         <div className="absolute left-3 top-3 flex flex-col gap-1.5">
-          <span className="badge-encomenda shadow-sm backdrop-blur">
-            <PawPrint size={13} /> Sob encomenda
+          <span className="badge bg-green-100 text-green-700 shadow-sm backdrop-blur">
+            <PackageCheck size={13} /> {outOfStock ? "Esgotado" : "Disponível"}
           </span>
           {promoTag && (
             <span className="badge bg-red-500 text-white shadow-sm animate-pulse-scale">
@@ -157,7 +155,7 @@ export function ProductCard({ product, compact = false }: Props) {
         </div>
 
         <div className="mt-3">
-          <span className="text-xs font-medium text-navy-400">Preço estimado</span>
+          <span className="text-xs font-medium text-navy-400">Preço</span>
           <div className="flex items-baseline gap-2">
             <p className="font-display text-2xl font-bold text-orange-600">
               {formatBRL(product.price)}
@@ -181,15 +179,6 @@ export function ProductCard({ product, compact = false }: Props) {
               {added ? <><Check size={16} /> Adicionado!</> : <><ShoppingCart size={16} /> Adicionar</>}
             </button>
           )}
-          <a
-            href={whatsappLink(buildProductMessage(product), settings.whatsapp)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-green btn-sm inline-flex h-auto w-11 shrink-0 items-center justify-center px-0"
-            aria-label={`Pedir ${product.name} no WhatsApp`}
-          >
-            <WhatsAppIcon size={18} />
-          </a>
         </div>
 
         <Link to={`/produtos/${product.id}`} className="mt-2.5 text-center text-sm link-underline">
