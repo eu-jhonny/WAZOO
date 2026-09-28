@@ -72,6 +72,7 @@ interface StoreContextValue {
   // Pedidos
   orders: Order[];
   addOrder: (input: NewOrderInput) => Order;
+  recordExternalOrder: (id: string, input: NewOrderInput, status?: OrderStatus) => Order;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   setOrderInternalNote: (id: string, note: string) => void;
 
@@ -308,6 +309,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setOrders((prev) => [order, ...prev]);
         // E-mail de confirmação de pedido (melhor esforço — não bloqueia o fluxo).
         if (order.customerEmail) void emails.orderConfirmation(order);
+        return order;
+      },
+      recordExternalOrder: (id, input, status = "Pedido recebido") => {
+        const now = Date.now();
+        const subtotal =
+          input.subtotal ?? input.items.reduce((s, i) => s + i.price * i.quantity, 0);
+        const order: Order = {
+          id,
+          userId: input.userId,
+          customerName: input.customerName,
+          customerPhone: input.customerPhone,
+          customerEmail: input.customerEmail,
+          petName: input.petName,
+          fulfillment: input.fulfillment,
+          items: input.items,
+          subtotal,
+          discountAmount: input.discountAmount,
+          shippingAmount: input.shippingAmount,
+          total: input.total,
+          note: input.note,
+          status,
+          history: [{ status: "Pedido recebido", at: now }, ...(status !== "Pedido recebido" ? [{ status, at: now }] : [])],
+          createdAt: now,
+        };
+        setOrders((prev) => [order, ...prev.filter((o) => o.id !== id)]);
         return order;
       },
       updateOrderStatus: (id, status) =>
