@@ -101,7 +101,7 @@ async function fetchCEP(zip: string): Promise<Partial<AddressForm>> {
 export function Checkout() {
   const { items, total: cartTotal, note: cartNote, clear } = useCart();
   const { settings, addOrder, recordExternalOrder } = useStore();
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const loyalty = useLoyalty();
   const navigate = useNavigate();
 
@@ -286,7 +286,27 @@ export function Checkout() {
     }
   }
 
+  function saveCheckoutAddress() {
+    if (!user || deliveryMethod !== "DELIVERY" || !canContinueAddress) return;
+    updateProfile({
+      address: {
+        id: user.address.id,
+        label: user.address.label ?? "Casa",
+        isDefault: true,
+        street: address.street.trim(),
+        number: address.number.trim(),
+        complement: address.complement.trim() || undefined,
+        neighborhood: address.neighborhood.trim(),
+        city: address.city.trim(),
+        state: address.state.trim().toUpperCase(),
+        zip: address.zip.replace(/\D/g, ""),
+      },
+      preference: "entrega",
+    });
+  }
+
   function finishLocalOrder() {
+    saveCheckoutAddress();
     const order = addOrder(makeLocalOrderInput());
     if (redeemablePoints > 0) loyalty.redeem(redeemablePoints);
     setOrderNumber(order.id);
@@ -328,6 +348,8 @@ export function Checkout() {
     setLoading(true);
     setPaymentError("");
     try {
+      saveCheckoutAddress();
+
       const order = await createApiOrder({
         customerName: customer.name.trim(),
         customerEmail: customer.email.trim(),
