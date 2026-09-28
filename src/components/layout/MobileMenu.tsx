@@ -47,7 +47,7 @@ export function MobileMenu({ open, onClose, nav }: MobileMenuProps) {
 
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b border-cream-200 px-5 py-4">
-          <img src={img.logo} alt="Wazoo Pet Express" className="h-9 w-auto" />
+          <img src={img.logo} alt="Wazoo" className="h-9 w-auto" />
           <button
             onClick={onClose}
             className="btn-icon text-navy-500 hover:bg-cream-100"
