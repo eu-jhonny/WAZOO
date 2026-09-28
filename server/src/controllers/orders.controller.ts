@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
+import { releaseCouponUsage, releaseReservedInventory } from "../lib/orderInventory";
 
 const orderItemSchema = z.object({
   productId: z.string().optional(),
@@ -244,6 +245,7 @@ export async function createOrder(req: Request, res: Response) {
             image: item.image ?? "",
             variantKey: item.variantKey,
             variantLabel: item.variantLabel,
+            stockReserved: item.controlledStock,
           })),
         },
       },
@@ -373,9 +375,22 @@ export async function cancelOrder(req: Request, res: Response) {
   if (order.status === "DELIVERED" || order.status === "CANCELLED") {
     throw new AppError("Este pedido não pode ser cancelado", 400);
   }
-  const updated = await prisma.order.update({
-    where: { id: req.params.id },
-    data: { status: "CANCELLED" },
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await releaseReservedInventory(tx, order.id);
+    await releaseCouponUsage(tx, order.couponCode);
+
+    const next = await tx.order.update({
+      where: { id: order.id },
+      data: { status: "CANCELLED" },
+    });
+
+    await tx.orderStatusEvent.create({
+      data: { orderId: order.id, status: "CANCELLED" },
+    });
+
+    return next;
   });
+
   res.json(updated);
 }
