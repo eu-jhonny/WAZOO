@@ -21,11 +21,11 @@ const productSchema = z.object({
   audience: z.enum(["cachorro", "gato", "ambos"]).default("ambos"),
   size: z.enum(["pequeno", "medio", "grande", "todos"]).default("todos"),
   leadTime: z.string().default("5-7 dias úteis"),
-  availability: z.string().default("Disponível sob encomenda"),
+  availability: z.string().default("Em estoque"),
   tags: z.array(z.string()).optional(),
   active: z.boolean().optional(),
   featured: z.boolean().optional(),
-  onDemand: z.boolean().default(true),
+  onDemand: z.boolean().default(false),
   stock: z.number().int().optional(),
 });
 
