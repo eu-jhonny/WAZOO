@@ -149,17 +149,36 @@ export async function createOrder(req: Request, res: Response) {
 
   const subtotal = normalizedItems.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
   let discountAmount = 0;
-  let shippingAmount = data.deliveryMethod === "DELIVERY" ? 15 : 0;
+
+  const storeSettings = await prisma.setting.findMany({
+    where: { key: { in: ["deliveryFee", "freeShippingThreshold"] } },
+  });
+  const settingMap = new Map(storeSettings.map((s) => [s.key, s.value]));
+  const deliveryFee = Math.max(0, Number(settingMap.get("deliveryFee") ?? 15) || 0);
+  const freeShippingThreshold = Math.max(
+    0,
+    Number(settingMap.get("freeShippingThreshold") ?? 199) || 0,
+  );
 
   let couponRef: Awaited<ReturnType<typeof applyCoupon>>["coupon"] | null = null;
   if (data.couponCode) {
     const { discount, coupon } = await applyCoupon(data.couponCode, subtotal);
     discountAmount = Math.min(subtotal, discount);
-    if (coupon.type === "FREE_SHIPPING") shippingAmount = 0;
     couponRef = coupon;
   }
 
-  const total = Math.max(0, subtotal - discountAmount + shippingAmount);
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
+  const qualifiesForFreeShipping =
+    data.deliveryMethod === "DELIVERY" &&
+    freeShippingThreshold > 0 &&
+    afterDiscount >= freeShippingThreshold;
+  let shippingAmount =
+    data.deliveryMethod === "DELIVERY" && !qualifiesForFreeShipping
+      ? deliveryFee
+      : 0;
+  if (couponRef?.type === "FREE_SHIPPING") shippingAmount = 0;
+
+  const total = Math.max(0, afterDiscount + shippingAmount);
   const number = generateOrderNumber();
 
   const order = await prisma.$transaction(async (tx) => {
