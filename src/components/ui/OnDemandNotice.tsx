@@ -6,9 +6,9 @@ interface OnDemandNoticeProps {
 }
 
 const DEFAULT_TEXT =
-  "Este produto é vendido sob encomenda. Após o envio do pedido, nossa equipe confirma disponibilidade, prazo e valor final antes da conclusão da compra.";
+  "Confira disponibilidade, prazo de entrega e condições de pagamento antes de finalizar sua compra.";
 
-/** Aviso elegante padrão de "produto sob encomenda". */
+/** Aviso de disponibilidade e condições de compra. */
 export function OnDemandNotice({ text = DEFAULT_TEXT, className = "" }: OnDemandNoticeProps) {
   return (
     <div
