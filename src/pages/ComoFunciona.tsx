@@ -80,7 +80,7 @@ export function ComoFunciona() {
         eyebrow="Como comprar"
         icon={ShoppingCart}
         title="Comprar na Wazoo é simples 🐾"
-        subtitle="Escolha, pague online e acompanhe seu pedido. Sem precisar confirmar disponibilidade pelo WhatsApp."
+        subtitle="Escolha, pague online e acompanhe seu pedido em um fluxo direto, sem etapas manuais pelo WhatsApp."
         mascot={img.mascot.dogTrabalhando}
       />
 
