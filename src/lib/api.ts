@@ -730,3 +730,31 @@ export function deleteApiCoupon(id: string) {
     auth: "admin",
   });
 }
+
+
+/* ── Avaliações (admin) ───────────────────────────────────── */
+export function listApiReviewsAdmin(params: { approved?: boolean; featured?: boolean } = {}) {
+  const query = new URLSearchParams();
+  if (params.approved !== undefined) query.set("approved", String(params.approved));
+  if (params.featured !== undefined) query.set("featured", String(params.featured));
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return request<ApiReview[]>(`/reviews${suffix}`, { auth: "admin" });
+}
+
+export function updateApiReviewAdmin(
+  id: string,
+  input: { approved?: boolean; featured?: boolean },
+) {
+  return request<ApiReview>(`/reviews/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    auth: "admin",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteApiReviewAdmin(id: string) {
+  return request<{ message: string }>(`/reviews/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    auth: "admin",
+  });
+}
