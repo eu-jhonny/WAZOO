@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
-import { authenticate, requireAdmin } from "../middleware/auth";
+import { authenticate, optionalAuthenticate, requireAdmin } from "../middleware/auth";
 import { AppError } from "../middleware/errorHandler";
 
 export const bannersRouter = Router();
@@ -20,8 +20,12 @@ const bannerSchema = z.object({
   active: z.boolean().default(true),
 });
 
-bannersRouter.get("/", async (_req, res) => {
-  const banners = await prisma.banner.findMany({ where: { active: true }, orderBy: { order: "asc" } });
+bannersRouter.get("/", optionalAuthenticate, async (req, res) => {
+  const isAdmin = Boolean(req.user && ["ADMIN", "SUPER_ADMIN"].includes(req.user.role));
+  const banners = await prisma.banner.findMany({
+    where: isAdmin ? undefined : { active: true },
+    orderBy: { order: "asc" },
+  });
   res.json(banners);
 });
 
