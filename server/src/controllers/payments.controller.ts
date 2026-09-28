@@ -51,7 +51,7 @@ export async function processPayment(req: Request, res: Response) {
   if (order.paymentStatus === "APPROVED") throw new AppError("Pedido já foi pago", 400);
 
   const notificationUrl = `${process.env.API_URL}/api/payments/webhook`;
-  const description = `Wazoo Pet Express — Pedido ${order.number}`;
+  const description = `Wazoo — Pedido ${order.number}`;
 
   let result: Awaited<ReturnType<typeof createCardPayment>>;
 
