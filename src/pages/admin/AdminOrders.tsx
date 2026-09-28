@@ -40,12 +40,12 @@ export function AdminOrders() {
   );
 
   const summary = useMemo(() => {
-    const waiting = ["Solicitação enviada", "Verificando disponibilidade", "Aguardando pagamento"];
-    const running = ["Pedido confirmado", "Em separação", "Pronto para retirada", "Saiu para entrega"];
+    const waiting = ["Pedido recebido", "Pagamento pendente"];
+    const running = ["Pagamento confirmado", "Em separação", "Pronto para retirada", "Saiu para entrega"];
     return {
       waiting:   orders.filter((o) => waiting.includes(o.status)).length,
       running:   orders.filter((o) => running.includes(o.status)).length,
-      done:      orders.filter((o) => o.status === "Finalizado").length,
+      done:      orders.filter((o) => o.status === "Entregue").length,
       cancelled: orders.filter((o) => o.status === "Cancelado").length,
       revenue:   orders.filter((o) => o.status !== "Cancelado").reduce((s, o) => s + o.total, 0),
     };
@@ -72,7 +72,7 @@ export function AdminOrders() {
         {[
           { label: "Aguardando",   value: summary.waiting,   tone: "border-orange-400 text-orange-600", emoji: "🕐" },
           { label: "Em andamento", value: summary.running,   tone: "border-sky-400 text-sky-600",       emoji: "📦" },
-          { label: "Finalizados",  value: summary.done,      tone: "border-green-500 text-green-600",   emoji: "🎉" },
+          { label: "Entregues",  value: summary.done,      tone: "border-green-500 text-green-600",   emoji: "🎉" },
           { label: "Cancelados",   value: summary.cancelled, tone: "border-red-400 text-red-500",       emoji: "❌" },
           { label: "Receita",      value: formatBRL(summary.revenue), tone: "border-navy-400 text-navy-700", emoji: "💰", wide: true },
         ].map((s) => (
@@ -152,7 +152,7 @@ export function AdminOrders() {
 
             {/* Itens */}
             <div>
-              <h4 className="font-bold text-navy-700">Itens solicitados</h4>
+              <h4 className="font-bold text-navy-700">Itens do pedido</h4>
               <ul className="mt-2 space-y-2">
                 {current.items.map((item, i) => (
                   <li key={i} className="flex items-start justify-between gap-3 border-b border-cream-100 pb-2 text-sm">
@@ -165,7 +165,7 @@ export function AdminOrders() {
                 ))}
               </ul>
               <div className="mt-2 flex justify-between font-bold text-navy-700">
-                <span>Total estimado</span>
+                <span>Total</span>
                 <span className="text-orange-600">{formatBRL(current.total)}</span>
               </div>
               {current.note && (
