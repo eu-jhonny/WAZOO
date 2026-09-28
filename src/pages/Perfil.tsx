@@ -31,9 +31,13 @@ function ProfileForm({ user, onDone }: { user: User; onDone: () => void }) {
     name:         user.name,
     phone:        user.phone,
     email:        user.email,
+    zip:          user.address.zip ?? "",
     street:       user.address.street,
+    number:       user.address.number ?? "",
+    complement:   user.address.complement ?? "",
     neighborhood: user.address.neighborhood,
     city:         user.address.city,
+    state:        user.address.state ?? "",
     preference:   user.preference,
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -43,8 +47,18 @@ function ProfileForm({ user, onDone }: { user: User; onDone: () => void }) {
     updateProfile({
       name:      f.name,
       phone:     f.phone,
-      email:     f.email,
-      address:   { street: f.street, neighborhood: f.neighborhood, city: f.city },
+      address: {
+        id: user.address.id,
+        label: user.address.label ?? "Casa",
+        isDefault: true,
+        zip: f.zip,
+        street: f.street,
+        number: f.number,
+        complement: f.complement,
+        neighborhood: f.neighborhood,
+        city: f.city,
+        state: f.state.toUpperCase(),
+      },
       preference: f.preference as Fulfillment,
     });
     showToast("Dados salvos! ✅", "success");
@@ -64,21 +78,43 @@ function ProfileForm({ user, onDone }: { user: User; onDone: () => void }) {
         </div>
         <div>
           <label className="label">E-mail</label>
-          <input required type="email" className="input" value={f.email} onChange={(e) => set("email", e.target.value)} />
+          <input required type="email" className="input bg-cream-50 text-navy-400" value={f.email} readOnly />
+          <p className="mt-1 text-[11px] text-navy-400">O e-mail da conta não pode ser alterado por aqui.</p>
         </div>
       </div>
-      <div>
-        <label className="label">Endereço</label>
-        <input className="input" value={f.street} onChange={(e) => set("street", e.target.value)} />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="label">Bairro</label>
-          <input className="input" value={f.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} />
-        </div>
-        <div>
-          <label className="label">Cidade</label>
-          <input className="input" value={f.city} onChange={(e) => set("city", e.target.value)} />
+      <div className="rounded-2xl border border-cream-200 bg-cream-50 p-4">
+        <p className="mb-3 text-sm font-bold text-navy-700">Endereço padrão</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="label">CEP</label>
+            <input className="input" inputMode="numeric" placeholder="00000-000" value={f.zip}
+              onChange={(e) => set("zip", e.target.value.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2"))} />
+          </div>
+          <div>
+            <label className="label">Número</label>
+            <input className="input" placeholder="123" value={f.number} onChange={(e) => set("number", e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">Rua / Avenida</label>
+            <input className="input" value={f.street} onChange={(e) => set("street", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Complemento</label>
+            <input className="input" placeholder="Apto, bloco..." value={f.complement} onChange={(e) => set("complement", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Bairro</label>
+            <input className="input" value={f.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Cidade</label>
+            <input className="input" value={f.city} onChange={(e) => set("city", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Estado</label>
+            <input className="input uppercase" maxLength={2} placeholder="SP" value={f.state}
+              onChange={(e) => set("state", e.target.value.toUpperCase())} />
+          </div>
         </div>
       </div>
       <div>
@@ -303,9 +339,11 @@ export function Perfil() {
               </div>
               {user.address.street ? (
                 <div className="space-y-0.5 text-sm text-navy-600">
-                  <p>{user.address.street}</p>
+                  <p>{user.address.street}{user.address.number ? `, ${user.address.number}` : ""}</p>
+                  {user.address.complement && <p>{user.address.complement}</p>}
                   {user.address.neighborhood && <p>{user.address.neighborhood}</p>}
-                  {user.address.city && <p className="font-semibold">{user.address.city}</p>}
+                  {user.address.city && <p className="font-semibold">{user.address.city}{user.address.state ? `/${user.address.state}` : ""}</p>}
+                  {user.address.zip && <p className="text-xs text-navy-400">CEP {user.address.zip}</p>}
                 </div>
               ) : (
                 <button onClick={() => setEditProfile(true)} className="text-sm text-orange-500 font-semibold hover:underline">
