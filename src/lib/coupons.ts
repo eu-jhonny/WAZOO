@@ -8,11 +8,15 @@
 export type CouponType = "PERCENTAGE" | "FIXED" | "FREE_SHIPPING";
 
 export interface AdminCoupon {
+  id?: string;
   code: string;
   type: CouponType;
   value: number;       // % (PERCENTAGE) ou R$ (FIXED); ignorado em FREE_SHIPPING
   minOrder?: number;   // valor mínimo do pedido
   description?: string;
+  maxUses?: number;
+  usedCount?: number;
+  expiresAt?: number;
   active: boolean;
   createdAt: number;
 }
