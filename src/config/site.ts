@@ -22,7 +22,8 @@ export const site = {
   institutionalText:
     "Na Wazoo, você encontra produtos para cães e gatos com uma experiência de compra simples, segura e divertida. Escolha seus produtos, confira estoque e opções de entrega, pague online e acompanhe cada etapa do pedido até chegar até você.",
 
-  deliveryFee: 0,
+  deliveryFee: 15,
+  freeShippingThreshold: 199,
 } as const;
 
 /** Caminhos das imagens da marca (otimizadas em /public/images). */
