@@ -7,8 +7,8 @@ import { Decor } from "@/components/ui/Decor";
 
 const perks = [
   { icon: Sparkles, text: "Tudo para o seu pet em um só lugar" },
-  { icon: ShieldCheck, text: "Compra segura e sem compromisso" },
-  { icon: PawPrint, text: "Atendimento personalizado pelo WhatsApp" },
+  { icon: ShieldCheck, text: "Checkout seguro e pedidos sincronizados" },
+  { icon: PawPrint, text: "Endereços e pets salvos na sua conta" },
 ];
 
 export function Cadastro() {
@@ -28,8 +28,7 @@ export function Cadastro() {
             Crie sua conta e mime seu pet
           </h2>
           <p className="mt-2 max-w-md text-navy-500">
-            Leva menos de um minuto. Depois é só montar seu pedido e a gente
-            cuida do resto.
+            Leva menos de um minuto. Seu endereço pode ser salvo durante a primeira compra para deixar os próximos pedidos ainda mais rápidos.
           </p>
           <ul className="mt-8 space-y-4">
             {perks.map((perk) => (
