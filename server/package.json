@@ -1,7 +1,7 @@
 {
   "name": "wazoo-api",
   "version": "1.0.0",
-  "description": "Wazoo Pet Express — API Backend",
+  "description": "Wazoo — API do e-commerce",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
