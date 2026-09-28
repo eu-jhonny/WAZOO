@@ -24,6 +24,8 @@ export const site = {
 
   deliveryFee: 15,
   freeShippingThreshold: 199,
+  pixDiscount: 5,
+  maxInstall: 10,
 } as const;
 
 /** Caminhos das imagens da marca (otimizadas em /public/images). */
