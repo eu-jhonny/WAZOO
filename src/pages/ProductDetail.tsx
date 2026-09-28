@@ -45,7 +45,7 @@ const sizeLabel: Record<Product["size"], string> = {
 
 export function ProductDetail() {
   const { id } = useParams();
-  const { products, getProduct, reviews } = useStore();
+  const { products, getProduct, reviews, settings } = useStore();
   const { addProduct } = useCart();
   const navigate = useNavigate();
 
@@ -100,6 +100,8 @@ export function ProductDetail() {
   const selOption = (gi: number) => variants[gi]?.options[variantSel[gi] ?? 0];
   const priceDelta = variants.reduce((s, _g, gi) => s + (selOption(gi)?.priceDelta ?? 0), 0);
   const finalPrice = product.price + priceDelta;
+  const pixDiscount = Math.max(0, settings.pixDiscount || 0);
+  const pixPrice = Math.max(0, finalPrice * (1 - pixDiscount / 100));
   const variantLabel = variants.map((g, gi) => `${g.name}: ${selOption(gi)?.label ?? ""}`).join(" · ");
   const variantKey = variants.map((g, gi) => `${g.name}=${selOption(gi)?.label ?? ""}`).join("|");
 
@@ -207,6 +209,12 @@ export function ProductDetail() {
                     <span className="text-xs text-navy-400">
                       base {formatBRL(product.price)} {priceDelta > 0 ? "+" : "−"} {formatBRL(Math.abs(priceDelta))}
                     </span>
+                  )}
+                  {pixDiscount > 0 && (
+                    <div className="mt-2">
+                      <p className="text-lg font-bold text-teal-600">{formatBRL(pixPrice)} no PIX</p>
+                      <p className="text-xs font-semibold text-teal-700/70">{pixDiscount}% de desconto no pagamento via PIX</p>
+                    </div>
                   )}
                 </div>
                 {product.comparePrice && product.comparePrice > product.price && (
