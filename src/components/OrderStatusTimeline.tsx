@@ -12,13 +12,12 @@ function buildSteps(order: Order): OrderStatus[] {
       : "Saiu para entrega";
 
   return [
-    "Solicitação enviada",
-    "Verificando disponibilidade",
-    "Aguardando pagamento",
-    "Pedido confirmado",
+    "Pedido recebido",
+    "Pagamento pendente",
+    "Pagamento confirmado",
     "Em separação",
     deliveryStep,
-    "Finalizado",
+    "Entregue",
   ];
 }
 
