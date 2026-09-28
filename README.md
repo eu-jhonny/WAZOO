@@ -1,94 +1,94 @@
-# 🐾 Wazoo Pet Express
+# 🐾 Wazoo
 
-Loja pet online **sob encomenda** para cães e gatos. O cliente escolhe o produto,
-envia o pedido pelo WhatsApp (ou finaliza a solicitação) e a loja confirma a
-disponibilidade com fornecedores antes de concluir.
+E-commerce pet para cães e gatos, com catálogo, carrinho, checkout, conta do cliente, rastreio de pedidos, cupons, avaliações e painel administrativo.
 
-Site moderno, responsivo (mobile-first), com catálogo, kits, carrinho, área do
-cliente (login, pets, pedidos com timeline) e **painel administrativo separado**.
+## 🚀 Branch de produção
+
+A branch usada para o novo e-commerce é:
+
+`codex/ecommerce-real`
+
+No Vercel, configure **Project Settings → Git → Production Branch** com exatamente esse nome. Depois é necessário existir pelo menos um deployment dessa branch; mudar a configuração não publica commits históricos automaticamente.
 
 ## ✨ Tecnologias
 
-- **React 18** + **TypeScript**
-- **Vite** (build e dev server)
-- **Tailwind CSS** (identidade visual: laranja, azul escuro e creme)
-- **React Router** (rotas e proteção de áreas)
-- **lucide-react** (ícones)
-- Dados simulados em TypeScript + persistência via **localStorage**
-  (carrinho, login e dados da loja sobrevivem ao recarregar a página)
+### Frontend
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- lucide-react
 
-## 🚀 Como rodar
+### Backend
+- Node.js + Express
+- PostgreSQL
+- Prisma
+- JWT + bcrypt
+- Mercado Pago
+- Cloudinary
+- SMTP
+
+## 🛒 Estrutura de e-commerce
+
+- Catálogo e categorias
+- Variações de produto
+- Controle de estoque
+- Carrinho
+- Cupons
+- Frete e frete grátis
+- Checkout
+- PIX via Mercado Pago
+- Pedidos e rastreio
+- Clientes, endereços e pets
+- Avaliações
+- Banners e campanhas
+- Painel administrativo
+- Reserva temporária de estoque durante pagamento
+
+## ⚙️ Frontend
+
+Crie as variáveis com base em `.env.example`.
+
+A principal variável de produção é:
+
+```env
+VITE_API_URL=https://sua-api-wazoo.com
+```
+
+Comandos:
 
 ```bash
-npm install      # instala as dependências
-npm run dev      # ambiente de desenvolvimento (http://localhost:5173)
-npm run build    # build de produção (pasta dist/)
-npm run preview  # pré-visualiza o build de produção
-npm run typecheck# checagem de tipos
+npm install
+npm run dev
+npm run build
+npm run preview
+npm run typecheck
 ```
 
-## 🔑 Acessos de teste
+## ⚙️ Backend
 
-| Perfil  | E-mail              | Senha     |
-| ------- | ------------------- | --------- |
-| Cliente | `cliente@wazoo.com` | `123456`  |
-| Gestor  | `admin@wazoo.com`   | `admin123`|
+O backend fica em `server/`.
 
-> O painel do gestor fica em **/admin** (login separado em `/admin/login`).
-> Clientes comuns **não** acessam a área administrativa.
-
-## ⚙️ Configuração
-
-Tudo que muda com frequência está em **`src/config/site.ts`**:
-
-- **Número do WhatsApp** (`whatsappNumber`) — formato internacional, só dígitos
-- Instagram, horário de atendimento, texto institucional, etc.
-
-O número também pode ser alterado pelo painel em **Admin → Configurações**.
-
-## 🖼️ Imagens da marca
-
-As imagens originais (logo, mascotes, fotos de produtos e publicidade) ficam em
-`assets-src/` e são otimizadas para `public/images/` (de ~45 MB para ~1,5 MB):
+Crie as variáveis com base em `server/.env.example` e configure banco, JWT, Mercado Pago, Cloudinary, SMTP e CORS.
 
 ```bash
-npm run optimize:images
+cd server
+npm install
+npx prisma generate
+npm run build
+npm start
 ```
 
-Produtos sem foto exibem um **placeholder ilustrado** com gradiente e ícone da
-categoria — o layout nunca quebra.
+## 🧪 Validação automática
 
-## 📁 Estrutura
+A branch possui CI com:
 
-```
-src/
-  config/      Configuração da loja (WhatsApp, imagens, chaves de storage)
-  data/        Dados simulados (products, kits, reviews, orders, users, categories)
-  types/       Tipos do domínio
-  lib/         Helpers (moeda, datas, mensagens de WhatsApp, status)
-  context/     Estado global (Auth, Cart, Store, Toast) com localStorage
-  hooks/       usePersistentState
-  components/  UI, layout, produto, formulários, admin
-  pages/       Páginas do cliente e do admin (pasta admin/)
-  routes/      Proteção de rotas (cliente e gestor)
-```
+- build do frontend;
+- build da API;
+- teste de runtime em navegador real.
 
-## 🗺️ Rotas
-
-**Cliente:** `/` · `/produtos` · `/produtos/:id` · `/kits` · `/como-funciona` ·
-`/carrinho` · `/login` · `/cadastro` · `/perfil` · `/pedidos` · `/sobre` ·
-`/avaliacoes` · `/politica-sob-encomenda` · `/politica-troca`
-
-**Admin:** `/admin/login` · `/admin` · `/admin/produtos` · `/admin/pedidos` ·
-`/admin/avaliacoes` · `/admin/configuracoes`
-
-## 📦 Modelo de negócio
-
-A loja **não tem estoque próprio**. Todos os produtos aparecem com o selo
-**“Sob encomenda”** e o preço é tratado como **estimado**. O carrinho deixa claro
-que a confirmação final (disponibilidade, prazo e valor) acontece depois, com o
-fornecedor parceiro.
+O smoke test abre a homepage depois do build e falha se o React não renderizar ou se houver erro de JavaScript.
 
 ---
 
-Feito com carinho para cães e gatos. 🐾
+Feito para a nova fase da Wazoo como e-commerce real. 🐾
