@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight, ArrowUpRight, Bell, CheckCircle2, ClipboardList,
@@ -9,8 +9,44 @@ import { useStore } from "@/context/StoreContext";
 import { formatBRL, formatDate } from "@/lib/format";
 import { statusStyle } from "@/lib/orderStatus";
 import { SalesReport } from "@/components/admin/SalesReport";
+import { apiEnabled, listApiOrdersAdmin, type ApiOrder } from "@/lib/api";
+import type { Order, OrderStatus } from "@/types";
 
 const WAITING   = ["Pedido recebido", "Pagamento pendente"];
+
+function mapDashboardStatus(order: ApiOrder): OrderStatus {
+  if (order.status === "CANCELLED") return "Cancelado";
+  if (order.status === "DELIVERED") return "Entregue";
+  if (order.status === "SHIPPED") return "Saiu para entrega";
+  if (order.status === "READY") return "Pronto para retirada";
+  if (order.status === "PROCESSING") return "Em separação";
+  if (order.status === "CONFIRMED" || order.paymentStatus === "APPROVED") return "Pagamento confirmado";
+  if (order.status === "PENDING" && order.paymentMethod) return "Pagamento pendente";
+  return "Pedido recebido";
+}
+
+function apiDashboardOrder(order: ApiOrder): Order {
+  const status = mapDashboardStatus(order);
+  return {
+    id: order.number,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    customerEmail: order.customerEmail,
+    fulfillment: order.deliveryMethod === "PICKUP" ? "retirada" : "entrega",
+    items: order.items.map((item) => ({
+      name: item.variantLabel ? `${item.name} (${item.variantLabel})` : item.name,
+      quantity: item.quantity,
+      price: item.unitPrice,
+    })),
+    subtotal: order.subtotal,
+    discountAmount: order.discountAmount,
+    shippingAmount: order.shippingAmount,
+    total: order.total,
+    status,
+    history: [{ status, at: new Date(order.updatedAt ?? order.createdAt).getTime() }],
+    createdAt: new Date(order.createdAt).getTime(),
+  };
+}
 const STATUS_ICON: Record<string, string> = {
   "Pedido recebido":             "🧾",
   "Pagamento pendente":          "💳",
@@ -70,6 +106,20 @@ function MiniBar({ label, value, max, color }: { label: string; value: number; m
 export function AdminDashboard() {
   const { orders, products, reviews } = useStore();
   const navigate = useNavigate();
+  const [remoteOrders, setRemoteOrders] = useState<Order[] | null>(null);
+
+  useEffect(() => {
+    if (!apiEnabled) return;
+    let active = true;
+    listApiOrdersAdmin({ limit: 200 })
+      .then(({ data }) => {
+        if (active) setRemoteOrders(data.map(apiDashboardOrder));
+      })
+      .catch((error) => console.warn("[Wazoo API] dashboard sem pedidos remotos:", error));
+    return () => { active = false; };
+  }, []);
+
+  const dashboardOrders = remoteOrders ?? orders;
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -79,20 +129,20 @@ export function AdminDashboard() {
   })();
 
   const stats = useMemo(() => {
-    const waiting   = orders.filter((o) => WAITING.includes(o.status)).length;
-    const finished  = orders.filter((o) => o.status === "Entregue").length;
-    const cancelled = orders.filter((o) => o.status === "Cancelado").length;
+    const waiting   = dashboardOrders.filter((o) => WAITING.includes(o.status)).length;
+    const finished  = dashboardOrders.filter((o) => o.status === "Entregue").length;
+    const cancelled = dashboardOrders.filter((o) => o.status === "Cancelado").length;
     const estimated = orders
       .filter((o) => o.status !== "Cancelado")
       .reduce((s, o) => s + o.total, 0);
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-    const todayOrders = orders.filter((o) => o.createdAt >= todayStart.getTime()).length;
-    const statusCounts = orders.reduce<Record<string, number>>((acc, o) => {
+    const todayOrders = dashboardOrders.filter((o) => o.createdAt >= todayStart.getTime()).length;
+    const statusCounts = dashboardOrders.reduce<Record<string, number>>((acc, o) => {
       acc[o.status] = (acc[o.status] ?? 0) + 1;
       return acc;
     }, {});
     return {
-      total: orders.length,
+      total: dashboardOrders.length,
       waiting,
       active:   products.filter((p) => p.active).length,
       inactive: products.filter((p) => !p.active).length,
@@ -103,11 +153,11 @@ export function AdminDashboard() {
       todayOrders,
       statusCounts,
     };
-  }, [orders, products, reviews]);
+  }, [dashboardOrders, products, reviews]);
 
   const recent = useMemo(
-    () => [...orders].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8),
-    [orders]
+    () => [...dashboardOrders].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8),
+    [dashboardOrders]
   );
 
   const topStatusEntries = Object.entries(stats.statusCounts)
