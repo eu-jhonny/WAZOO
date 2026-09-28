@@ -68,7 +68,7 @@ export const buildProductMessage = (product: Product, note?: string): string => 
   ];
   if (note) lines.push(`Observação: ${note}`);
   lines.push("");
-  lines.push("Pode confirmar disponibilidade e prazo, por favor?");
+  lines.push("Pode me ajudar com prazo, entrega ou alguma dúvida sobre estes itens?");
   return lines.join("\n");
 };
 
@@ -81,7 +81,7 @@ export const buildKitMessage = (kit: Kit): string =>
     `Valor estimado: ${formatBRL(kit.price)}`,
     `Prazo médio: ${kit.leadTime}`,
     "",
-    "Pode confirmar disponibilidade, por favor? 🐾",
+    "Pode me ajudar com alguma dúvida sobre este item? 🐾",
   ].join("\n");
 
 /** Mensagem do admin para falar com o cliente sobre o pedido. */
