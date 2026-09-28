@@ -1,7 +1,9 @@
 import type { Request, Response } from "express";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
+import { releaseCouponUsage, releaseReservedInventory } from "../lib/orderInventory";
 import {
   createCardPayment,
   createPixPayment,
@@ -41,6 +43,36 @@ function mpStatusToPaymentStatus(mpStatus: string) {
     cancelled: "REJECTED",
   };
   return map[mpStatus] ?? "PENDING";
+}
+
+function isValidMercadoPagoWebhook(req: Request) {
+  const secret = process.env.MP_WEBHOOK_SECRET?.trim();
+  if (!secret) return true;
+
+  const signature = String(req.headers["x-signature"] ?? "");
+  const requestId = String(req.headers["x-request-id"] ?? "");
+  const dataId = String(req.body?.data?.id ?? req.query?.["data.id"] ?? "");
+
+  const parts = Object.fromEntries(
+    signature
+      .split(",")
+      .map((part) => part.trim().split("="))
+      .filter(([key, value]) => key && value),
+  );
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  if (!ts || !v1 || !requestId || !dataId) return false;
+
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const expected = createHmac("sha256", secret).update(manifest).digest("hex");
+
+  try {
+    const a = Buffer.from(expected, "hex");
+    const b = Buffer.from(v1, "hex");
+    return a.length === b.length && timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }
 
 /* ── Processar pagamento ──────────────────────────────── */
@@ -101,6 +133,12 @@ export async function processPayment(req: Request, res: Response) {
   const boletoUrl = result.transaction_details?.external_resource_url ?? undefined;
 
   await prisma.$transaction(async (tx) => {
+    const rejected = paymentStatus === "REJECTED";
+    if (rejected && order.status !== "CANCELLED") {
+      await releaseReservedInventory(tx, order.id);
+      await releaseCouponUsage(tx, order.couponCode);
+    }
+
     await tx.order.update({
       where: { id: order.id },
       data: {
@@ -110,11 +148,20 @@ export async function processPayment(req: Request, res: Response) {
         pixCode,
         boletoUrl,
         ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED" }),
+        ...(rejected && { status: "CANCELLED" }),
       },
     });
-    if (paymentStatus === "APPROVED" && order.status !== "CONFIRMED") {
+
+    const nextStatus =
+      paymentStatus === "APPROVED"
+        ? "CONFIRMED"
+        : rejected
+          ? "CANCELLED"
+          : undefined;
+
+    if (nextStatus && order.status !== nextStatus) {
       await tx.orderStatusEvent.create({
-        data: { orderId: order.id, status: "CONFIRMED" },
+        data: { orderId: order.id, status: nextStatus },
       });
     }
   });
@@ -133,7 +180,13 @@ export async function processPayment(req: Request, res: Response) {
 
 /* ── Webhook MercadoPago ──────────────────────────────── */
 export async function paymentWebhook(req: Request, res: Response) {
-  // Responde 200 imediatamente (MP exige < 5s)
+  if (!isValidMercadoPagoWebhook(req)) {
+    console.warn("[Webhook] Assinatura Mercado Pago inválida; evento ignorado.");
+    res.sendStatus(200);
+    return;
+  }
+
+  // Responde 200 rapidamente; o processamento abaixo é idempotente.
   res.sendStatus(200);
 
   const { type, data } = req.body;
@@ -148,7 +201,7 @@ export async function paymentWebhook(req: Request, res: Response) {
 
     const order = await prisma.order.findUnique({
       where: { id: payment.external_reference },
-      select: { id: true, status: true },
+      select: { id: true, status: true, couponCode: true },
     });
     if (!order) return;
 
@@ -160,6 +213,11 @@ export async function paymentWebhook(req: Request, res: Response) {
           : undefined;
 
     await prisma.$transaction(async (tx) => {
+      if (paymentStatus === "REJECTED" && order.status !== "CANCELLED") {
+        await releaseReservedInventory(tx, order.id);
+        await releaseCouponUsage(tx, order.couponCode);
+      }
+
       await tx.order.update({
         where: { id: order.id },
         data: {
