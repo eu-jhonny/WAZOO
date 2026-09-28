@@ -29,7 +29,7 @@ export function KitCard({ kit }: { kit: Kit }) {
       >
         <div className="absolute inset-0 bg-dots-light" />
         <span className="badge absolute left-4 top-4 bg-white/90 text-navy-700 shadow-sm">
-          <PawPrint size={13} /> Kit sob encomenda
+          <PawPrint size={13} /> Kit Wazoo
         </span>
         <img
           src={kit.image}
