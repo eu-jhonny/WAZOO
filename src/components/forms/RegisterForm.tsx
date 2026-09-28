@@ -1,23 +1,27 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Home, Store, UserPlus } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import type { Fulfillment } from "@/types";
+
+function formatPhone(value: string) {
+  return value.replace(/\D/g, "").slice(0, 11)
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d{4})$/, "$1-$2");
+}
 
 export function RegisterForm({ onSuccess }: { onSuccess?: () => void }) {
   const { register } = useAuth();
   const { showToast } = useToast();
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
     email: "",
     password: "",
-    street: "",
-    neighborhood: "",
-    city: "",
-    preference: "entrega" as Fulfillment,
+    passwordConfirm: "",
   });
 
   const set = (key: keyof typeof form, value: string) =>
@@ -25,117 +29,144 @@ export function RegisterForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = await register({
-      name: form.name,
-      phone: form.phone,
-      email: form.email,
-      password: form.password,
-      address: {
-        street: form.street,
-        neighborhood: form.neighborhood,
-        city: form.city,
-      },
-      preference: form.preference,
-    });
-    if (result.ok) {
-      showToast("Cadastro realizado com sucesso! 🎉", "success");
-      onSuccess?.();
-    } else {
-      setError(result.error ?? "Não foi possível concluir o cadastro.");
-      showToast(result.error ?? "Erro no cadastro.", "error");
+    setError("");
+
+    if (form.password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (form.password !== form.passwordConfirm) {
+      setError("As senhas não conferem.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await register({
+        name: form.name.trim(),
+        phone: form.phone,
+        email: form.email.trim(),
+        password: form.password,
+        preference: "entrega",
+      });
+
+      if (result.ok) {
+        showToast("Conta criada com sucesso! 🎉", "success");
+        onSuccess?.();
+      } else {
+        const message = result.error ?? "Não foi possível concluir o cadastro.";
+        setError(message);
+        showToast(message, "error");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <form onSubmit={submit} className="space-y-4">
       {error && (
-        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
           {error}
         </p>
       )}
 
       <div>
         <label className="label" htmlFor="reg-name">Nome completo</label>
-        <input id="reg-name" required className="input" placeholder="Seu nome"
-          value={form.name} onChange={(e) => set("name", e.target.value)} />
+        <input
+          id="reg-name"
+          required
+          autoComplete="name"
+          className="input"
+          placeholder="Seu nome"
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="reg-phone">Telefone / WhatsApp</label>
-          <input id="reg-phone" required className="input" placeholder="(11) 99999-9999"
-            value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+          <input
+            id="reg-phone"
+            required
+            inputMode="tel"
+            autoComplete="tel"
+            className="input"
+            placeholder="(11) 99999-9999"
+            value={form.phone}
+            onChange={(e) => set("phone", formatPhone(e.target.value))}
+          />
         </div>
         <div>
           <label className="label" htmlFor="reg-email">E-mail</label>
-          <input id="reg-email" type="email" required className="input" placeholder="voce@email.com"
-            value={form.email} onChange={(e) => set("email", e.target.value)} />
+          <input
+            id="reg-email"
+            type="email"
+            required
+            autoComplete="email"
+            className="input"
+            placeholder="voce@email.com"
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+          />
         </div>
-      </div>
-
-      <div>
-        <label className="label" htmlFor="reg-password">Senha</label>
-        <input id="reg-password" type="password" required minLength={4} className="input" placeholder="Crie uma senha"
-          value={form.password} onChange={(e) => set("password", e.target.value)} />
-      </div>
-
-      <div>
-        <label className="label" htmlFor="reg-street">Endereço</label>
-        <input id="reg-street" required className="input" placeholder="Rua, número e complemento"
-          value={form.street} onChange={(e) => set("street", e.target.value)} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="label" htmlFor="reg-neighborhood">Bairro</label>
-          <input id="reg-neighborhood" required className="input" placeholder="Seu bairro"
-            value={form.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} />
+          <label className="label" htmlFor="reg-password">Senha</label>
+          <div className="relative">
+            <input
+              id="reg-password"
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="input pr-11"
+              placeholder="Mínimo 6 caracteres"
+              value={form.password}
+              onChange={(e) => set("password", e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-400"
+              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            >
+              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
         </div>
         <div>
-          <label className="label" htmlFor="reg-city">Cidade</label>
-          <input id="reg-city" required className="input" placeholder="Sua cidade"
-            value={form.city} onChange={(e) => set("city", e.target.value)} />
+          <label className="label" htmlFor="reg-password-confirm">Confirmar senha</label>
+          <input
+            id="reg-password-confirm"
+            type={showPassword ? "text" : "password"}
+            required
+            autoComplete="new-password"
+            className="input"
+            placeholder="Repita sua senha"
+            value={form.passwordConfirm}
+            onChange={(e) => set("passwordConfirm", e.target.value)}
+          />
         </div>
       </div>
 
-      <div>
-        <span className="label">Preferência de recebimento</span>
-        <div className="grid grid-cols-2 gap-3">
-          {([
-            { value: "entrega", label: "Entrega", icon: Home, desc: "Receber em casa" },
-            { value: "retirada", label: "Retirada", icon: Store, desc: "Buscar no local" },
-          ] as const).map((opt) => {
-            const Icon = opt.icon;
-            const selected = form.preference === opt.value;
-            return (
-              <button
-                type="button"
-                key={opt.value}
-                onClick={() => set("preference", opt.value)}
-                className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-3 text-center transition-all ${
-                  selected
-                    ? "border-orange-500 bg-orange-50"
-                    : "border-cream-200 hover:border-orange-300"
-                }`}
-              >
-                <Icon size={22} className={selected ? "text-orange-500" : "text-navy-400"} />
-                <span className="text-sm font-bold text-navy-700">{opt.label}</span>
-                <span className="text-xs text-navy-400">{opt.desc}</span>
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex items-start gap-2 rounded-2xl bg-cream-50 p-3 text-xs text-navy-500">
+        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-teal-600" />
+        <span>
+          Seu endereço não é obrigatório no cadastro. Você pode informar ou salvar durante a primeira compra.
+        </span>
       </div>
 
-      <button type="submit" className="btn-primary w-full">
-        <UserPlus size={18} /> Criar minha conta
+      <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-60">
+        <UserPlus size={18} /> {loading ? "Criando conta..." : "Criar minha conta"}
       </button>
 
       <p className="text-center text-sm text-navy-500">
         Já tem conta?{" "}
-        <Link to="/login" className="link-underline">
-          Entrar
-        </Link>
+        <Link to="/login" className="link-underline">Entrar</Link>
       </p>
     </form>
   );
