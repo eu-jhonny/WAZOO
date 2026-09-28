@@ -26,7 +26,7 @@ async function main() {
 
   /* ── Configurações da loja ──────────────────── */
   const defaultSettings = [
-    ["storeName", "Wazoo Pet Express"],
+    ["storeName", "Wazoo"],
     ["whatsapp", "5511999999999"],
     ["instagram", "@wazoo.pet"],
     ["hours", "Seg–Sex 9h–18h | Sáb 9h–13h"],
