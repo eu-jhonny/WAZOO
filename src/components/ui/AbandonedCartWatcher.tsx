@@ -34,8 +34,12 @@ export function AbandonedCartWatcher() {
   useEffect(() => {
     if (items.length === 0) {
       // Carrinho vazio (ex.: após checkout) → zera os marcadores.
-      localStorage.removeItem(ACTIVITY_KEY);
-      localStorage.removeItem(REMINDED_KEY);
+      try {
+        localStorage.removeItem(ACTIVITY_KEY);
+        localStorage.removeItem(REMINDED_KEY);
+      } catch {
+        // Safari pode bloquear storage em alguns contextos.
+      }
       return;
     }
     try {
@@ -52,11 +56,20 @@ export function AbandonedCartWatcher() {
       const email = user?.email;
       if (!email) return; // só clientes identificados têm e-mail
 
-      const activity = Number(localStorage.getItem(ACTIVITY_KEY) || 0);
+      let activity = 0;
+      try {
+        activity = Number(localStorage.getItem(ACTIVITY_KEY) || 0);
+      } catch {
+        return;
+      }
       if (!activity || Date.now() - activity < IDLE_MS) return;
 
       const sig = cartSignature(items);
-      if (localStorage.getItem(REMINDED_KEY) === sig) return; // já lembrado
+      try {
+        if (localStorage.getItem(REMINDED_KEY) === sig) return; // já lembrado
+      } catch {
+        return;
+      }
 
       void emails.abandonedCart(
         email,
