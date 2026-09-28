@@ -15,7 +15,7 @@ export const whatsappLink = (
 
 /** Mensagem padrão do botão flutuante "Fale conosco". */
 export const defaultContactMessage =
-  "Olá! Vim pelo site da Wazoo Pet Express e gostaria de saber mais sobre os produtos sob encomenda.";
+  "Olá! Vim pelo site da Wazoo e gostaria de tirar uma dúvida sobre os produtos.";
 
 interface CartMessageInput {
   items: CartItem[];
@@ -34,7 +34,7 @@ export const buildCartMessage = ({
   observation,
 }: CartMessageInput): string => {
   const lines: string[] = [];
-  lines.push("Olá! Gostaria de solicitar os seguintes produtos sob encomenda:");
+  lines.push("Olá! Gostaria de tirar uma dúvida sobre estes produtos:");
   lines.push("");
 
   items.forEach((item) => {
@@ -61,7 +61,7 @@ export const buildCartMessage = ({
 /** Mensagem para pedir um único produto. */
 export const buildProductMessage = (product: Product, note?: string): string => {
   const lines = [
-    "Olá! Tenho interesse neste produto sob encomenda:",
+    "Olá! Tenho uma dúvida sobre este produto:",
     "",
     `• ${product.name} - ${formatBRL(product.price)}`,
     `Prazo médio: ${product.leadTime}`,
@@ -75,7 +75,7 @@ export const buildProductMessage = (product: Product, note?: string): string => 
 /** Mensagem para solicitar um kit. */
 export const buildKitMessage = (kit: Kit): string =>
   [
-    `Olá! Gostaria de solicitar o ${kit.name} sob encomenda.`,
+    `Olá! Gostaria de saber mais sobre o ${kit.name}.`,
     "",
     `Itens: ${kit.items.join(", ")}`,
     `Valor estimado: ${formatBRL(kit.price)}`,
@@ -87,7 +87,7 @@ export const buildKitMessage = (kit: Kit): string =>
 /** Mensagem do admin para falar com o cliente sobre o pedido. */
 export const buildOrderContactMessage = (order: Order): string =>
   [
-    `Olá, ${order.customerName}! Aqui é da Wazoo Pet Express. 🐾`,
+    `Olá, ${order.customerName}! Aqui é da Wazoo. 🐾`,
     "",
     `Sobre o seu pedido ${order.id}:`,
     `Status atual: ${order.status}`,
