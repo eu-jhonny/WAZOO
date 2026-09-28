@@ -63,7 +63,8 @@ export default function App() {
           <Route path="cadastro" element={<Cadastro />} />
           <Route path="sobre" element={<Sobre />} />
           <Route path="avaliacoes" element={<Avaliacoes />} />
-          <Route path="politica-sob-encomenda" element={<PoliticaSobEncomenda />} />
+          <Route path="politica-compra" element={<PoliticaSobEncomenda />} />
+          <Route path="politica-sob-encomenda" element={<Navigate to="/politica-compra" replace />} />
           <Route path="politica-troca" element={<PoliticaTroca />} />
           <Route
             path="perfil"
