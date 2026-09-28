@@ -204,6 +204,31 @@ export function createApiPayment(input: {
   });
 }
 
+export interface ApiTrackingOrder {
+  number: string;
+  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  paymentStatus: "PENDING" | "APPROVED" | "REJECTED" | "REFUNDED" | "IN_PROCESS";
+  deliveryMethod: "DELIVERY" | "PICKUP";
+  subtotal: number;
+  discountAmount: number;
+  shippingAmount: number;
+  total: number;
+  createdAt: string;
+  updatedAt: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    image: string;
+    variantLabel?: string | null;
+  }>;
+}
+
+export function getApiOrderTracking(number: string) {
+  return request<ApiTrackingOrder>(`/orders/track/${encodeURIComponent(number)}`);
+}
+
 export function getApiPaymentStatus(orderId: string) {
   return request<{
     paymentStatus: string;
