@@ -5,22 +5,22 @@
  */
 
 export const site = {
-  storeName: "Wazoo Pet Express",
+  storeName: "Wazoo",
   slogan:
-    "Produtos pet sob encomenda para cães e gatos. Você pede, a gente encontra e entrega com carinho.",
+    "Tudo para o bem-estar do seu pet: produtos, cuidados, diversão e muito mais.",
 
   // WhatsApp no formato internacional, apenas dígitos (DDI + DDD + número).
   // Ex.: Brasil (55) + DDD (11) + número (9 9999-9999) => "5511999999999"
   whatsappNumber: "5511999999999",
 
-  instagram: "@wazoopetexpress",
-  instagramUrl: "https://instagram.com/wazoopetexpress",
+  instagram: "@wazoo",
+  instagramUrl: "https://instagram.com/wazoo",
   email: "contato@wazoo.com",
   hours: "Segunda a sábado, das 9h às 18h",
   city: "São Paulo · SP e região",
 
   institutionalText:
-    "Na Wazoo Pet Express, você encontra produtos para cães e gatos de forma prática, personalizada e segura. Trabalhamos com produtos sob encomenda, buscando as melhores opções com fornecedores parceiros para atender às necessidades do seu pet. Você escolhe, a gente verifica a disponibilidade e combina o prazo de entrega ou retirada.",
+    "Na Wazoo, você encontra produtos para cães e gatos com uma experiência de compra simples, segura e divertida. Escolha seus produtos, confira estoque e opções de entrega, pague online e acompanhe cada etapa do pedido até chegar até você.",
 
   deliveryFee: 0,
 
