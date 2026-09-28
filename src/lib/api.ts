@@ -617,3 +617,55 @@ export function listApiReviews(params: { featured?: boolean } = {}) {
 export function apiRequestAdmin<T>(path: string, options: RequestInit = {}) {
   return request<T>(path, { ...options, auth: "admin" });
 }
+
+
+/* ── Clientes (admin) ─────────────────────────────────────── */
+export interface ApiAdminCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string | null;
+  preference: "DELIVERY" | "PICKUP";
+  active: boolean;
+  createdAt: string;
+  totalSpent: number;
+  addresses: ApiCustomerAddress[];
+  pets: ApiCustomerPet[];
+  orders: Array<{
+    id: string;
+    number: string;
+    status: ApiOrderStatus;
+    paymentStatus: "PENDING" | "APPROVED" | "REJECTED" | "REFUNDED" | "IN_PROCESS";
+    total: number;
+    createdAt: string;
+  }>;
+  _count: { orders: number; pets: number };
+}
+
+export function listApiCustomersAdmin(params: {
+  search?: string;
+  page?: number;
+  limit?: number;
+} = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return request<{ data: ApiAdminCustomer[]; total: number; page: number; pages: number }>(
+    `/customers${suffix}`,
+    { auth: "admin" },
+  );
+}
+
+export function setApiCustomerActive(id: string, active: boolean) {
+  return request<{ id: string; active: boolean }>(
+    `/customers/${encodeURIComponent(id)}/active`,
+    {
+      method: "PATCH",
+      auth: "admin",
+      body: JSON.stringify({ active }),
+    },
+  );
+}
