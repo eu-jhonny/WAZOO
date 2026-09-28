@@ -11,6 +11,10 @@ import {
   updatePet,
   deletePet,
   listCustomerOrders,
+  listWishlist,
+  addWishlistItem,
+  removeWishlistItem,
+  clearWishlist,
 } from "../controllers/customer.controller";
 
 export const customerRouter = Router();
@@ -30,3 +34,8 @@ customerRouter.put("/pets/:id", updatePet);
 customerRouter.delete("/pets/:id", deletePet);
 
 customerRouter.get("/orders", listCustomerOrders);
+
+customerRouter.get("/wishlist", listWishlist);
+customerRouter.post("/wishlist/:productId", addWishlistItem);
+customerRouter.delete("/wishlist/:productId", removeWishlistItem);
+customerRouter.delete("/wishlist", clearWishlist);
