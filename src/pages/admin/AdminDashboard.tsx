@@ -132,8 +132,10 @@ export function AdminDashboard() {
     const waiting   = dashboardOrders.filter((o) => WAITING.includes(o.status)).length;
     const finished  = dashboardOrders.filter((o) => o.status === "Entregue").length;
     const cancelled = dashboardOrders.filter((o) => o.status === "Cancelado").length;
-    const estimated = orders
-      .filter((o) => o.status !== "Cancelado")
+    const estimated = dashboardOrders
+      .filter((o) =>
+        ["Pagamento confirmado", "Em separação", "Pronto para retirada", "Saiu para entrega", "Entregue"].includes(o.status),
+      )
       .reduce((s, o) => s + o.total, 0);
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const todayOrders = dashboardOrders.filter((o) => o.createdAt >= todayStart.getTime()).length;
@@ -350,8 +352,8 @@ export function AdminDashboard() {
               <Link to="/admin/avaliacoes" className="flex items-center gap-3 rounded-xl border border-cream-200 px-3 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700">
                 <Star size={15} className="text-orange-500" /> Gerenciar avaliações
               </Link>
-              <Link to="/admin/configuracoes" className="flex items-center gap-3 rounded-xl border border-cream-200 px-3 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700">
-                <Users size={15} className="text-orange-500" /> Configurações
+              <Link to="/admin/clientes" className="flex items-center gap-3 rounded-xl border border-cream-200 px-3 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700">
+                <Users size={15} className="text-orange-500" /> Ver clientes
               </Link>
             </div>
           </div>
