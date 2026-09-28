@@ -23,10 +23,6 @@ export const site = {
     "Na Wazoo, você encontra produtos para cães e gatos com uma experiência de compra simples, segura e divertida. Escolha seus produtos, confira estoque e opções de entrega, pague online e acompanhe cada etapa do pedido até chegar até você.",
 
   deliveryFee: 0,
-
-  // Credenciais de teste (simuladas)
-  admin: { email: "admin@wazoo.com", password: "admin123" },
-  demoClient: { email: "cliente@wazoo.com", password: "123456" },
 } as const;
 
 /** Caminhos das imagens da marca (otimizadas em /public/images). */
@@ -81,7 +77,6 @@ export const STORAGE_KEYS = {
   cartNote: "wazoo:cartNote:v1",
   user: "wazoo:user:v1",
   users: "wazoo:users:v1",
-  admin: "wazoo:admin:v1",
   wishlist: "wazoo:wishlist:v1",
   recentlyViewed: "wazoo:recently_viewed:v1",
 } as const;
