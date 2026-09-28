@@ -154,8 +154,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           shippingAmount: input.shippingAmount,
           total: input.total,
           note: input.note,
-          status: "Solicitação enviada",
-          history: [{ status: "Solicitação enviada", at: now }],
+          status: "Pedido recebido",
+          history: [{ status: "Pedido recebido", at: now }],
           createdAt: now,
         };
         setOrders((prev) => [order, ...prev]);
@@ -174,10 +174,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             };
             // Avisa o cliente sobre a mudança de status por e-mail.
             if (updated.customerEmail) {
-              if (status === "Pedido confirmado") void emails.paymentConfirmed(updated);
+              if (status === "Pagamento confirmado") void emails.paymentConfirmed(updated);
               else void emails.orderStatus(updated, status);
               // Após finalizar, convida o cliente a avaliar a compra.
-              if (status === "Finalizado") {
+              if (status === "Entregue") {
                 void emails.reviewRequest(
                   updated.customerEmail,
                   updated.customerName,
