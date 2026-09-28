@@ -28,7 +28,7 @@ const productSchema = z.object({
   gallery: z.array(z.string()).optional(),
   audience: z.enum(["cachorro", "gato", "ambos"]).default("ambos"),
   size: z.enum(["pequeno", "medio", "grande", "todos"]).default("todos"),
-  leadTime: z.string().default("5-7 dias úteis"),
+  leadTime: z.string().default("Envio em até 1 dia útil"),
   availability: z.string().default("Em estoque"),
   tags: z.array(z.string()).optional(),
   variants: z.array(variantSchema).optional(),
