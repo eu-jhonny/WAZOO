@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Cat,
@@ -18,10 +18,7 @@ import { useStore } from "@/context/StoreContext";
 import { useCart } from "@/context/CartContext";
 import { formatBRL } from "@/lib/format";
 import { getCategoryName } from "@/data/categories";
-import { whatsappLink, buildProductMessage } from "@/lib/whatsapp";
 import { ProductImage } from "@/components/ui/ProductImage";
-import { OnDemandNotice } from "@/components/ui/OnDemandNotice";
-import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { ProductCard } from "@/components/product/ProductCard";
 import { RecentlyViewed } from "@/components/product/RecentlyViewed";
 import { ProductReviews } from "@/components/product/ProductReviews";
@@ -48,8 +45,9 @@ const sizeLabel: Record<Product["size"], string> = {
 
 export function ProductDetail() {
   const { id } = useParams();
-  const { products, getProduct, settings, reviews } = useStore();
+  const { products, getProduct, reviews } = useStore();
   const { addProduct } = useCart();
+  const navigate = useNavigate();
 
   const product = id ? getProduct(id) : undefined;
   const [qty, setQty] = useState(1);
@@ -119,6 +117,11 @@ export function ProductDetail() {
       variants.length ? { key: variantKey, label: variantLabel, price: finalPrice } : undefined,
     );
 
+  const buyNow = () => {
+    addToCart();
+    navigate("/checkout");
+  };
+
   return (
     <div>
       {/* Breadcrumb */}
@@ -169,8 +172,8 @@ export function ProductDetail() {
             {/* Informações */}
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="badge-encomenda">
-                  <PawPrint size={13} /> Sob encomenda
+                <span className={outOfStock ? "badge bg-red-100 text-red-600" : "badge bg-green-100 text-green-700"}>
+                  <PawPrint size={13} /> {outOfStock ? "Esgotado" : "Disponível"}
                 </span>
                 <span className="badge-soft">{getCategoryName(product.category)}</span>
                 {product.featured && (
@@ -196,7 +199,7 @@ export function ProductDetail() {
 
               <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
                 <div>
-                  <span className="text-sm font-medium text-navy-400">Preço estimado</span>
+                  <span className="text-sm font-medium text-navy-400">Preço</span>
                   <p className="price-sale text-4xl">
                     {formatBRL(finalPrice)}
                   </p>
@@ -245,10 +248,6 @@ export function ProductDetail() {
               </div>
 
               <p className="mt-5 leading-relaxed text-navy-600">{product.description}</p>
-
-              <div className="mt-6">
-                <OnDemandNotice />
-              </div>
 
               {/* Variações (tamanho, sabor...) */}
               {variants.map((group, gi) => (
@@ -326,15 +325,20 @@ export function ProductDetail() {
                 <WishlistButton product={product} variant="inline" className="sm:w-auto" />
                 <CompareButton product={product} variant="inline" className="sm:w-auto" />
               </div>
-
-              <a
-                href={whatsappLink(buildProductMessage(product, note || undefined), settings.whatsapp)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-green mt-3 w-full"
+              <button
+                type="button"
+                onClick={buyNow}
+                disabled={outOfStock}
+                className="btn-outline-orange mt-3 w-full disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <WhatsAppIcon size={18} /> Pedir pelo WhatsApp
-              </a>
+                Comprar agora
+              </button>
+
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-cream-50 p-3 text-center text-xs font-semibold text-navy-600">
+                <span>🚚 Entrega calculada no checkout</span>
+                <span>🔒 Compra segura</span>
+                <span>↩️ Troca facilitada</span>
+              </div>
 
               <Link to="/produtos" className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-navy-500 hover:text-orange-600">
                 <ArrowLeft size={16} /> Voltar para o catálogo
