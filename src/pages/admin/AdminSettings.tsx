@@ -12,6 +12,7 @@ import { whatsappLink, defaultContactMessage } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { Modal } from "@/components/ui/Modal";
 import { compressLogo } from "@/lib/imageUtils";
+import { apiEnabled, saveApiSettings } from "@/lib/api";
 
 /* ────────────────────────────────────────────
    Persistência genérica no localStorage
@@ -286,12 +287,37 @@ export function AdminSettings() {
   };
   const saveLoja = (e: FormEvent) => {
     e.preventDefault();
-    updateSettings({ ...f, deliveryFee: Number(f.deliveryFee) || 0, freeShippingThreshold: Number(f.freeShippingThreshold) || 0 });
+    const next = {
+      ...f,
+      deliveryFee: Number(f.deliveryFee) || 0,
+      freeShippingThreshold: Number(f.freeShippingThreshold) || 0,
+    };
+    updateSettings(next);
+    if (apiEnabled) {
+      void saveApiSettings({
+        storeName: next.storeName,
+        whatsapp: next.whatsapp,
+        instagram: next.instagram,
+        hours: next.hours,
+        institutionalText: next.institutionalText,
+        deliveryFee: String(next.deliveryFee),
+        freeShippingThreshold: String(next.freeShippingThreshold),
+      }).catch(() => showToast("Salvo localmente, mas a API não respondeu.", "info"));
+    }
     showToast("Configurações da loja salvas! ✅", "success");
   };
   const savePayment = (e: FormEvent) => {
     e.preventDefault();
     setCfg({ payPix: cfg.payPix, payCard: cfg.payCard, payBoleto: cfg.payBoleto, pixDiscount: cfg.pixDiscount, maxInstall: cfg.maxInstall, minInstall: cfg.minInstall, pixChave: cfg.pixChave });
+    if (apiEnabled) {
+      void saveApiSettings({
+        pixDiscount: String(cfg.pixDiscount),
+        payPix: String(cfg.payPix),
+        payCard: String(cfg.payCard),
+        payBoleto: String(cfg.payBoleto),
+        maxInstall: String(cfg.maxInstall),
+      }).catch(() => showToast("Salvo localmente, mas a API não respondeu.", "info"));
+    }
     showToast("Configurações de pagamento salvas! ✅", "success");
   };
   const saveNotif = (e: FormEvent) => {
