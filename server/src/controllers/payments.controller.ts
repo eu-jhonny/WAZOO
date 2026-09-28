@@ -154,8 +154,8 @@ export async function processPayment(req: Request, res: Response) {
         paymentStatus: paymentStatus as any,
         pixCode,
         boletoUrl,
-        ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED" }),
-        ...(rejected && { status: "CANCELLED" }),
+        ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED", reservationExpiresAt: null }),
+        ...(rejected && { status: "CANCELLED", reservationExpiresAt: null }),
       },
     });
 
@@ -232,7 +232,7 @@ export async function paymentWebhook(req: Request, res: Response) {
           mpPaymentId: String(payment.id),
           pixCode,
           ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED" }),
-          ...(paymentStatus === "REJECTED" && { status: "CANCELLED" }),
+          ...(paymentStatus === "REJECTED" && { status: "CANCELLED", reservationExpiresAt: null }),
         },
       });
       if (nextStatus && nextStatus !== order.status) {
