@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, CheckCircle, ShoppingBag, Tag, Truck, MapPin,
-  CreditCard, Loader2, QrCode, FileText, Sparkles,
+  CreditCard, Loader2, QrCode, FileText, Sparkles, Copy, ShieldCheck,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useStore } from "@/context/StoreContext";
@@ -25,6 +25,12 @@ import { getAdminPaymentConfig } from "@/lib/adminConfig";
 import { isPixAuto } from "@/lib/pixProvider";
 import { PixQrCode } from "@/components/ui/PixQrCode";
 import { PixAutoPayment } from "@/components/ui/PixAutoPayment";
+import {
+  apiEnabled,
+  createApiOrder,
+  createApiPayment,
+  validateApiCoupon,
+} from "@/lib/api";
 
 /* ── Tipos ──────────────────────────────────────────────────── */
 interface CustomerForm { name: string; email: string; phone: string; cpf: string; }
@@ -65,9 +71,9 @@ async function fetchCEP(zip: string): Promise<Partial<AddressForm>> {
 
 /* ── Componente principal ─────────────────────────────────── */
 export function Checkout() {
-  const { items, total: cartTotal, clear } = useCart();
+  const { items, note: cartNote, total: cartTotal, clear } = useCart();
   const { settings, addOrder } = useStore();
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const loyalty = useLoyalty();
   const navigate = useNavigate();
 
@@ -82,9 +88,9 @@ export function Checkout() {
   const payCfg = useMemo(() => getAdminPaymentConfig(), []);
   const methods = useMemo(() => {
     const all: { key: PaymentMethod; label: string; icon: typeof QrCode; desc: string; enabled: boolean }[] = [
-      { key: "pix",         label: "PIX",            icon: QrCode,     desc: payCfg.pixDiscount > 0 ? `${payCfg.pixDiscount}% de desconto` : "Aprovação imediata", enabled: payCfg.payPix },
+      { key: "pix",         label: "PIX",            icon: QrCode,     desc: payCfg.pixDiscount > 0 ? `${payCfg.pixDiscount}% de desconto` : "Aprovação rápida", enabled: payCfg.payPix },
       { key: "credit_card", label: "Cartão de crédito", icon: CreditCard, desc: `Até ${payCfg.maxInstall}x`, enabled: false },
-      { key: "boleto",      label: "Boleto",         icon: FileText,   desc: "Em breve", enabled: false },
+      { key: "boleto",      label: "Boleto",         icon: FileText,   desc: apiEnabled ? "Gerado pelo gateway" : "Em breve", enabled: apiEnabled && payCfg.payBoleto },
     ];
     return all.filter((m) => m.enabled);
   }, [payCfg]);
@@ -94,7 +100,13 @@ export function Checkout() {
     name: user?.name ?? "", email: user?.email ?? "", phone: user?.phone ?? "", cpf: "",
   });
   const [address, setAddress] = useState<AddressForm>({
-    street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zip: "",
+    street: user?.address.street ?? "",
+    number: user?.address.number ?? "",
+    complement: user?.address.complement ?? "",
+    neighborhood: user?.address.neighborhood ?? "",
+    city: user?.address.city ?? "",
+    state: user?.address.state ?? "",
+    zip: user?.address.zip ?? "",
   });
   const [deliveryMethod, setDeliveryMethod] = useState<"DELIVERY" | "PICKUP">(
     user?.preference === "retirada" ? "PICKUP" : "DELIVERY",
@@ -107,13 +119,28 @@ export function Checkout() {
   const [orderNumber, setOrderNumber] = useState("");
   const [paidTotal, setPaidTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [apiPayment, setApiPayment] = useState<{
+    status: string;
+    pixCode?: string;
+    pixQrBase64?: string;
+    boletoUrl?: string;
+  } | null>(null);
 
   /* Referência do PIX (mostrada antes do pedido existir). */
   const pendingTxid = useMemo(() => "WZ" + Date.now().toString().slice(-8), []);
 
   /* ── Cálculo de totais ─────────────────────────────────── */
   const subtotal = cartTotal;
-  const baseShipping = deliveryMethod === "DELIVERY" ? (settings.deliveryFee || 0) : 0;
+  const freeShippingThreshold = Math.max(0, settings.freeShippingThreshold || 0);
+  const qualifiesForFreeShipping =
+    deliveryMethod === "DELIVERY" &&
+    freeShippingThreshold > 0 &&
+    Math.max(0, subtotal - couponDiscount) >= freeShippingThreshold;
+  const baseShipping =
+    deliveryMethod === "DELIVERY" && !qualifiesForFreeShipping
+      ? (settings.deliveryFee || 0)
+      : 0;
   const shippingAmount = couponFreeShip ? 0 : baseShipping;
   const pixDiscount = paymentMethod === "pix" && payCfg.pixDiscount > 0
     ? Math.round((subtotal - couponDiscount) * (payCfg.pixDiscount / 100) * 100) / 100
@@ -129,18 +156,112 @@ export function Checkout() {
   const total = Math.max(0, subtotal - couponDiscount - pixDiscount - pointsDiscount + shippingAmount);
 
   /* ── Cupom (validação via cupons do admin) ─────────────── */
-  function applyCoupon() {
-    setCouponError(""); setCouponDiscount(0); setCouponFreeShip(false);
+  async function applyCoupon() {
+    setCouponError("");
+    setCouponDiscount(0);
+    setCouponFreeShip(false);
+
+    if (apiEnabled) {
+      try {
+        const r = await validateApiCoupon(couponCode, subtotal);
+        setCouponDiscount(r.discount);
+        setCouponFreeShip(r.type === "FREE_SHIPPING");
+        return;
+      } catch (error) {
+        setCouponError(error instanceof Error ? error.message : "Cupom inválido.");
+        return;
+      }
+    }
+
     const r = validateCoupon(couponCode, subtotal);
     if (!r.ok) { setCouponError(r.error ?? "Cupom inválido."); return; }
     setCouponDiscount(r.discount);
     setCouponFreeShip(r.freeShipping);
   }
 
-  /* ── Finalizar: cria o pedido localmente ───────────────── */
-  function handleFinalize() {
+  /* ── Finalizar compra ─────────────────────────────────── */
+  async function handleFinalize() {
     setLoading(true);
+    setCheckoutError("");
+
     try {
+      if (deliveryMethod === "DELIVERY" && (!address.zip || !address.street || !address.number || !address.city || !address.state)) {
+        setCheckoutError("Complete o endereço de entrega antes de finalizar.");
+        setStep("address");
+        return;
+      }
+
+      if (apiEnabled) {
+        const order = await createApiOrder({
+          customerName: customer.name.trim(),
+          customerEmail: customer.email.trim(),
+          customerPhone: customer.phone.replace(/\D/g, ""),
+          customerDoc: customer.cpf.replace(/\D/g, ""),
+          deliveryMethod,
+          addressStreet: deliveryMethod === "DELIVERY" ? address.street : undefined,
+          addressNumber: deliveryMethod === "DELIVERY" ? address.number : undefined,
+          addressComplement: deliveryMethod === "DELIVERY" ? address.complement || undefined : undefined,
+          addressNeighborhood: deliveryMethod === "DELIVERY" ? address.neighborhood : undefined,
+          addressCity: deliveryMethod === "DELIVERY" ? address.city : undefined,
+          addressState: deliveryMethod === "DELIVERY" ? address.state : undefined,
+          addressZip: deliveryMethod === "DELIVERY" ? address.zip : undefined,
+          items: items.map((i) => ({
+            ...(i.kind === "product" ? { productId: i.id } : { kitId: i.id }),
+            quantity: i.quantity,
+            variantKey: i.variantKey,
+            variantLabel: i.variant,
+          })),
+          couponCode: couponCode.trim() || undefined,
+          customerNote: cartNote || undefined,
+        });
+
+        const nameParts = customer.name.trim().split(/\s+/);
+        const firstName = nameParts.shift() || customer.name.trim();
+        const lastName = nameParts.join(" ") || firstName;
+
+        if (paymentMethod === "credit_card") {
+          throw new Error("Cartão ainda não está habilitado no checkout da Wazoo.");
+        }
+
+        const payment = await createApiPayment({
+          orderId: order.id,
+          method: paymentMethod,
+          email: customer.email.trim(),
+          cpf: customer.cpf.replace(/\D/g, ""),
+          firstName,
+          lastName,
+        });
+
+        setApiPayment({
+          status: payment.status,
+          pixCode: payment.pixCode,
+          pixQrBase64: payment.pixQrBase64,
+          boletoUrl: payment.boletoUrl,
+        });
+        setOrderNumber(order.number);
+        setPaidTotal(payment.total ?? order.total);
+
+        if (user && deliveryMethod === "DELIVERY") {
+          updateProfile({
+            address: {
+              street: address.street,
+              number: address.number,
+              complement: address.complement,
+              neighborhood: address.neighborhood,
+              city: address.city,
+              state: address.state,
+              zip: address.zip,
+            },
+          });
+        }
+
+        if (redeemablePoints > 0) loyalty.redeem(redeemablePoints);
+        clear();
+        setStep("success");
+        return;
+      }
+
+      // Fallback local: mantém a loja utilizável enquanto a API não estiver configurada.
       const order = addOrder({
         customerName: customer.name,
         customerPhone: customer.phone.replace(/\D/g, ""),
@@ -158,20 +279,34 @@ export function Checkout() {
         shippingAmount: shippingAmount || undefined,
         total,
         note: [
-          paymentMethod === "pix" ? "Pagamento: PIX (informado pelo cliente)" : paymentMethod === "credit_card" ? "Pagamento: Cartão" : "Pagamento: Boleto",
+          paymentMethod === "pix" ? "Pagamento: PIX" : paymentMethod === "credit_card" ? "Pagamento: Cartão" : "Pagamento: Boleto",
           couponCode ? `Cupom: ${couponCode.toUpperCase()}` : "",
           redeemablePoints > 0 ? `Resgate: ${redeemablePoints} patinhas (-${formatBRL(pointsDiscount)})` : "",
-          deliveryMethod === "DELIVERY" && address.street
-            ? `Entrega: ${address.street}, ${address.number} - ${address.neighborhood}, ${address.city}/${address.state}, CEP ${address.zip}`
-            : deliveryMethod === "PICKUP" ? "Retirada na loja" : "",
+          cartNote || "",
         ].filter(Boolean).join(" · "),
       });
-      // Debita as patinhas resgatadas do saldo do cliente.
+
+      if (user && deliveryMethod === "DELIVERY") {
+        updateProfile({
+          address: {
+            street: address.street,
+            number: address.number,
+            complement: address.complement,
+            neighborhood: address.neighborhood,
+            city: address.city,
+            state: address.state,
+            zip: address.zip,
+          },
+        });
+      }
+
       if (redeemablePoints > 0) loyalty.redeem(redeemablePoints);
       setOrderNumber(order.id);
       setPaidTotal(total);
       clear();
       setStep("success");
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "Não foi possível finalizar a compra.");
     } finally {
       setLoading(false);
     }
@@ -203,7 +338,7 @@ export function Checkout() {
           <CheckCircle size={44} className="text-green-500" />
         </div>
         <h1 className="section-title mt-6">
-          "Pedido recebido! 🎉"
+          Pedido recebido! 🎉
         </h1>
         <p className="mt-3 text-navy-500">
           Número do pedido: <strong className="text-navy-700">{orderNumber}</strong>
@@ -216,8 +351,45 @@ export function Checkout() {
 
         {paymentMethod === "pix" && (
           <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
-            💚 Pagamento PIX informado no valor de {formatBRL(paidTotal)}. Você pode acompanhar o pedido pela sua conta.
+            💚 PIX gerado para {formatBRL(paidTotal)}. O pedido será liberado assim que o pagamento for confirmado.
           </div>
+        )}
+
+        {apiPayment?.pixCode && (
+          <div className="mt-5 rounded-3xl border border-cream-200 bg-white p-5 text-left shadow-card">
+            <div className="flex items-center gap-2 font-bold text-navy-700">
+              <QrCode size={18} className="text-teal-600" /> Pague com PIX
+            </div>
+            {apiPayment.pixQrBase64 && (
+              <img
+                src={`data:image/png;base64,${apiPayment.pixQrBase64}`}
+                alt="QR Code PIX"
+                className="mx-auto mt-4 h-48 w-48 rounded-2xl border border-cream-200 bg-white p-2"
+              />
+            )}
+            <div className="mt-4 rounded-2xl bg-cream-50 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-navy-400">PIX copia e cola</p>
+              <p className="mt-1 break-all text-xs text-navy-600">{apiPayment.pixCode}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard?.writeText(apiPayment.pixCode || "")}
+              className="btn-outline mt-3 w-full"
+            >
+              <Copy size={16} /> Copiar código PIX
+            </button>
+          </div>
+        )}
+
+        {apiPayment?.boletoUrl && (
+          <a
+            href={apiPayment.boletoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-outline-orange mt-5 w-full"
+          >
+            <FileText size={17} /> Abrir boleto
+          </a>
         )}
 
         <div className="mt-6 rounded-3xl border border-cream-200 bg-cream-50 p-5 text-left text-sm text-navy-600">
@@ -225,8 +397,8 @@ export function Checkout() {
             <Sparkles size={16} className="text-orange-500" /> Próximos passos
           </p>
           <ol className="mt-3 space-y-2">
-            <li>1. Confirmamos o pagamento.</li>
-            <li>2. Seu pedido segue para separação.</li>
+            <li>1. O pagamento é confirmado pelo gateway.</li>
+            <li>2. Seu pedido segue automaticamente para separação.</li>
             <li>3. {deliveryMethod === "DELIVERY" ? "Você acompanha a entrega pela sua conta." : "Avisaremos quando estiver pronto para retirada."}</li>
           </ol>
         </div>
@@ -471,6 +643,11 @@ export function Checkout() {
                     </div>
                   </div>
                 )}
+                {user?.address.street && deliveryMethod === "DELIVERY" && (
+                  <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50 p-3 text-sm text-teal-800">
+                    <strong>Endereço salvo:</strong> os dados da sua conta foram preenchidos automaticamente. Você pode editar antes de continuar.
+                  </div>
+                )}
                 <button onClick={() => setStep("payment")} className="btn-primary mt-6 w-full">Continuar → Pagamento</button>
               </div>
             )}
@@ -503,7 +680,19 @@ export function Checkout() {
                         💚 Pagando com PIX você ganha <strong>{payCfg.pixDiscount}% de desconto</strong> ({formatBRL(pixDiscount)}).
                       </div>
                     )}
-                    {isPixAuto ? (
+                    {apiEnabled ? (
+                      <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
+                        <p className="flex items-center gap-2 text-sm font-bold text-teal-800">
+                          <ShieldCheck size={17} /> Pagamento processado pelo gateway seguro da Wazoo
+                        </p>
+                        <p className="mt-1 text-xs text-teal-700">
+                          Ao continuar, criaremos o pedido e mostraremos o QR Code PIX oficial.
+                        </p>
+                        <button onClick={handleFinalize} disabled={loading} className="btn-primary mt-4 w-full disabled:opacity-60">
+                          {loading ? <><Loader2 size={18} className="animate-spin" /> Gerando PIX...</> : <><QrCode size={18} /> Gerar PIX e finalizar compra</>}
+                        </button>
+                      </div>
+                    ) : isPixAuto ? (
                       <PixAutoPayment
                         amount={total}
                         payerEmail={customer.email}
@@ -529,7 +718,7 @@ export function Checkout() {
                     )}
                     {paymentMethod === "boleto" && (
                       <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
-                        📄 O boleto será gerado pelo gateway de pagamento.
+                        📄 O boleto será gerado pelo gateway de pagamento após confirmar a compra.
                       </div>
                     )}
                     <button onClick={handleFinalize} disabled={loading} className="btn-primary mt-4 w-full disabled:opacity-60">
@@ -541,6 +730,12 @@ export function Checkout() {
               </div>
             )}
           </div>
+
+{checkoutError && (
+            <div className="lg:col-span-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+              {checkoutError}
+            </div>
+          )}
 
           {/* ── Resumo lateral ───────────────────── */}
           <div className="card h-fit p-5 lg:sticky lg:top-24">
@@ -578,7 +773,8 @@ export function Checkout() {
               </div>
             </div>
             <div className="mt-5 rounded-2xl bg-cream-50 p-3 text-xs text-navy-500">
-              <p>🚚 <strong>Entrega</strong> — o prazo e o valor são informados conforme a opção escolhida no checkout.</p>
+              <p>🚚 <strong>Entrega</strong> — {freeShippingThreshold > 0 ? `frete grátis acima de ${formatBRL(freeShippingThreshold)}.` : "valor calculado no checkout."}</p>
+              <p className="mt-1">🔒 Pagamentos processados com segurança. Preços e estoque são validados no servidor quando a API está ativa.</p>
             </div>
           </div>
         </div>
