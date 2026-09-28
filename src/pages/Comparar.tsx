@@ -35,7 +35,7 @@ export function Comparar() {
   const minPrice = list.length ? Math.min(...list.map((p) => p.price)) : 0;
 
   const rows: { label: string; render: (p: Product) => React.ReactNode }[] = [
-    { label: "Preço estimado", render: (p) => (
+    { label: "Preço", render: (p) => (
       <span className={`font-display text-lg font-bold ${p.price === minPrice ? "text-green-600" : "text-orange-600"}`}>
         {formatBRL(p.price)}
         {p.price === minPrice && list.length > 1 && (
