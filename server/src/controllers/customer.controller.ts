@@ -210,3 +210,52 @@ export async function listCustomerOrders(req: Request, res: Response) {
   });
   res.json(orders);
 }
+
+
+export async function listWishlist(req: Request, res: Response) {
+  const items = await prisma.wishlistItem.findMany({
+    where: { userId: userId(req) },
+    orderBy: { createdAt: "desc" },
+    select: { productId: true },
+  });
+  res.json(items.map((item) => item.productId));
+}
+
+export async function addWishlistItem(req: Request, res: Response) {
+  const uid = userId(req);
+  const product = await prisma.product.findFirst({
+    where: { id: req.params.productId, active: true },
+    select: { id: true },
+  });
+  if (!product) throw new AppError("Produto não encontrado", 404);
+
+  await prisma.wishlistItem.upsert({
+    where: {
+      userId_productId: {
+        userId: uid,
+        productId: product.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: uid,
+      productId: product.id,
+    },
+  });
+
+  res.status(201).json({ productId: product.id });
+}
+
+export async function removeWishlistItem(req: Request, res: Response) {
+  const uid = userId(req);
+  await prisma.wishlistItem.deleteMany({
+    where: { userId: uid, productId: req.params.productId },
+  });
+  res.json({ message: "Favorito removido" });
+}
+
+export async function clearWishlist(req: Request, res: Response) {
+  const uid = userId(req);
+  await prisma.wishlistItem.deleteMany({ where: { userId: uid } });
+  res.json({ message: "Favoritos limpos" });
+}
