@@ -2,6 +2,8 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
 const ADMIN_ACCESS_KEY = "wazoo:admin_access_token";
 const ADMIN_REFRESH_KEY = "wazoo:admin_refresh_token";
+const CUSTOMER_ACCESS_KEY = "wazoo:customer_access_token";
+const CUSTOMER_REFRESH_KEY = "wazoo:customer_refresh_token";
 
 export const apiEnabled = Boolean(API_BASE_URL);
 
@@ -17,13 +19,23 @@ export class ApiError extends Error {
   }
 }
 
+type AuthMode = "admin" | "customer" | "customer-optional";
+
 interface RequestOptions extends RequestInit {
-  auth?: boolean;
+  auth?: AuthMode;
 }
 
-function getAccessToken() {
-  try { return sessionStorage.getItem(ADMIN_ACCESS_KEY); }
+function readStorage(storage: Storage, key: string) {
+  try { return storage.getItem(key); }
   catch { return null; }
+}
+
+function adminAccessToken() {
+  return typeof sessionStorage === "undefined" ? null : readStorage(sessionStorage, ADMIN_ACCESS_KEY);
+}
+
+function customerAccessToken() {
+  return typeof localStorage === "undefined" ? null : readStorage(localStorage, CUSTOMER_ACCESS_KEY);
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -32,8 +44,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const headers = new Headers(options.headers);
   if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-  if (options.auth) {
-    const token = getAccessToken();
+  if (options.auth === "admin") {
+    const token = adminAccessToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+  } else if (options.auth === "customer" || options.auth === "customer-optional") {
+    const token = customerAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -42,11 +57,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     headers,
   });
 
-  const text = await response.text();
+  const raw = await response.text();
   let data: any = null;
-  if (text) {
-    try { data = JSON.parse(text); }
-    catch { data = text; }
+  if (raw) {
+    try { data = JSON.parse(raw); }
+    catch { data = raw; }
   }
 
   if (!response.ok) {
@@ -60,6 +75,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return data as T;
 }
 
+/* ── Sessão administrativa ─────────────────────────────────── */
 export interface AdminSession {
   token: string;
   refreshToken: string;
@@ -77,13 +93,17 @@ export async function loginAdmin(email: string, password: string): Promise<Admin
     body: JSON.stringify({ email, password }),
   });
 
+  if (!["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
+    throw new ApiError("Esta conta não possui acesso administrativo.", 403, "ADMIN_REQUIRED");
+  }
+
   sessionStorage.setItem(ADMIN_ACCESS_KEY, session.token);
   sessionStorage.setItem(ADMIN_REFRESH_KEY, session.refreshToken);
   return session;
 }
 
-export function hasAdminSession(): boolean {
-  return Boolean(getAccessToken());
+export function hasAdminSession() {
+  return Boolean(adminAccessToken());
 }
 
 export function clearAdminSession() {
@@ -93,13 +113,176 @@ export function clearAdminSession() {
   } catch { /* ambiente sem sessionStorage */ }
 }
 
-export async function getAdminMe() {
+export function getAdminMe() {
   return request<{ id: string; name: string; email: string; role: string; createdAt: string }>(
     "/auth/me",
-    { auth: true },
+    { auth: "admin" },
   );
 }
 
+/* ── Conta do cliente ──────────────────────────────────────── */
+export interface ApiCustomerAddress {
+  id: string;
+  label: string;
+  recipientName?: string | null;
+  street: string;
+  number: string;
+  complement?: string | null;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip: string;
+  isDefault: boolean;
+}
+
+export interface ApiCustomerPet {
+  id: string;
+  name: string;
+  type: "cachorro" | "gato";
+  breed: string;
+  size: "pequeno" | "medio" | "grande" | "todos";
+  age: string;
+  weight: string;
+  restrictions?: string | null;
+  notes?: string | null;
+}
+
+export interface ApiCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string | null;
+  preference: "DELIVERY" | "PICKUP";
+  role: "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
+  createdAt: string;
+  addresses: ApiCustomerAddress[];
+  pets: ApiCustomerPet[];
+}
+
+export interface CustomerSession {
+  token: string;
+  refreshToken: string;
+  user: ApiCustomer;
+}
+
+function persistCustomerSession(session: CustomerSession) {
+  localStorage.setItem(CUSTOMER_ACCESS_KEY, session.token);
+  localStorage.setItem(CUSTOMER_REFRESH_KEY, session.refreshToken);
+}
+
+export async function registerCustomer(input: {
+  name: string;
+  phone: string;
+  email: string;
+  password: string;
+  preference?: "DELIVERY" | "PICKUP";
+  address?: {
+    label?: string;
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+}) {
+  const session = await request<CustomerSession>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  persistCustomerSession(session);
+  return session;
+}
+
+export async function loginCustomer(email: string, password: string) {
+  const session = await request<CustomerSession>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+  if (session.user.role !== "CUSTOMER") {
+    throw new ApiError("Use o acesso administrativo para esta conta.", 403, "CUSTOMER_REQUIRED");
+  }
+  persistCustomerSession(session);
+  return session;
+}
+
+export function hasCustomerSession() {
+  return Boolean(customerAccessToken());
+}
+
+export function clearCustomerSession() {
+  try {
+    localStorage.removeItem(CUSTOMER_ACCESS_KEY);
+    localStorage.removeItem(CUSTOMER_REFRESH_KEY);
+  } catch { /* ambiente sem localStorage */ }
+}
+
+export function getCustomerMe() {
+  return request<ApiCustomer>("/auth/me", { auth: "customer" });
+}
+
+export function updateCustomerProfile(input: {
+  name?: string;
+  phone?: string;
+  avatar?: string | null;
+  preference?: "DELIVERY" | "PICKUP";
+}) {
+  return request<Partial<ApiCustomer> & Pick<ApiCustomer, "id" | "name" | "email">>("/customer/me", {
+    method: "PATCH",
+    auth: "customer",
+    body: JSON.stringify(input),
+  });
+}
+
+export function createCustomerAddress(input: Omit<ApiCustomerAddress, "id" | "isDefault"> & { isDefault?: boolean }) {
+  return request<ApiCustomerAddress>("/customer/addresses", {
+    method: "POST",
+    auth: "customer",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateCustomerAddress(id: string, input: Partial<Omit<ApiCustomerAddress, "id">>) {
+  return request<ApiCustomerAddress>(`/customer/addresses/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    auth: "customer",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteCustomerAddress(id: string) {
+  return request<{ message: string }>(`/customer/addresses/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    auth: "customer",
+  });
+}
+
+export function createCustomerPet(input: Omit<ApiCustomerPet, "id">) {
+  return request<ApiCustomerPet>("/customer/pets", {
+    method: "POST",
+    auth: "customer",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateCustomerPet(id: string, input: Partial<Omit<ApiCustomerPet, "id">>) {
+  return request<ApiCustomerPet>(`/customer/pets/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    auth: "customer",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteCustomerPet(id: string) {
+  return request<{ message: string }>(`/customer/pets/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    auth: "customer",
+  });
+}
+
+/* ── Pedidos / checkout ────────────────────────────────────── */
 export interface ApiOrderItemInput {
   productId?: string;
   kitId?: string;
@@ -155,12 +338,14 @@ export interface ApiOrder {
   shippingAmount: number;
   total: number;
   items: ApiOrderItem[];
+  statusEvents?: Array<{ status: string; createdAt: string }>;
   createdAt: string;
 }
 
 export function createApiOrder(input: CreateApiOrderInput) {
   return request<ApiOrder>("/orders", {
     method: "POST",
+    auth: "customer-optional",
     body: JSON.stringify(input),
   });
 }
@@ -206,9 +391,27 @@ export function createApiPayment(input: {
   });
 }
 
+export function getApiPaymentStatus(orderId: string, publicToken: string) {
+  return request<{
+    paymentStatus: string;
+    status: string;
+    number: string;
+    paidAt?: string | null;
+  }>(`/payments/status/${encodeURIComponent(orderId)}?token=${encodeURIComponent(publicToken)}`);
+}
+
+export type ApiOrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "PROCESSING"
+  | "READY"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED";
+
 export interface ApiTrackingOrder {
   number: string;
-  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  status: ApiOrderStatus;
   paymentStatus: "PENDING" | "APPROVED" | "REJECTED" | "REFUNDED" | "IN_PROCESS";
   deliveryMethod: "DELIVERY" | "PICKUP";
   subtotal: number;
@@ -225,21 +428,18 @@ export interface ApiTrackingOrder {
     image: string;
     variantLabel?: string | null;
   }>;
+  statusEvents?: Array<{ status: ApiOrderStatus; createdAt: string }>;
 }
 
 export function getApiOrderTracking(number: string) {
   return request<ApiTrackingOrder>(`/orders/track/${encodeURIComponent(number)}`);
 }
 
-export function getApiPaymentStatus(orderId: string, publicToken: string) {
-  return request<{
-    paymentStatus: string;
-    status: string;
-    number: string;
-    paidAt?: string | null;
-  }>(`/payments/status/${encodeURIComponent(orderId)}?token=${encodeURIComponent(publicToken)}`);
+export function listCustomerOrders() {
+  return request<ApiOrder[]>("/customer/orders", { auth: "customer" });
 }
 
+/* ── Catálogo ──────────────────────────────────────────────── */
 export interface ApiProduct {
   id: string;
   slug: string;
@@ -267,32 +467,6 @@ export interface ApiProduct {
   createdAt: string;
 }
 
-export async function listApiProducts(params: Record<string, string | number | boolean | undefined> = {}) {
-  const query = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined) query.set(key, String(value));
-  });
-  const suffix = query.size ? `?${query.toString()}` : "";
-  return request<{ data: ApiProduct[]; total: number; page: number; pages: number }>(`/products${suffix}`);
-}
-
-export function getApiSettings() {
-  return request<Record<string, string>>("/settings");
-}
-
-export function saveApiSettings(settings: Record<string, string>) {
-  return request<{ message: string; data: Record<string, string> }>("/settings", {
-    method: "PUT",
-    body: JSON.stringify(settings),
-    auth: true,
-  });
-}
-
-export function apiRequestAdmin<T>(path: string, options: RequestInit = {}) {
-  return request<T>(path, { ...options, auth: true });
-}
-
-
 export interface ApiProductInput {
   name: string;
   categorySlug: string;
@@ -318,10 +492,19 @@ export interface ApiProductInput {
   }>;
 }
 
+export async function listApiProducts(params: Record<string, string | number | boolean | undefined> = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined) query.set(key, String(value));
+  });
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return request<{ data: ApiProduct[]; total: number; page: number; pages: number }>(`/products${suffix}`);
+}
+
 export function createApiProduct(input: ApiProductInput) {
   return request<ApiProduct>("/products", {
     method: "POST",
-    auth: true,
+    auth: "admin",
     body: JSON.stringify(input),
   });
 }
@@ -329,7 +512,7 @@ export function createApiProduct(input: ApiProductInput) {
 export function updateApiProduct(id: string, input: Partial<ApiProductInput>) {
   return request<ApiProduct>(`/products/${encodeURIComponent(id)}`, {
     method: "PUT",
-    auth: true,
+    auth: "admin",
     body: JSON.stringify(input),
   });
 }
@@ -337,10 +520,11 @@ export function updateApiProduct(id: string, input: Partial<ApiProductInput>) {
 export function deleteApiProduct(id: string) {
   return request<{ message: string }>(`/products/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    auth: true,
+    auth: "admin",
   });
 }
 
+/* ── Configurações ─────────────────────────────────────────── */
 export function getApiSettings() {
   return request<Record<string, string>>("/settings");
 }
@@ -348,11 +532,14 @@ export function getApiSettings() {
 export function updateApiSettings(input: Record<string, string>) {
   return request<{ message: string; data: Record<string, string> }>("/settings", {
     method: "PUT",
-    auth: true,
+    auth: "admin",
     body: JSON.stringify(input),
   });
 }
 
+export const saveApiSettings = updateApiSettings;
+
+/* ── Avaliações ────────────────────────────────────────────── */
 export interface ApiReview {
   id: string;
   name: string;
@@ -373,32 +560,6 @@ export function listApiReviews(params: { featured?: boolean } = {}) {
   return request<ApiReview[]>(`/reviews${suffix}`);
 }
 
-
-export interface ApiTrackedOrder {
-  number: string;
-  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
-  paymentStatus: "PENDING" | "APPROVED" | "REJECTED" | "REFUNDED" | "IN_PROCESS";
-  deliveryMethod: "DELIVERY" | "PICKUP";
-  subtotal: number;
-  discountAmount: number;
-  shippingAmount: number;
-  total: number;
-  createdAt: string;
-  updatedAt: string;
-  items: Array<{
-    name: string;
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-    image: string;
-    variantLabel?: string | null;
-  }>;
-  statusEvents: Array<{
-    status: "PENDING" | "CONFIRMED" | "PROCESSING" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
-    createdAt: string;
-  }>;
-}
-
-export function trackApiOrder(number: string) {
-  return request<ApiTrackedOrder>(`/orders/track/${encodeURIComponent(number)}`);
+export function apiRequestAdmin<T>(path: string, options: RequestInit = {}) {
+  return request<T>(path, { ...options, auth: "admin" });
 }
