@@ -228,6 +228,7 @@ export async function createOrder(req: Request, res: Response) {
         addressZip: data.addressZip,
         couponCode: data.couponCode?.toUpperCase(),
         paymentMethod: data.paymentMethod,
+        reservationExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
         customerNote: data.customerNote,
         subtotal,
         discountAmount,
@@ -344,7 +345,13 @@ export async function updateOrderStatus(req: Request, res: Response) {
   if (!exists) throw new AppError("Pedido não encontrado", 404);
 
   const updated = await prisma.$transaction(async (tx) => {
-    const next = await tx.order.update({ where: { id: req.params.id }, data });
+    const next = await tx.order.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        ...(data.status && data.status !== "PENDING" ? { reservationExpiresAt: null } : {}),
+      },
+    });
     if (data.status && data.status !== exists.status) {
       await tx.orderStatusEvent.create({
         data: { orderId: exists.id, status: data.status },
@@ -382,7 +389,7 @@ export async function cancelOrder(req: Request, res: Response) {
 
     const next = await tx.order.update({
       where: { id: order.id },
-      data: { status: "CANCELLED" },
+      data: { status: "CANCELLED", reservationExpiresAt: null },
     });
 
     await tx.orderStatusEvent.create({
