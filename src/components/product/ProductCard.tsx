@@ -31,10 +31,12 @@ interface Props {
 
 export function ProductCard({ product, compact = false }: Props) {
   const { addProduct } = useCart();
-  const { reviews } = useStore();
+  const { reviews, settings } = useStore();
   const rating = ratingForProduct(reviews, product.id);
   const discount = calcDiscount(product.price, product.comparePrice);
   const promoTag = product.promoLabel ?? (discount ? `-${discount}%` : null);
+  const pixDiscount = Math.max(0, settings.pixDiscount || 0);
+  const pixPrice = Math.max(0, product.price * (1 - pixDiscount / 100));
 
   const [added, setAdded] = useState(false);
   const outOfStock = typeof product.stock === "number" && product.stock <= 0;
@@ -73,6 +75,9 @@ export function ProductCard({ product, compact = false }: Props) {
               <span className="text-xs text-navy-400 line-through">{formatBRL(product.comparePrice)}</span>
             )}
             <p className="font-display text-base font-bold text-orange-600">{formatBRL(product.price)}</p>
+            {pixDiscount > 0 && (
+              <p className="text-[11px] font-bold text-teal-600">{formatBRL(pixPrice)} no PIX</p>
+            )}
           </div>
           {outOfStock ? (
             <span className="btn-sm mt-2 w-full cursor-not-allowed bg-cream-200 text-center text-xs font-bold text-navy-400">Esgotado</span>
@@ -164,6 +169,11 @@ export function ProductCard({ product, compact = false }: Props) {
               <span className="text-sm text-navy-400 line-through">{formatBRL(product.comparePrice)}</span>
             )}
           </div>
+          {pixDiscount > 0 && (
+            <p className="mt-1 text-xs font-bold text-teal-600">
+              {formatBRL(pixPrice)} no PIX · {pixDiscount}% OFF
+            </p>
+          )}
         </div>
 
         <div className="mt-4 flex gap-2">
