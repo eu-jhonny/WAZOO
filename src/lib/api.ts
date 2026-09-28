@@ -282,6 +282,31 @@ export function deleteCustomerPet(id: string) {
   });
 }
 
+export function listCustomerWishlist() {
+  return request<string[]>("/customer/wishlist", { auth: "customer" });
+}
+
+export function addCustomerWishlist(productId: string) {
+  return request<{ productId: string }>(
+    `/customer/wishlist/${encodeURIComponent(productId)}`,
+    { method: "POST", auth: "customer" },
+  );
+}
+
+export function removeCustomerWishlist(productId: string) {
+  return request<{ message: string }>(
+    `/customer/wishlist/${encodeURIComponent(productId)}`,
+    { method: "DELETE", auth: "customer" },
+  );
+}
+
+export function clearCustomerWishlist() {
+  return request<{ message: string }>("/customer/wishlist", {
+    method: "DELETE",
+    auth: "customer",
+  });
+}
+
 /* ── Pedidos / checkout ────────────────────────────────────── */
 export interface ApiOrderItemInput {
   productId?: string;
