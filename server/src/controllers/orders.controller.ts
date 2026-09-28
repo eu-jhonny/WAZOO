@@ -231,6 +231,7 @@ export async function createOrder(req: Request, res: Response) {
         discountAmount,
         shippingAmount,
         total,
+        statusEvents: { create: { status: "PENDING" } },
         items: {
           create: normalizedItems.map((item) => ({
             productId: item.productId,
@@ -245,7 +246,7 @@ export async function createOrder(req: Request, res: Response) {
           })),
         },
       },
-      include: { items: true },
+      include: { items: true, statusEvents: { orderBy: { createdAt: "asc" } } },
     });
 
     if (couponRef) {
@@ -308,6 +309,10 @@ export async function trackOrder(req: Request, res: Response) {
           variantLabel: true,
         },
       },
+      statusEvents: {
+        select: { status: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
   if (!order) throw new AppError("Pedido não encontrado", 404);
@@ -335,7 +340,15 @@ export async function updateOrderStatus(req: Request, res: Response) {
   const exists = await prisma.order.findUnique({ where: { id: req.params.id } });
   if (!exists) throw new AppError("Pedido não encontrado", 404);
 
-  const updated = await prisma.order.update({ where: { id: req.params.id }, data });
+  const updated = await prisma.$transaction(async (tx) => {
+    const next = await tx.order.update({ where: { id: req.params.id }, data });
+    if (data.status && data.status !== exists.status) {
+      await tx.orderStatusEvent.create({
+        data: { orderId: exists.id, status: data.status },
+      });
+    }
+    return next;
+  });
   res.json(updated);
 }
 
