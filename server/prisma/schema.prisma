@@ -66,6 +66,7 @@ model Product {
   featured         Boolean  @default(false)
   onDemand         Boolean  @default(false)
   stock            Int?
+  variants         Json?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -157,7 +158,9 @@ model OrderItem {
   quantity   Int
   unitPrice  Float
   totalPrice Float
-  image      String  @default("")
+  image        String  @default("")
+  variantKey   String?
+  variantLabel String?
 
   order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id])
