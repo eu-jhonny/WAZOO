@@ -6,8 +6,8 @@ export function PromoStrip() {
     "🎁 Código WAZOO10 → 10% OFF na primeira compra",
     "👔 Especial Dia dos Pais: presentes para pai & pet",
     "🎁 Kits Dia dos Pais com desconto",
-    "🐾 Todos os produtos sob encomenda",
-    "📦 Prazo médio: 5–7 dias úteis",
+    "🔒 Compra segura e acompanhamento do pedido",
+    "📦 Acompanhe seu pedido pela sua conta",
     "💬 Atendimento pelo WhatsApp",
   ];
 
