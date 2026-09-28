@@ -4,15 +4,17 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { usePersistentState } from "@/hooks/usePersistentState";
-import { STORAGE_KEYS, site } from "@/config/site";
+import { STORAGE_KEYS } from "@/config/site";
 import { seedUsers } from "@/data/users";
 import { uid } from "@/lib/format";
 import { isCloudEnabled } from "@/lib/supabase";
 import { cloudLogin, cloudRegister, cloudSave, type CloudProfileData } from "@/lib/cloudProfile";
 import { emails } from "@/lib/email";
+import { clearAdminSession, getAdminMe, hasAdminSession, loginAdmin } from "@/lib/api";
 import type { Pet, User } from "@/types";
 
 export interface AuthResult {
@@ -54,7 +56,7 @@ interface AuthContextValue {
   updatePet: (id: string, data: Partial<Pet>) => void;
   removePet: (id: string) => void;
 
-  adminLogin: (email: string, password: string) => AuthResult;
+  adminLogin: (email: string, password: string) => Promise<AuthResult>;
   adminLogout: () => void;
 }
 
@@ -89,10 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     STORAGE_KEYS.user,
     null
   );
-  const [isAdmin, setIsAdmin] = usePersistentState<boolean>(
-    STORAGE_KEYS.admin,
-    false
-  );
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => hasAdminSession());
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    getAdminMe().catch(() => {
+      clearAdminSession();
+      setIsAdmin(false);
+    });
+  }, []);
 
   const user = useMemo(
     () => users.find((u) => u.id === currentUserId) ?? null,
@@ -287,17 +294,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           pets: u.pets.filter((p) => p.id !== id),
         })),
 
-      adminLogin: (email, password) => {
-        if (
-          email.trim().toLowerCase() === site.admin.email &&
-          password === site.admin.password
-        ) {
+      adminLogin: async (email, password) => {
+        try {
+          await loginAdmin(email.trim().toLowerCase(), password);
           setIsAdmin(true);
           return { ok: true };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Credenciais administrativas inválidas.";
+          return { ok: false, error: message };
         }
-        return { ok: false, error: "Credenciais administrativas inválidas." };
       },
-      adminLogout: () => setIsAdmin(false),
+      adminLogout: () => {
+        clearAdminSession();
+        setIsAdmin(false);
+      },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, users, isAdmin, currentUserId]);
