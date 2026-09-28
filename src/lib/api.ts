@@ -372,3 +372,33 @@ export function listApiReviews(params: { featured?: boolean } = {}) {
   const suffix = query.size ? `?${query.toString()}` : "";
   return request<ApiReview[]>(`/reviews${suffix}`);
 }
+
+
+export interface ApiTrackedOrder {
+  number: string;
+  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  paymentStatus: "PENDING" | "APPROVED" | "REJECTED" | "REFUNDED" | "IN_PROCESS";
+  deliveryMethod: "DELIVERY" | "PICKUP";
+  subtotal: number;
+  discountAmount: number;
+  shippingAmount: number;
+  total: number;
+  createdAt: string;
+  updatedAt: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    image: string;
+    variantLabel?: string | null;
+  }>;
+  statusEvents: Array<{
+    status: "PENDING" | "CONFIRMED" | "PROCESSING" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+    createdAt: string;
+  }>;
+}
+
+export function trackApiOrder(number: string) {
+  return request<ApiTrackedOrder>(`/orders/track/${encodeURIComponent(number)}`);
+}
