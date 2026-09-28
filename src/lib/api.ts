@@ -123,6 +123,7 @@ export interface CreateApiOrderInput {
   addressZip?: string;
   items: ApiOrderItemInput[];
   couponCode?: string;
+  paymentMethod?: "pix" | "credit_card" | "boleto";
   customerNote?: string;
 }
 
@@ -246,6 +247,18 @@ export async function listApiProducts(params: Record<string, string | number | b
   });
   const suffix = query.size ? `?${query.toString()}` : "";
   return request<{ data: ApiProduct[]; total: number; page: number; pages: number }>(`/products${suffix}`);
+}
+
+export function getApiSettings() {
+  return request<Record<string, string>>("/settings");
+}
+
+export function saveApiSettings(settings: Record<string, string>) {
+  return request<{ message: string; data: Record<string, string> }>("/settings", {
+    method: "PUT",
+    body: JSON.stringify(settings),
+    auth: true,
+  });
 }
 
 export function apiRequestAdmin<T>(path: string, options: RequestInit = {}) {
