@@ -99,7 +99,7 @@ const PROMOS: NotifTemplate[] = [
   },
   {
     type: "tip", iconKey: "PawPrint",
-    title: "Tudo sob encomenda 🐾",
+    title: "Tudo para o seu pet 🐾",
     message: "Buscamos exatamente o que você precisa. Prazo médio: 5–7 dias úteis.",
     action: { label: "Como funciona?", to: "/como-funciona" },
     color: "text-teal-600", bg: "bg-teal-50",
@@ -304,7 +304,7 @@ export function NotificationSystem() {
       addNotification({
         type: "greeting", iconKey: "PawPrint",
         title: `${greeting()}, bem-vindo à Wazoo! 🐾`,
-        message: "Encontre tudo para o seu pet sob encomenda, com amor.",
+        message: "Encontre tudo para o seu pet em uma compra simples e segura.",
         action: { label: "Ver produtos", to: "/produtos" },
         color: "text-orange-600", bg: "bg-orange-50",
       });
