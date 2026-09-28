@@ -205,4 +205,6 @@ export interface SiteSettings {
   institutionalText: string;
   deliveryFee: number;
   freeShippingThreshold: number;
+  pixDiscount: number;
+  maxInstall: number;
 }
