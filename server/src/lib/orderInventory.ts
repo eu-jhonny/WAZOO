@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { prisma } from "./prisma";
 
 /**
  * Devolve ao catálogo somente o estoque que foi efetivamente reservado
@@ -57,4 +58,54 @@ export async function releaseCouponUsage(
     where: { id: coupon.id },
     data: { usedCount: { decrement: 1 } },
   });
+}
+
+
+/**
+ * Cancela pedidos cujo tempo de reserva expirou e devolve estoque/cupom.
+ * O update condicional evita que dois workers liberem a mesma reserva.
+ */
+export async function expireStaleOrderReservations() {
+  const now = new Date();
+  const stale = await prisma.order.findMany({
+    where: {
+      status: "PENDING",
+      paymentStatus: { in: ["PENDING", "IN_PROCESS"] },
+      reservationExpiresAt: { lte: now },
+    },
+    select: {
+      id: true,
+      couponCode: true,
+    },
+    take: 100,
+  });
+
+  let expired = 0;
+
+  for (const order of stale) {
+    await prisma.$transaction(async (tx) => {
+      const locked = await tx.order.updateMany({
+        where: {
+          id: order.id,
+          status: "PENDING",
+          reservationExpiresAt: { lte: now },
+        },
+        data: {
+          status: "CANCELLED",
+          reservationExpiresAt: null,
+        },
+      });
+
+      if (locked.count !== 1) return;
+
+      await releaseReservedInventory(tx, order.id);
+      await releaseCouponUsage(tx, order.couponCode);
+      await tx.orderStatusEvent.create({
+        data: { orderId: order.id, status: "CANCELLED" },
+      });
+      expired += 1;
+    });
+  }
+
+  return expired;
 }
