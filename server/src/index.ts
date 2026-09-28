@@ -6,6 +6,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import { router } from "./routes";
 import { errorHandler } from "./middleware/errorHandler";
+import { expireStaleOrderReservations } from "./lib/orderInventory";
 
 dotenv.config();
 
@@ -55,6 +56,15 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 /* ── Inicialização ──────────────────────────────────── */
+const reservationSweep = async () => {
+  try {
+    const expired = await expireStaleOrderReservations();
+    if (expired > 0) console.log(`[Pedidos] ${expired} reserva(s) expirada(s) e estoque devolvido.`);
+  } catch (error) {
+    console.error("[Pedidos] Erro ao expirar reservas:", error);
+  }
+};
+
 app.listen(PORT, () => {
   console.log(`
   ╔═══════════════════════════════════════╗
@@ -63,6 +73,10 @@ app.listen(PORT, () => {
   ║  🌍  Ambiente: ${process.env.NODE_ENV ?? "development"}         ║
   ╚═══════════════════════════════════════╝
   `);
+
+  void reservationSweep();
+  const timer = setInterval(() => void reservationSweep(), 5 * 60 * 1000);
+  timer.unref();
 });
 
 export default app;
