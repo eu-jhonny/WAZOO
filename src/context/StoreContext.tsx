@@ -42,6 +42,8 @@ const defaultSettings: SiteSettings = {
   institutionalText: site.institutionalText,
   deliveryFee: site.deliveryFee,
   freeShippingThreshold: site.freeShippingThreshold,
+  pixDiscount: site.pixDiscount,
+  maxInstall: site.maxInstall,
 };
 
 export interface NewOrderInput {
@@ -196,6 +198,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           freeShippingThreshold: remote.freeShippingThreshold !== undefined
             ? Number(remote.freeShippingThreshold)
             : prev.freeShippingThreshold,
+          pixDiscount: remote.pixDiscount !== undefined ? Number(remote.pixDiscount) : prev.pixDiscount,
+          maxInstall: remote.maxInstall !== undefined ? Number(remote.maxInstall) : prev.maxInstall,
         }));
       })
       .catch((error) => console.warn("[Wazoo API] configurações indisponíveis; usando cache local.", error));
