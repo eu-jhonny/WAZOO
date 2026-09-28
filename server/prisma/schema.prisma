@@ -1,5 +1,5 @@
 // ============================================================
-// Wazoo Pet Express — Schema Prisma (PostgreSQL / Supabase)
+// Wazoo — Schema Prisma (PostgreSQL / Supabase)
 // ============================================================
 
 generator client {
