@@ -85,7 +85,7 @@ export function Gatos() {
             <Reveal delay={140}>
               <p className="mt-4 text-lg text-purple-200 sm:text-xl">
                 Arranhadores, casinhas, petiscos e acessórios especiais.<br className="hidden sm:block" />
-                Conforto e estilo para o seu gato, sob encomenda.
+                Conforto, diversão e cuidado para o seu gato.
               </p>
             </Reveal>
             <Reveal delay={200}>
@@ -236,10 +236,10 @@ export function Gatos() {
                 <span className="inline-flex items-center gap-2 rounded-full bg-purple-100 px-4 py-1.5 text-sm font-extrabold text-purple-700">🌙 Conforto felino</span>
                 <h2 className="section-title mt-4">Seu gato merece o melhor</h2>
                 <p className="mt-4 text-lg leading-relaxed text-navy-500">
-                  Gatos são exigentes — e por isso selecionamos os melhores produtos do mercado, disponíveis sob encomenda com prazo garantido.
+                  Gatos são exigentes — por isso reunimos produtos para conforto, diversão, higiene e alimentação em uma experiência de compra simples.
                 </p>
                 <ul className="mt-5 space-y-2">
-                  {["Produtos 100% sob encomenda","Qualidade verificada","Prazo médio 5–7 dias úteis","Atendimento personalizado"].map((t) => (
+                  {["Compra online","Qualidade verificada","Acompanhamento do pedido","Atendimento quando precisar"].map((t) => (
                     <li key={t} className="flex items-center gap-2 text-sm font-semibold text-navy-600">
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 text-xs">✓</span>
                       {t}
