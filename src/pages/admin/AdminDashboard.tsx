@@ -9,7 +9,7 @@ import { useStore } from "@/context/StoreContext";
 import { formatBRL, formatDate } from "@/lib/format";
 import { statusStyle } from "@/lib/orderStatus";
 import { SalesReport } from "@/components/admin/SalesReport";
-import { apiEnabled, listApiOrdersAdmin, type ApiOrder } from "@/lib/api";
+import { apiEnabled, listApiCustomersAdmin, listApiOrdersAdmin, type ApiOrder } from "@/lib/api";
 import type { Order, OrderStatus } from "@/types";
 
 const WAITING   = ["Pedido recebido", "Pagamento pendente"];
@@ -107,6 +107,7 @@ export function AdminDashboard() {
   const { orders, products, reviews } = useStore();
   const navigate = useNavigate();
   const [remoteOrders, setRemoteOrders] = useState<Order[] | null>(null);
+  const [customerCount, setCustomerCount] = useState(0);
 
   useEffect(() => {
     if (!apiEnabled) return;
@@ -116,6 +117,12 @@ export function AdminDashboard() {
         if (active) setRemoteOrders(data.map(apiDashboardOrder));
       })
       .catch((error) => console.warn("[Wazoo API] dashboard sem pedidos remotos:", error));
+
+    listApiCustomersAdmin({ limit: 1 })
+      .then(({ total }) => {
+        if (active) setCustomerCount(total);
+      })
+      .catch((error) => console.warn("[Wazoo API] total de clientes indisponível:", error));
     return () => { active = false; };
   }, []);
 
@@ -248,6 +255,7 @@ export function AdminDashboard() {
         <Stat label="Receita de pedidos"   value={formatBRL(stats.estimated)} icon={Wallet}       color="text-green-600"  bg="bg-green-100"   border="border-green-500"  trend="Pedidos não cancelados" link="/admin/pedidos" />
         <Stat label="Total de pedidos"   value={stats.total}                 icon={ClipboardList} color="text-navy-700"  bg="bg-navy-100"    border="border-navy-400"   link="/admin/pedidos" />
         <Stat label="Aguardando ação"    value={stats.waiting}               icon={Clock}         color="text-orange-600" bg="bg-orange-100" border="border-orange-500" trend={stats.waiting > 0 ? "Precisa de atenção!" : "Tudo em dia ✓"} link="/admin/pedidos" />
+        <Stat label="Clientes"           value={customerCount}               icon={Users}         color="text-purple-600" bg="bg-purple-100" border="border-purple-400" link="/admin/clientes" />
         <Stat label="Produtos no ar"     value={stats.active}                icon={Package}       color="text-teal-600"  bg="bg-teal-100"    border="border-teal-400"   link="/admin/produtos" />
         <Stat label="Entregues"        value={stats.finished}              icon={CheckCircle2}  color="text-green-600"  bg="bg-green-100"  border="border-green-400"  link="/admin/pedidos" />
         <Stat label="Cancelados"         value={stats.cancelled}             icon={PackageX}      color="text-red-500"    bg="bg-red-100"    border="border-red-400"    link="/admin/pedidos" />
