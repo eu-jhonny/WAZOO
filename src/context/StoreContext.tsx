@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useMemo,
+  useEffect,
   type ReactNode,
 } from "react";
 import { usePersistentState } from "@/hooks/usePersistentState";
@@ -11,6 +12,18 @@ import { seedOrders } from "@/data/orders";
 import { seedReviews } from "@/data/reviews";
 import { uid } from "@/lib/format";
 import { emails } from "@/lib/email";
+import {
+  apiEnabled,
+  createApiProduct,
+  deleteApiProduct,
+  getApiSettings,
+  listApiProducts,
+  listApiReviews,
+  updateApiProduct,
+  updateApiSettings,
+  type ApiProduct,
+  type ApiProductInput,
+} from "@/lib/api";
 import type {
   Order,
   OrderItem,
@@ -79,6 +92,57 @@ interface StoreContextValue {
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
+
+function productFromApi(p: ApiProduct): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.categorySlug,
+    price: p.price,
+    comparePrice: p.comparePrice ?? undefined,
+    promoLabel: p.promoLabel ?? undefined,
+    leadTime: p.leadTime,
+    shortDescription: p.shortDescription,
+    description: p.description,
+    image: p.image,
+    gallery: p.gallery ?? [],
+    active: p.active,
+    featured: p.featured,
+    onDemand: false,
+    audience: p.audience,
+    size: p.size,
+    availability: p.availability,
+    tags: p.tags ?? [],
+    stock: p.stock ?? undefined,
+    variants: Array.isArray(p.variants) ? (p.variants as Product["variants"]) : undefined,
+    createdAt: new Date(p.createdAt).getTime(),
+  };
+}
+
+function productToApi(p: Omit<Product, "id" | "createdAt"> | Product): ApiProductInput {
+  return {
+    name: p.name,
+    categorySlug: p.category,
+    shortDescription: p.shortDescription,
+    description: p.description,
+    price: p.price,
+    comparePrice: p.comparePrice,
+    promoLabel: p.promoLabel,
+    image: p.image,
+    gallery: p.gallery ?? [],
+    audience: p.audience,
+    size: p.size,
+    leadTime: p.leadTime,
+    availability: p.availability,
+    tags: p.tags ?? [],
+    active: p.active,
+    featured: p.featured,
+    onDemand: false,
+    stock: p.stock,
+    variants: p.variants,
+  };
+}
+
 /** Gera o próximo número de pedido (WZ-XXXX). */
 function nextOrderId(orders: Order[]): string {
   const numbers = orders
@@ -106,6 +170,55 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     defaultSettings
   );
 
+
+  useEffect(() => {
+    if (!apiEnabled) return;
+    let active = true;
+
+    void listApiProducts({ limit: 200 })
+      .then(({ data }) => {
+        if (active && data.length > 0) setProducts(data.map(productFromApi));
+      })
+      .catch((error) => console.warn("[Wazoo API] catálogo indisponível; usando cache local.", error));
+
+    void getApiSettings()
+      .then((remote) => {
+        if (!active) return;
+        setSettings((prev) => ({
+          ...prev,
+          storeName: remote.storeName ?? prev.storeName,
+          whatsapp: remote.whatsapp ?? prev.whatsapp,
+          instagram: remote.instagram ?? prev.instagram,
+          hours: remote.hours ?? prev.hours,
+          institutionalText: remote.institutionalText ?? prev.institutionalText,
+          deliveryFee: remote.deliveryFee !== undefined ? Number(remote.deliveryFee) : prev.deliveryFee,
+          freeShippingThreshold: remote.freeShippingThreshold !== undefined
+            ? Number(remote.freeShippingThreshold)
+            : prev.freeShippingThreshold,
+        }));
+      })
+      .catch((error) => console.warn("[Wazoo API] configurações indisponíveis; usando cache local.", error));
+
+    void listApiReviews()
+      .then((remote) => {
+        if (!active) return;
+        setReviews(remote.map((r) => ({
+          id: r.id,
+          name: r.name,
+          petName: r.petName ?? undefined,
+          rating: r.rating,
+          text: r.text,
+          productId: r.productId ?? undefined,
+          approved: r.approved,
+          featured: r.featured,
+          createdAt: new Date(r.createdAt).getTime(),
+        })));
+      })
+      .catch((error) => console.warn("[Wazoo API] avaliações indisponíveis; usando cache local.", error));
+
+    return () => { active = false; };
+  }, [setProducts, setReviews, setSettings]);
+
   const value = useMemo<StoreContextValue>(() => {
     return {
       // ---------- Produtos ----------
@@ -118,22 +231,55 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           createdAt: Date.now(),
         };
         setProducts((prev) => [product, ...prev]);
+
+        if (apiEnabled) {
+          void createApiProduct(productToApi(data))
+            .then((remote) => {
+              setProducts((prev) =>
+                prev.map((p) => (p.id === product.id ? productFromApi(remote) : p)),
+              );
+            })
+            .catch((error) => console.error("[Wazoo API] falha ao criar produto:", error));
+        }
+
         return product;
       },
-      updateProduct: (id, data) =>
+      updateProduct: (id, data) => {
+        const current = products.find((p) => p.id === id);
         setProducts((prev) =>
           prev.map((p) => (p.id === id ? { ...p, ...data } : p))
-        ),
-      deleteProduct: (id) =>
-        setProducts((prev) => prev.filter((p) => p.id !== id)),
-      toggleProductActive: (id) =>
-        setProducts((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
-        ),
-      toggleProductFeatured: (id) =>
-        setProducts((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, featured: !p.featured } : p))
-        ),
+        );
+        if (apiEnabled && current) {
+          void updateApiProduct(id, productToApi({ ...current, ...data }))
+            .then((remote) => {
+              setProducts((prev) =>
+                prev.map((p) => (p.id === id ? productFromApi(remote) : p)),
+              );
+            })
+            .catch((error) => console.error("[Wazoo API] falha ao atualizar produto:", error));
+        }
+      },
+      deleteProduct: (id) => {
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        if (apiEnabled) {
+          void deleteApiProduct(id)
+            .catch((error) => console.error("[Wazoo API] falha ao excluir produto:", error));
+        }
+      },
+      toggleProductActive: (id) => {
+        const current = products.find((p) => p.id === id);
+        if (!current) return;
+        const active = !current.active;
+        setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, active } : p)));
+        if (apiEnabled) void updateApiProduct(id, { active }).catch(console.error);
+      },
+      toggleProductFeatured: (id) => {
+        const current = products.find((p) => p.id === id);
+        if (!current) return;
+        const featured = !current.featured;
+        setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, featured } : p)));
+        if (apiEnabled) void updateApiProduct(id, { featured }).catch(console.error);
+      },
 
       // ---------- Pedidos ----------
       orders,
@@ -224,7 +370,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // ---------- Configurações ----------
       settings,
-      updateSettings: (data) => setSettings((prev) => ({ ...prev, ...data })),
+      updateSettings: (data) => {
+        setSettings((prev) => ({ ...prev, ...data }));
+        if (apiEnabled) {
+          const payload = Object.fromEntries(
+            Object.entries(data)
+              .filter(([, value]) => value !== undefined)
+              .map(([key, value]) => [key, String(value)]),
+          );
+          if (Object.keys(payload).length) {
+            void updateApiSettings(payload)
+              .catch((error) => console.error("[Wazoo API] falha ao salvar configurações:", error));
+          }
+        }
+      },
 
       // ---------- Reset ----------
       resetStore: () => {
