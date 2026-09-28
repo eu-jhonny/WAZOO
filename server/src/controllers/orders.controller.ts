@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
@@ -6,10 +7,9 @@ import { AppError } from "../middleware/errorHandler";
 const orderItemSchema = z.object({
   productId: z.string().optional(),
   kitId: z.string().optional(),
-  name: z.string(),
-  quantity: z.number().int().positive(),
-  unitPrice: z.number().positive(),
-  image: z.string().optional(),
+  quantity: z.number().int().positive().max(99),
+}).refine((item) => Boolean(item.productId) !== Boolean(item.kitId), {
+  message: "Informe exatamente um productId ou kitId",
 });
 
 const createOrderSchema = z.object({
@@ -30,10 +30,11 @@ const createOrderSchema = z.object({
   customerNote: z.string().optional(),
 });
 
-async function generateOrderNumber(): Promise<string> {
+function generateOrderNumber(): string {
   const year = new Date().getFullYear();
-  const count = await prisma.order.count();
-  return `WZ-${year}-${String(count + 1).padStart(4, "0")}`;
+  const stamp = Date.now().toString(36).toUpperCase().slice(-6);
+  const salt = randomBytes(2).toString("hex").toUpperCase();
+  return `WZ-${year}-${stamp}${salt}`;
 }
 
 async function applyCoupon(code: string, subtotal: number) {
@@ -63,51 +64,122 @@ async function applyCoupon(code: string, subtotal: number) {
 export async function createOrder(req: Request, res: Response) {
   const data = createOrderSchema.parse(req.body);
 
-  const subtotal = data.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+  // Nunca confie em nome ou preço enviados pelo navegador.
+  // O servidor resolve os itens diretamente no banco.
+  const normalizedItems = await Promise.all(
+    data.items.map(async (item) => {
+      if (item.productId) {
+        const product = await prisma.product.findUnique({ where: { id: item.productId } });
+        if (!product || !product.active) {
+          throw new AppError("Produto indisponível", 400, "PRODUCT_UNAVAILABLE");
+        }
+        if (typeof product.stock === "number" && product.stock < item.quantity) {
+          throw new AppError(`Estoque insuficiente para ${product.name}`, 409, "INSUFFICIENT_STOCK");
+        }
+        return {
+          productId: product.id,
+          kitId: undefined,
+          name: product.name,
+          quantity: item.quantity,
+          unitPrice: product.price,
+          image: product.image,
+          controlledStock: product.stock !== null,
+        };
+      }
+
+      const kit = await prisma.kit.findUnique({ where: { id: item.kitId! } });
+      if (!kit || !kit.active) {
+        throw new AppError("Kit indisponível", 400, "KIT_UNAVAILABLE");
+      }
+      return {
+        productId: undefined,
+        kitId: kit.id,
+        name: kit.name,
+        quantity: item.quantity,
+        unitPrice: kit.price,
+        image: kit.image,
+        controlledStock: false,
+      };
+    }),
+  );
+
+  const subtotal = normalizedItems.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
   let discountAmount = 0;
-  let shippingAmount = data.deliveryMethod === "DELIVERY" ? 15 : 0; // taxa base — pode ser calculada por CEP
+  let shippingAmount = data.deliveryMethod === "DELIVERY" ? 15 : 0;
 
   let couponRef: Awaited<ReturnType<typeof applyCoupon>>["coupon"] | null = null;
   if (data.couponCode) {
     const { discount, coupon } = await applyCoupon(data.couponCode, subtotal);
-    discountAmount = discount;
+    discountAmount = Math.min(subtotal, discount);
     if (coupon.type === "FREE_SHIPPING") shippingAmount = 0;
     couponRef = coupon;
   }
 
   const total = Math.max(0, subtotal - discountAmount + shippingAmount);
-  const number = await generateOrderNumber();
+  const number = generateOrderNumber();
 
-  const order = await prisma.order.create({
-    data: {
-      number,
-      ...data,
-      subtotal,
-      discountAmount,
-      shippingAmount,
-      total,
-      items: {
-        create: data.items.map((item) => ({
-          productId: item.productId,
-          kitId: item.kitId,
-          name: item.name,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.unitPrice * item.quantity,
-          image: item.image ?? "",
-        })),
+  const order = await prisma.$transaction(async (tx) => {
+    // Reserva/debita estoque dentro da mesma transação do pedido.
+    for (const item of normalizedItems) {
+      if (!item.productId || !item.controlledStock) continue;
+      const updated = await tx.product.updateMany({
+        where: {
+          id: item.productId,
+          active: true,
+          stock: { gte: item.quantity },
+        },
+        data: { stock: { decrement: item.quantity } },
+      });
+      if (updated.count !== 1) {
+        throw new AppError(`Estoque insuficiente para ${item.name}`, 409, "INSUFFICIENT_STOCK");
+      }
+    }
+
+    const created = await tx.order.create({
+      data: {
+        number,
+        customerName: data.customerName,
+        customerEmail: data.customerEmail,
+        customerPhone: data.customerPhone,
+        customerDoc: data.customerDoc,
+        deliveryMethod: data.deliveryMethod,
+        addressStreet: data.addressStreet,
+        addressNumber: data.addressNumber,
+        addressComplement: data.addressComplement,
+        addressNeighborhood: data.addressNeighborhood,
+        addressCity: data.addressCity,
+        addressState: data.addressState,
+        addressZip: data.addressZip,
+        couponCode: data.couponCode?.toUpperCase(),
+        customerNote: data.customerNote,
+        subtotal,
+        discountAmount,
+        shippingAmount,
+        total,
+        items: {
+          create: normalizedItems.map((item) => ({
+            productId: item.productId,
+            kitId: item.kitId,
+            name: item.name,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.unitPrice * item.quantity,
+            image: item.image ?? "",
+          })),
+        },
       },
-    },
-    include: { items: true },
-  });
-
-  // Incrementa uso do cupom
-  if (couponRef) {
-    await prisma.coupon.update({
-      where: { id: couponRef.id },
-      data: { usedCount: { increment: 1 } },
+      include: { items: true },
     });
-  }
+
+    if (couponRef) {
+      await tx.coupon.update({
+        where: { id: couponRef.id },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
+
+    return created;
+  });
 
   res.status(201).json(order);
 }
