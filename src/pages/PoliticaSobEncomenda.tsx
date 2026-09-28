@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
-import { ClipboardCheck, PackageSearch, PawPrint, RefreshCw } from "lucide-react";
+import { CreditCard, PackageCheck, PawPrint, Truck } from "lucide-react";
 import { PageHero } from "@/components/ui/PageHero";
 import { Reveal } from "@/components/ui/Reveal";
 
 const points = [
-  { icon: PackageSearch, title: "Verificamos a disponibilidade", text: "Após o envio do pedido, conferimos com fornecedores parceiros se o item está disponível." },
-  { icon: ClipboardCheck, title: "Confirmamos prazo e valor", text: "Você recebe o prazo médio e o valor final antes de qualquer cobrança." },
-  { icon: RefreshCw, title: "Sem disponibilidade? Sem problema", text: "Caso algo não esteja disponível, oferecemos alternativas ou cancelamos o item." },
+  { icon: PackageCheck, title: "Disponibilidade clara", text: "A página do produto informa estoque e opções disponíveis antes da compra." },
+  { icon: CreditCard, title: "Preço e pagamento", text: "O checkout mostra subtotal, descontos, frete e total antes da confirmação." },
+  { icon: Truck, title: "Entrega e acompanhamento", text: "Depois da compra, acompanhe a separação e a entrega pela sua conta." },
 ];
 
 export function PoliticaSobEncomenda() {
@@ -16,8 +16,8 @@ export function PoliticaSobEncomenda() {
         variant="navy"
         eyebrow="Política"
         icon={PawPrint}
-        title="Compra sob encomenda"
-        subtitle="Transparência do início ao fim: você só confirma depois que verificamos tudo."
+        title="Política de compra e entrega"
+        subtitle="Informações claras sobre disponibilidade, pagamento, entrega e acompanhamento do pedido."
       />
 
       <section className="section">
@@ -25,13 +25,7 @@ export function PoliticaSobEncomenda() {
           <Reveal>
             <div className="card p-6 sm:p-8">
               <p className="leading-relaxed text-navy-600">
-                Na Wazoo Pet Express, os produtos são vendidos sob encomenda. Isso
-                significa que, após o envio da solicitação, nossa equipe verifica
-                disponibilidade, prazo e valor com fornecedores parceiros. O
-                pedido só é confirmado após essa validação e após a confirmação do
-                pagamento, quando aplicável. Caso algum produto não esteja
-                disponível, entraremos em contato para oferecer alternativas ou
-                cancelar o item.
+                Na Wazoo, a compra é realizada diretamente pelo e-commerce. Antes de finalizar, você confere os produtos, quantidades, descontos, opção de entrega e forma de pagamento. Após a confirmação, o pedido segue para separação e você pode acompanhar seu andamento pela sua conta.
               </p>
             </div>
           </Reveal>
