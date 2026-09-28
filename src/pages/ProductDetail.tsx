@@ -13,6 +13,8 @@ import {
   Ruler,
   ShoppingCart,
   Tag,
+  Truck,
+  Loader2,
 } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import { useCart } from "@/context/CartContext";
@@ -54,6 +56,14 @@ export function ProductDetail() {
   const [note, setNote] = useState("");
   const [variantSel, setVariantSel] = useState<number[]>([]);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [shippingZip, setShippingZip] = useState("");
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingInfo, setShippingInfo] = useState<{
+    ok: boolean;
+    city?: string;
+    state?: string;
+    error?: string;
+  } | null>(null);
 
   // Reseta seleção de variação e quantidade ao trocar de produto.
   useEffect(() => {
@@ -122,6 +132,30 @@ export function ProductDetail() {
   const buyNow = () => {
     addToCart();
     navigate("/checkout");
+  };
+
+  const calculateShipping = async () => {
+    const clean = shippingZip.replace(/\D/g, "");
+    if (clean.length !== 8) {
+      setShippingInfo({ ok: false, error: "Digite um CEP válido com 8 números." });
+      return;
+    }
+
+    setShippingLoading(true);
+    setShippingInfo(null);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+      const data = await response.json();
+      if (!response.ok || data.erro) {
+        setShippingInfo({ ok: false, error: "CEP não encontrado." });
+        return;
+      }
+      setShippingInfo({ ok: true, city: data.localidade, state: data.uf });
+    } catch {
+      setShippingInfo({ ok: false, error: "Não foi possível consultar o CEP agora." });
+    } finally {
+      setShippingLoading(false);
+    }
   };
 
   return (
@@ -341,6 +375,46 @@ export function ProductDetail() {
               >
                 Comprar agora
               </button>
+
+              <div className="mt-5 rounded-2xl border border-cream-200 bg-white p-4">
+                <div className="flex items-center gap-2 font-display font-bold text-navy-700">
+                  <Truck size={18} className="text-teal-600" /> Calcular entrega
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={shippingZip}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+                      setShippingZip(digits.replace(/(\d{5})(\d)/, "$1-$2"));
+                      setShippingInfo(null);
+                    }}
+                    placeholder="00000-000"
+                    inputMode="numeric"
+                    className="input flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={calculateShipping}
+                    disabled={shippingLoading}
+                    className="btn-teal shrink-0 px-4 disabled:opacity-60"
+                  >
+                    {shippingLoading ? <Loader2 size={16} className="animate-spin" /> : "Calcular"}
+                  </button>
+                </div>
+                {shippingInfo?.ok && (
+                  <div className="mt-3 rounded-xl bg-teal-50 px-3 py-2.5 text-sm text-teal-800">
+                    <strong>Entrega disponível para {shippingInfo.city}/{shippingInfo.state}.</strong>
+                    <span className="block text-xs">
+                      {settings.freeShippingThreshold > 0 && finalPrice * qty >= settings.freeShippingThreshold
+                        ? "Frete grátis para este carrinho."
+                        : `Frete padrão a partir de ${formatBRL(settings.deliveryFee)}. Prazo final confirmado no checkout.`}
+                    </span>
+                  </div>
+                )}
+                {shippingInfo && !shippingInfo.ok && (
+                  <p className="mt-2 text-sm font-semibold text-red-500">{shippingInfo.error}</p>
+                )}
+              </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-cream-50 p-3 text-center text-xs font-semibold text-navy-600">
                 <span>🚚 Entrega calculada no checkout</span>
