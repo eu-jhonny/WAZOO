@@ -10,12 +10,18 @@ import { NotificationBell } from "../ui/NotificationSystem";
 import { SearchOverlay } from "../ui/SearchOverlay";
 
 /** Logo customizado salvo pelo admin (base64) ou null se não houver. */
+function readCustomLogo() {
+  try {
+    return localStorage.getItem("wazoo_custom_logo");
+  } catch {
+    return null;
+  }
+}
+
 function useCustomLogo() {
-  const [logo, setLogo] = useState<string | null>(() =>
-    localStorage.getItem("wazoo_custom_logo"),
-  );
+  const [logo, setLogo] = useState<string | null>(() => readCustomLogo());
   useEffect(() => {
-    const handler = () => setLogo(localStorage.getItem("wazoo_custom_logo"));
+    const handler = () => setLogo(readCustomLogo());
     window.addEventListener("wazoo:config-updated", handler);
     window.addEventListener("storage", handler);
     return () => {
