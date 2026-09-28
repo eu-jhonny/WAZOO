@@ -62,6 +62,7 @@ model Product {
   leadTime         String   @default("5-7 dias úteis")
   availability     String   @default("Em estoque")
   tags             String[]
+  variants         Json?
   active           Boolean  @default(true)
   featured         Boolean  @default(false)
   onDemand         Boolean  @default(false)
