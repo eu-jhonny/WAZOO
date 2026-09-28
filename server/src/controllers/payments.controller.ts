@@ -87,7 +87,11 @@ export async function processPayment(req: Request, res: Response) {
   if (order.publicToken !== input.publicToken) throw new AppError("Acesso ao pedido negado", 403, "INVALID_ORDER_TOKEN");
   if (order.paymentStatus === "APPROVED") throw new AppError("Pedido já foi pago", 400);
 
-  const notificationUrl = `${process.env.API_URL}/api/payments/webhook`;
+  const publicApiUrl = (process.env.API_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
+  if (!publicApiUrl) {
+    throw new AppError("URL pública da API não configurada", 500, "API_URL_MISSING");
+  }
+  const notificationUrl = `${publicApiUrl}/api/payments/webhook`;
   const description = `Wazoo — Pedido ${order.number}`;
 
   let result: Awaited<ReturnType<typeof createCardPayment>>;
