@@ -278,7 +278,7 @@ export async function listOrders(req: Request, res: Response) {
   ];
 
   const [orders, total] = await Promise.all([
-    prisma.order.findMany({ where, skip, take, orderBy: { createdAt: "desc" }, include: { items: true } }),
+    prisma.order.findMany({ where, skip, take, orderBy: { createdAt: "desc" }, include: { items: true, statusEvents: { orderBy: { createdAt: "asc" } } } }),
     prisma.order.count({ where }),
   ]);
 
@@ -324,7 +324,7 @@ export async function trackOrder(req: Request, res: Response) {
 export async function getOrder(req: Request, res: Response) {
   const order = await prisma.order.findFirst({
     where: { OR: [{ id: req.params.id }, { number: req.params.id }] },
-    include: { items: true },
+    include: { items: true, statusEvents: { orderBy: { createdAt: "asc" } } },
   });
   if (!order) throw new AppError("Pedido não encontrado", 404);
   res.json(order);
