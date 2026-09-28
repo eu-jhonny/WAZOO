@@ -10,15 +10,15 @@ import { formatBRL, formatDate } from "@/lib/format";
 import { statusStyle } from "@/lib/orderStatus";
 import { SalesReport } from "@/components/admin/SalesReport";
 
-const WAITING   = ["Solicitação enviada", "Verificando disponibilidade"];
+const WAITING   = ["Pedido recebido", "Pagamento pendente"];
 const STATUS_ICON: Record<string, string> = {
-  "Solicitação enviada":         "🕐",
-  "Verificando disponibilidade": "🔍",
-  "Confirmado pelo fornecedor":  "✅",
-  "Em preparação":               "📦",
+  "Pedido recebido":             "🧾",
+  "Pagamento pendente":          "💳",
+  "Pagamento confirmado":        "✅",
+  "Em separação":                "📦",
   "Pronto para retirada":        "🏪",
-  "Em rota de entrega":          "🚚",
-  "Finalizado":                  "🎉",
+  "Saiu para entrega":           "🚚",
+  "Entregue":                    "🎉",
   "Cancelado":                   "❌",
 };
 
@@ -80,7 +80,7 @@ export function AdminDashboard() {
 
   const stats = useMemo(() => {
     const waiting   = orders.filter((o) => WAITING.includes(o.status)).length;
-    const finished  = orders.filter((o) => o.status === "Finalizado").length;
+    const finished  = orders.filter((o) => o.status === "Entregue").length;
     const cancelled = orders.filter((o) => o.status === "Cancelado").length;
     const estimated = orders
       .filter((o) => o.status !== "Cancelado")
@@ -116,14 +116,14 @@ export function AdminDashboard() {
   const maxStatusCount = topStatusEntries[0]?.[1] ?? 1;
 
   const STATUS_COLORS: Record<string, string> = {
-    "Solicitação enviada":         "bg-slate-400",
-    "Verificando disponibilidade": "bg-amber-400",
-    "Confirmado pelo fornecedor":  "bg-blue-400",
-    "Em preparação":               "bg-indigo-400",
-    "Pronto para retirada":        "bg-teal-400",
-    "Em rota de entrega":          "bg-cyan-400",
-    "Finalizado":                  "bg-green-500",
-    "Cancelado":                   "bg-red-400",
+    "Pedido recebido":       "bg-slate-400",
+    "Pagamento pendente":    "bg-amber-400",
+    "Pagamento confirmado":  "bg-blue-400",
+    "Em separação":          "bg-indigo-400",
+    "Pronto para retirada":  "bg-teal-400",
+    "Saiu para entrega":     "bg-cyan-400",
+    "Entregue":              "bg-green-500",
+    "Cancelado":             "bg-red-400",
   };
 
   return (
@@ -156,7 +156,7 @@ export function AdminDashboard() {
           <Link to="/admin/pedidos" className="flex items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 transition-colors hover:bg-orange-100">
             <span className="flex items-center gap-2 text-sm font-bold text-orange-700">
               <AlertTriangle size={16} className="text-orange-500" />
-              {stats.waiting} pedido{stats.waiting !== 1 ? "s" : ""} aguardando confirmação
+              {stats.waiting} pedido{stats.waiting !== 1 ? "s" : ""} aguardando ação
             </span>
             <ArrowRight size={15} className="text-orange-500" />
           </Link>
@@ -183,11 +183,11 @@ export function AdminDashboard() {
 
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Stat label="Receita estimada"   value={formatBRL(stats.estimated)} icon={Wallet}       color="text-green-600"  bg="bg-green-100"   border="border-green-500"  trend="Pedidos não cancelados" link="/admin/pedidos" />
+        <Stat label="Receita de pedidos"   value={formatBRL(stats.estimated)} icon={Wallet}       color="text-green-600"  bg="bg-green-100"   border="border-green-500"  trend="Pedidos não cancelados" link="/admin/pedidos" />
         <Stat label="Total de pedidos"   value={stats.total}                 icon={ClipboardList} color="text-navy-700"  bg="bg-navy-100"    border="border-navy-400"   link="/admin/pedidos" />
         <Stat label="Aguardando ação"    value={stats.waiting}               icon={Clock}         color="text-orange-600" bg="bg-orange-100" border="border-orange-500" trend={stats.waiting > 0 ? "Precisa de atenção!" : "Tudo em dia ✓"} link="/admin/pedidos" />
         <Stat label="Produtos no ar"     value={stats.active}                icon={Package}       color="text-teal-600"  bg="bg-teal-100"    border="border-teal-400"   link="/admin/produtos" />
-        <Stat label="Finalizados"        value={stats.finished}              icon={CheckCircle2}  color="text-green-600"  bg="bg-green-100"  border="border-green-400"  link="/admin/pedidos" />
+        <Stat label="Entregues"        value={stats.finished}              icon={CheckCircle2}  color="text-green-600"  bg="bg-green-100"  border="border-green-400"  link="/admin/pedidos" />
         <Stat label="Cancelados"         value={stats.cancelled}             icon={PackageX}      color="text-red-500"    bg="bg-red-100"    border="border-red-400"    link="/admin/pedidos" />
       </div>
 
