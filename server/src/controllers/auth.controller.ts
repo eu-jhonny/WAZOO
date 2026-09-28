@@ -10,10 +10,110 @@ const loginSchema = z.object({
   password: z.string().min(6, "Senha muito curta"),
 });
 
+const registerSchema = z.object({
+  name: z.string().min(2, "Nome obrigatório"),
+  phone: z.string().min(10, "Telefone inválido"),
+  email: z.string().email("E-mail inválido"),
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+  preference: z.enum(["DELIVERY", "PICKUP"]).default("DELIVERY"),
+  address: z.object({
+    label: z.string().optional(),
+    street: z.string().min(2),
+    number: z.string().min(1),
+    complement: z.string().optional(),
+    neighborhood: z.string().min(2),
+    city: z.string().min(2),
+    state: z.string().length(2),
+    zip: z.string().min(8),
+  }).optional(),
+});
+
+function publicUser(user: {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar: string | null;
+  preference: string;
+  role: string;
+  createdAt: Date;
+  addresses?: unknown;
+  pets?: unknown;
+}) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    avatar: user.avatar,
+    preference: user.preference,
+    role: user.role,
+    createdAt: user.createdAt,
+    addresses: user.addresses ?? [],
+    pets: user.pets ?? [],
+  };
+}
+
+export async function register(req: Request, res: Response) {
+  const data = registerSchema.parse(req.body);
+  const email = data.email.trim().toLowerCase();
+
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists) throw new AppError("Este e-mail já está cadastrado", 409, "EMAIL_IN_USE");
+
+  const password = await bcrypt.hash(data.password, 12);
+  const user = await prisma.user.create({
+    data: {
+      email,
+      password,
+      name: data.name.trim(),
+      phone: data.phone.replace(/\D/g, ""),
+      preference: data.preference,
+      role: "CUSTOMER",
+      ...(data.address && {
+        addresses: {
+          create: {
+            label: data.address.label ?? "Casa",
+            recipientName: data.name.trim(),
+            street: data.address.street.trim(),
+            number: data.address.number.trim(),
+            complement: data.address.complement?.trim() || undefined,
+            neighborhood: data.address.neighborhood.trim(),
+            city: data.address.city.trim(),
+            state: data.address.state.trim().toUpperCase(),
+            zip: data.address.zip.replace(/\D/g, ""),
+            isDefault: true,
+          },
+        },
+      }),
+    },
+    include: {
+      addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] },
+      pets: true,
+    },
+  });
+
+  const payload = { userId: user.id, email: user.email, role: user.role };
+  const token = signToken(payload);
+  const refreshToken = signRefreshToken({ userId: user.id });
+
+  res.status(201).json({
+    token,
+    refreshToken,
+    user: publicUser(user),
+  });
+}
+
 export async function login(req: Request, res: Response) {
   const { email, password } = loginSchema.parse(req.body);
 
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    include: {
+      addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] },
+      pets: { orderBy: { createdAt: "asc" } },
+    },
+  });
   if (!user || !user.active) throw new AppError("Credenciais inválidas", 401);
 
   const valid = await bcrypt.compare(password, user.password);
@@ -26,7 +126,7 @@ export async function login(req: Request, res: Response) {
   res.json({
     token,
     refreshToken,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: publicUser(user),
   });
 }
 
@@ -47,10 +147,13 @@ export async function refresh(req: Request, res: Response) {
 export async function me(req: Request, res: Response) {
   const user = await prisma.user.findUnique({
     where: { id: req.user!.userId },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    include: {
+      addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] },
+      pets: { orderBy: { createdAt: "asc" } },
+    },
   });
   if (!user) throw new AppError("Usuário não encontrado", 404);
-  res.json(user);
+  res.json(publicUser(user));
 }
 
 export async function changePassword(req: Request, res: Response) {
