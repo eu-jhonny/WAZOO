@@ -27,7 +27,7 @@ const statusIcon: Record<string, string> = {
   "Em separação":                 "📦",
   "Pronto para retirada":         "🏪",
   "Saiu para entrega":            "🚚",
-  "Finalizado":                   "🎉",
+  "Entregue":                    "🎉",
   "Cancelado":                    "❌",
 };
 
