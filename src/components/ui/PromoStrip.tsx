@@ -2,7 +2,7 @@
 export function PromoStrip() {
   const msgs = [
     "🚚 FRETE GRÁTIS acima de R$200",
-    "💳 10% OFF no PIX",
+    "💚 DESCONTO NO PIX",
     "🎁 Código WAZOO10 → 10% OFF na primeira compra",
     "👔 Especial Dia dos Pais: presentes para pai & pet",
     "🎁 Kits Dia dos Pais com desconto",
