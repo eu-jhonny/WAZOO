@@ -8,6 +8,14 @@ function toSlug(text: string) {
     .replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
+const variantSchema = z.object({
+  name: z.string().min(1),
+  options: z.array(z.object({
+    label: z.string().min(1),
+    priceDelta: z.number().optional(),
+  })).min(1),
+});
+
 const productSchema = z.object({
   name: z.string().min(2),
   categorySlug: z.string(),
@@ -23,6 +31,7 @@ const productSchema = z.object({
   leadTime: z.string().default("5-7 dias úteis"),
   availability: z.string().default("Em estoque"),
   tags: z.array(z.string()).optional(),
+  variants: z.array(variantSchema).optional(),
   active: z.boolean().optional(),
   featured: z.boolean().optional(),
   onDemand: z.boolean().default(false),
@@ -83,6 +92,7 @@ export async function createProduct(req: Request, res: Response) {
       image: data.image ?? "",
       gallery: data.gallery ?? [],
       tags: data.tags ?? [],
+      variants: data.variants ?? [],
     },
   });
   res.status(201).json(product);
