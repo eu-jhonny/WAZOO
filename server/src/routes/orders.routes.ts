@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createOrder, listOrders, getOrder, updateOrderStatus, validateCoupon, cancelOrder } from "../controllers/orders.controller";
+import { createOrder, listOrders, getOrder, trackOrder, updateOrderStatus, validateCoupon, cancelOrder } from "../controllers/orders.controller";
 import { authenticate, requireAdmin } from "../middleware/auth";
 
 export const ordersRouter = Router();
@@ -7,6 +7,7 @@ export const ordersRouter = Router();
 ordersRouter.post("/",                      createOrder);          // público
 ordersRouter.post("/validate-coupon",       validateCoupon);       // público
 ordersRouter.get("/",   authenticate, requireAdmin, listOrders);
-ordersRouter.get("/:id",                    getOrder);             // público (por número do pedido)
+ordersRouter.get("/track/:number",          trackOrder);           // público, resposta sem dados pessoais
+ordersRouter.get("/:id", authenticate, requireAdmin, getOrder);
 ordersRouter.put("/:id/status", authenticate, requireAdmin, updateOrderStatus);
-ordersRouter.patch("/:id/cancel",               cancelOrder);          // cancelar pedido pendente
+ordersRouter.patch("/:id/cancel", authenticate, requireAdmin, cancelOrder);          // cancelar pedido pendente
