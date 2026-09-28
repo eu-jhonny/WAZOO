@@ -11,6 +11,7 @@ import {
 
 const baseSchema = z.object({
   orderId: z.string(),
+  publicToken: z.string(),
   email: z.string().email(),
   cpf: z.string().min(11).max(14),
   firstName: z.string(),
@@ -48,6 +49,7 @@ export async function processPayment(req: Request, res: Response) {
 
   const order = await prisma.order.findUnique({ where: { id: input.orderId }, include: { items: true } });
   if (!order) throw new AppError("Pedido não encontrado", 404);
+  if (order.publicToken !== input.publicToken) throw new AppError("Acesso ao pedido negado", 403, "INVALID_ORDER_TOKEN");
   if (order.paymentStatus === "APPROVED") throw new AppError("Pedido já foi pago", 400);
 
   const notificationUrl = `${process.env.API_URL}/api/payments/webhook`;
@@ -156,10 +158,24 @@ export async function paymentWebhook(req: Request, res: Response) {
 
 /* ── Consultar status do pagamento ───────────────────── */
 export async function getPaymentStatus(req: Request, res: Response) {
+  const token = z.string().min(1).parse(req.query.token);
   const order = await prisma.order.findUnique({
     where: { id: req.params.orderId },
-    select: { paymentStatus: true, mpPaymentId: true, pixCode: true, boletoUrl: true, paidAt: true, status: true, number: true },
+    select: {
+      paymentStatus: true,
+      mpPaymentId: true,
+      pixCode: true,
+      boletoUrl: true,
+      paidAt: true,
+      status: true,
+      number: true,
+      publicToken: true,
+    },
   });
   if (!order) throw new AppError("Pedido não encontrado", 404);
-  res.json(order);
+  if (order.publicToken !== token) {
+    throw new AppError("Acesso ao pedido negado", 403, "INVALID_ORDER_TOKEN");
+  }
+  const { publicToken: _secret, ...safe } = order;
+  res.json(safe);
 }
