@@ -192,6 +192,7 @@ model Order {
   pixCode        String? @db.Text
   boletoUrl      String?
   paidAt         DateTime?
+  inventoryReleasedAt DateTime?
 
   // Notas
   customerNote String?  @db.Text
