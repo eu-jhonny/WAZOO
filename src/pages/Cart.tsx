@@ -1,59 +1,24 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  Info,
   Minus,
   Plus,
   ShoppingBag,
   ShoppingCart,
-  Tag,
   Trash2,
 } from "lucide-react";
 import { img } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { useStore } from "@/context/StoreContext";
-import { useToast } from "@/context/ToastContext";
 import { formatBRL } from "@/lib/format";
-import { whatsappLink, buildCartMessage } from "@/lib/whatsapp";
 import { ProductImage } from "@/components/ui/ProductImage";
-import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 
 export function Cart() {
   const {
     items, note, total, count, lineId,
     setNote, updateQuantity, removeItem, updateItemNote, clear,
   } = useCart();
-  const { user, isLoggedIn } = useAuth();
-  const { settings, addOrder } = useStore();
-  const { showToast }          = useToast();
-  const navigate               = useNavigate();
-
-  const petName = user?.pets[0]?.name;
-
-  const sendOrder = () => {
-    if (items.length === 0) return;
-    const message = buildCartMessage({ items, total, customerName: user?.name, petName, observation: note || undefined });
-    addOrder({
-      userId:       user?.id,
-      customerName: user?.name ?? "Cliente via site",
-      customerPhone: user?.phone ?? "",
-      petName,
-      fulfillment:  user?.preference ?? "entrega",
-      items: items.map((i) => ({
-        name:     `${i.name}${i.variant ? ` (${i.variant})` : ""}${i.kind === "kit" ? " (Kit)" : ""}`,
-        quantity: i.quantity,
-        price:    i.price,
-        note:     i.note,
-      })),
-      total,
-      note: note || undefined,
-    });
-    window.open(whatsappLink(message, settings.whatsapp), "_blank", "noopener");
-    clear();
-    showToast("Pedido enviado com sucesso! 🎉", "success");
-    navigate(isLoggedIn ? "/pedidos" : "/");
-  };
+  const { isLoggedIn } = useAuth();
 
   /* ─── Carrinho vazio ──────────────────────────────────────────── */
   if (items.length === 0) {
@@ -68,7 +33,7 @@ export function Cart() {
               Carrinho vazio
             </h1>
             <p className="mt-2 text-navy-500">
-              Adicione produtos para fazer seu pedido.
+              Adicione produtos para começar sua compra.
             </p>
             <Link to="/produtos" className="btn-primary mt-6">
               <ShoppingBag size={18} /> Ver produtos
@@ -90,7 +55,7 @@ export function Cart() {
           <div>
             <h1 className="font-display text-3xl font-bold text-navy-800">Carrinho</h1>
             <p className="mt-1 text-sm text-navy-500">
-              {count} {count === 1 ? "item" : "itens"} · sob encomenda
+              {count} {count === 1 ? "item" : "itens"} no carrinho
             </p>
           </div>
           <button
@@ -132,9 +97,6 @@ export function Cart() {
                       {item.variant && (
                         <p className="mt-0.5 text-xs font-semibold text-teal-600">{item.variant}</p>
                       )}
-                      <span className="badge-encomenda mt-1">
-                        <Tag size={10} /> Sob encomenda
-                      </span>
                     </div>
                     <button
                       onClick={() => removeItem(id)}
@@ -215,7 +177,7 @@ export function Cart() {
                 <label className="label">Observação geral</label>
                 <textarea
                   className="input min-h-[72px] text-sm"
-                  placeholder="Ex.: confirmar tamanho antes de fazer o pedido."
+                  placeholder="Alguma observação para este pedido?"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
@@ -229,31 +191,20 @@ export function Cart() {
                 </div>
                 <div className="flex justify-between text-sm text-navy-500">
                   <span>Frete</span>
-                  <span className="font-semibold text-green-600">A combinar</span>
+                  <span className="font-semibold text-navy-500">Calculado no checkout</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-cream-200 pt-3">
-                  <span className="font-display font-bold text-navy-800">Total estimado</span>
+                  <span className="font-display font-bold text-navy-800">Subtotal</span>
                   <span className="font-display text-2xl font-bold text-orange-600">
                     {formatBRL(total)}
                   </span>
                 </div>
               </div>
 
-              {/* Aviso */}
-              <div className="mx-5 mb-4 flex gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-                <Info size={14} className="mt-0.5 shrink-0 text-amber-500" />
-                <span>
-                  Valor estimado — confirmação final após verificação com o fornecedor.
-                </span>
-              </div>
-
               {/* Botão principal */}
               <div className="px-5 pb-5 space-y-2">
-                <button onClick={sendOrder} className="btn-green w-full btn-lg">
-                  <WhatsAppIcon size={20} /> Enviar pedido pelo WhatsApp
-                </button>
                 <Link to="/checkout" className="btn-primary w-full flex items-center justify-center gap-2">
-                  Finalizar pedido com entrega <ArrowRight size={16} />
+                  Ir para o checkout <ArrowRight size={16} />
                 </Link>
 
                 {!isLoggedIn && (
