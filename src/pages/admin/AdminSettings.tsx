@@ -286,7 +286,7 @@ export function AdminSettings() {
   };
   const saveLoja = (e: FormEvent) => {
     e.preventDefault();
-    updateSettings({ ...f, deliveryFee: Number(f.deliveryFee) || 0 });
+    updateSettings({ ...f, deliveryFee: Number(f.deliveryFee) || 0, freeShippingThreshold: Number(f.freeShippingThreshold) || 0 });
     showToast("Configurações da loja salvas! ✅", "success");
   };
   const savePayment = (e: FormEvent) => {
@@ -433,6 +433,19 @@ export function AdminSettings() {
             <Field label="Texto institucional" sublabel="Aparece na página Sobre.">
               <textarea className="input min-h-[100px]" value={f.institutionalText} onChange={(e) => set("institutionalText", e.target.value)} />
             </Field>
+          </Section>
+
+          <Section title="Frete e checkout" icon={Truck}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Taxa padrão de entrega (R$)" sublabel="Usada como fallback até a integração com transportadoras.">
+                <input type="number" min={0} step="0.01" className="input" value={f.deliveryFee}
+                  onChange={(e) => set("deliveryFee", Number(e.target.value))} />
+              </Field>
+              <Field label="Frete grátis a partir de (R$)" sublabel="Defina 0 para desativar.">
+                <input type="number" min={0} step="1" className="input" value={f.freeShippingThreshold}
+                  onChange={(e) => set("freeShippingThreshold", Number(e.target.value))} />
+              </Field>
+            </div>
           </Section>
 
           <Section title="Contato e redes sociais" icon={MessageSquare}>
