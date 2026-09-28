@@ -36,13 +36,6 @@ const productSchema = z.object({
   featured: z.boolean().optional(),
   onDemand: z.boolean().default(false),
   stock: z.number().int().nonnegative().optional(),
-  variants: z.array(z.object({
-    name: z.string().min(1),
-    options: z.array(z.object({
-      label: z.string().min(1),
-      priceDelta: z.number().optional(),
-    })).min(1),
-  })).optional(),
 });
 
 /* ── Listar ──────────────────────────────────────────── */
