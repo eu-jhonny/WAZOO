@@ -446,7 +446,7 @@ export function AdminSettings() {
               <Field label="Instagram">
                 <div className="relative">
                   <Instagram size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400" />
-                  <input className="input pl-9" placeholder="@wazoo.petexpress" value={f.instagram} onChange={(e) => set("instagram", e.target.value)} />
+                  <input className="input pl-9" placeholder="@wazoo" value={f.instagram} onChange={(e) => set("instagram", e.target.value)} />
                 </div>
               </Field>
               <Field label="E-mail de contato">
