@@ -10,10 +10,12 @@ import { bannersRouter } from "./banners.routes";
 import { settingsRouter } from "./settings.routes";
 import { uploadRouter } from "./upload.routes";
 import { newsletterRouter } from "./newsletter.routes";
+import { customerRouter } from "./customer.routes";
 
 export const router = Router();
 
 router.use("/auth",       authRouter);
+router.use("/customer",   customerRouter);
 router.use("/products",   productsRouter);
 router.use("/kits",       kitsRouter);
 router.use("/orders",     ordersRouter);
