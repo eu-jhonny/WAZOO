@@ -10,6 +10,7 @@ const couponSchema = z.object({
   code: z.string().min(3).max(20).toUpperCase(),
   type: z.enum(["PERCENTAGE", "FIXED", "FREE_SHIPPING"]),
   value: z.number().nonnegative(),
+  description: z.string().max(160).optional(),
   minOrder: z.number().nonnegative().optional(),
   maxUses: z.number().int().positive().optional(),
   active: z.boolean().default(true),
