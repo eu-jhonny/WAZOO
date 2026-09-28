@@ -56,6 +56,7 @@ type Step = "cart" | "customer" | "address" | "payment" | "success";
 interface PixChargeState {
   orderId: string;
   orderNumber: string;
+  publicToken: string;
   pixCode?: string;
   qrBase64?: string;
   total: number;
@@ -367,6 +368,7 @@ export function Checkout() {
 
       const payment = await createApiPayment({
         orderId: order.id,
+        publicToken: order.publicToken,
         method: "pix",
         email: customer.email.trim(),
         cpf: customer.cpf.replace(/\D/g, ""),
@@ -378,6 +380,7 @@ export function Checkout() {
       setPixCharge({
         orderId: order.id,
         orderNumber: payment.orderNumber,
+        publicToken: order.publicToken,
         pixCode: payment.pixCode,
         qrBase64: payment.pixQrBase64,
         total: payment.total,
@@ -403,7 +406,7 @@ export function Checkout() {
     let active = true;
     const tick = async () => {
       try {
-        const status = await getApiPaymentStatus(pixCharge.orderId);
+        const status = await getApiPaymentStatus(pixCharge.orderId, pixCharge.publicToken);
         if (!active) return;
         if (status.paymentStatus === "APPROVED") {
           setPixCharge((prev) => prev ? { ...prev, status: "APPROVED" } : prev);
