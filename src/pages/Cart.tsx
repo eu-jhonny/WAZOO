@@ -6,10 +6,12 @@ import {
   ShoppingBag,
   ShoppingCart,
   Trash2,
+  Truck,
 } from "lucide-react";
 import { img } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useStore } from "@/context/StoreContext";
 import { formatBRL } from "@/lib/format";
 import { ProductImage } from "@/components/ui/ProductImage";
 
@@ -19,6 +21,12 @@ export function Cart() {
     setNote, updateQuantity, removeItem, updateItemNote, clear,
   } = useCart();
   const { isLoggedIn } = useAuth();
+  const { settings } = useStore();
+  const freeShippingThreshold = Math.max(0, settings.freeShippingThreshold || 0);
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - total);
+  const freeShippingProgress = freeShippingThreshold > 0
+    ? Math.min(100, (total / freeShippingThreshold) * 100)
+    : 0;
 
   /* ─── Carrinho vazio ──────────────────────────────────────────── */
   if (items.length === 0) {
@@ -65,6 +73,28 @@ export function Cart() {
             <Trash2 size={15} /> Esvaziar
           </button>
         </div>
+
+        {freeShippingThreshold > 0 && (
+          <div className="mt-6 rounded-2xl border border-teal-100 bg-teal-50 p-4">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2 font-bold text-navy-700">
+                <Truck size={17} className="text-teal-600" />
+                {remainingForFreeShipping > 0
+                  ? <>Faltam <strong className="text-teal-700">{formatBRL(remainingForFreeShipping)}</strong> para frete grátis</>
+                  : <>Você ganhou <strong className="text-teal-700">frete grátis</strong> 🎉</>}
+              </span>
+              <span className="text-xs font-semibold text-navy-400">
+                acima de {formatBRL(freeShippingThreshold)}
+              </span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+              <div
+                className="h-full rounded-full bg-teal-500 transition-all duration-500"
+                style={{ width: `${freeShippingProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">
 
