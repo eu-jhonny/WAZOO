@@ -1,17 +1,20 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
-import { authenticate, requireAdmin } from "../middleware/auth";
+import { authenticate, optionalAuthenticate, requireAdmin } from "../middleware/auth";
 import { AppError } from "../middleware/errorHandler";
 
 export const reviewsRouter = Router();
 
 // Listar (público = só aprovadas)
-reviewsRouter.get("/", async (req, res) => {
+reviewsRouter.get("/", optionalAuthenticate, async (req, res) => {
   const { approved, featured } = req.query;
   const where: Record<string, unknown> = {};
-  if (!req.user) where.approved = true;
-  else if (approved !== undefined) where.approved = approved === "true";
+  if (!req.user || !["ADMIN", "SUPER_ADMIN"].includes(req.user.role)) {
+    where.approved = true;
+  } else if (approved !== undefined) {
+    where.approved = approved === "true";
+  }
   if (featured !== undefined) where.featured = featured === "true";
 
   const reviews = await prisma.review.findMany({ where, orderBy: { createdAt: "desc" } });
