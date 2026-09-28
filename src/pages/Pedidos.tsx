@@ -22,12 +22,11 @@ import type { Order } from "@/types";
 
 /* ── Cores/ícones por status ─────────────────────────────────── */
 const statusIcon: Record<string, string> = {
-  "Solicitação enviada":          "🕐",
-  "Verificando disponibilidade":  "🔍",
-  "Confirmado pelo fornecedor":   "✅",
-  "Em preparação":                "📦",
+  "Pedido recebido":              "🧾",
+  "Pagamento confirmado":         "✅",
+  "Em separação":                 "📦",
   "Pronto para retirada":         "🏪",
-  "Em rota de entrega":           "🚚",
+  "Saiu para entrega":            "🚚",
   "Finalizado":                   "🎉",
   "Cancelado":                    "❌",
 };
@@ -104,7 +103,7 @@ function OrderCard({ order, wa }: { order: Order; wa: string }) {
               </div>
 
               <div className="mt-3 flex items-center justify-between rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
-                <span className="font-bold text-navy-700">Total estimado</span>
+                <span className="font-bold text-navy-700">Total</span>
                 <span className="font-display text-xl font-bold text-orange-600">
                   {formatBRL(order.total)}
                 </span>
@@ -198,13 +197,6 @@ export function Pedidos() {
           </Link>
         </div>
 
-        {/* Aviso sob encomenda */}
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
-          <PawPrint size={16} className="mt-0.5 shrink-0 text-amber-500" />
-          Como trabalhamos <strong>sob encomenda</strong>, alguns pedidos passam pela etapa de
-          verificação antes da confirmação final.
-        </div>
-
         {/* Lista */}
         {myOrders.length === 0 ? (
           <div className="mt-8 flex flex-col items-center rounded-2xl border border-dashed border-cream-200 bg-white px-8 py-16 text-center shadow-card">
@@ -213,7 +205,7 @@ export function Pedidos() {
               Nenhum pedido ainda
             </p>
             <p className="mt-1 text-sm text-navy-500">
-              Adicione produtos ao carrinho e envie seu primeiro pedido.
+              Adicione produtos ao carrinho e finalize sua primeira compra.
             </p>
             <Link to="/produtos" className="btn-primary mt-6">
               <ShoppingBag size={18} /> Ver produtos
