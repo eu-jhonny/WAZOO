@@ -9,26 +9,24 @@ interface OrderTableProps {
 }
 
 const statusEmoji: Record<OrderStatus, string> = {
-  "Solicitação enviada":         "🕐",
-  "Verificando disponibilidade": "🔍",
-  "Aguardando pagamento":        "💳",
-  "Pedido confirmado":           "✅",
+  "Pedido recebido":             "🧾",
+  "Pagamento pendente":          "💳",
+  "Pagamento confirmado":        "✅",
   "Em separação":                "📦",
   "Pronto para retirada":        "🏪",
   "Saiu para entrega":           "🚚",
-  Finalizado:                    "🎉",
+  Entregue:                      "🎉",
   Cancelado:                     "❌",
 };
 
 const statusBar: Record<OrderStatus, string> = {
-  "Solicitação enviada":         "bg-navy-300",
-  "Verificando disponibilidade": "bg-orange-400",
-  "Aguardando pagamento":        "bg-amber-400",
-  "Pedido confirmado":           "bg-sky-400",
+  "Pedido recebido":             "bg-navy-300",
+  "Pagamento pendente":          "bg-amber-400",
+  "Pagamento confirmado":        "bg-sky-400",
   "Em separação":                "bg-purple-400",
-  "Pronto para retirada":        "bg-green-400",
-  "Saiu para entrega":           "bg-green-400",
-  Finalizado:                    "bg-green-600",
+  "Pronto para retirada":        "bg-teal-400",
+  "Saiu para entrega":           "bg-cyan-400",
+  Entregue:                      "bg-green-600",
   Cancelado:                     "bg-red-400",
 };
 
