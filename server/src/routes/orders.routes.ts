@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { createOrder, listOrders, getOrder, trackOrder, updateOrderStatus, validateCoupon, cancelOrder } from "../controllers/orders.controller";
-import { authenticate, requireAdmin } from "../middleware/auth";
+import { authenticate, optionalAuthenticate, requireAdmin } from "../middleware/auth";
 
 export const ordersRouter = Router();
 
-ordersRouter.post("/",                      createOrder);          // público
+ordersRouter.post("/", optionalAuthenticate, createOrder);          // público
 ordersRouter.post("/validate-coupon",       validateCoupon);       // público
 ordersRouter.get("/",   authenticate, requireAdmin, listOrders);
 ordersRouter.get("/track/:number",          trackOrder);           // público, resposta sem dados pessoais
