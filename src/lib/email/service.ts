@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  Wazoo Pet Express — Serviço de envio de e-mails
+ *  Wazoo — Serviço de envio de e-mails
  * ============================================================
  *
  * Camada agnóstica de provedor. Estratégia de entrega, em ordem:
