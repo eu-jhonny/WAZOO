@@ -71,7 +71,7 @@ export const seedReviews: Review[] = [
     name: "Fernanda Dias",
     petName: "Bidu",
     rating: 5,
-    text: "Adorei poder pedir sob encomenda e ainda escolher o melhor prazo de entrega.",
+    text: "Adorei a facilidade de comprar pelo site e acompanhar o pedido até a entrega.",
     approved: false, // pendente de aprovação
     featured: false,
     createdAt: daysAgo(0),
