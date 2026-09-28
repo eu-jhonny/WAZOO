@@ -25,10 +25,10 @@ import { Confetti } from "@/components/ui/Confetti";
 
 /* ── Constantes ─────────────────────────────────────────────── */
 const TRUST = [
-  { icon: PawPrint,    label: "Sob encomenda",     color: "text-orange-500", bg: "bg-orange-50"  },
+  { icon: PawPrint,    label: "Tudo para seu pet",    color: "text-orange-500", bg: "bg-orange-50"  },
   { icon: Heart,       label: "Atendimento humano", color: "text-pink-500",   bg: "bg-pink-50"    },
   { icon: ShieldCheck, label: "Compra segura",      color: "text-green-500",  bg: "bg-green-50"   },
-  { icon: Truck,       label: "Entrega combinada",  color: "text-teal-500",   bg: "bg-teal-50"    },
+  { icon: Truck,       label: "Entrega para todo Brasil", color: "text-teal-500", bg: "bg-teal-50" },
 ] as const;
 
 const DIA_PAIS_ITEMS = [
@@ -64,10 +64,10 @@ const MINI_BANNERS = [
 ] as const;
 
 const WHY_ITEMS = [
-  { icon: Package,  title: "Mais variedade",         desc: "Sem estoque fixo — buscamos o que você precisa." },
-  { icon: Heart,    title: "Atendimento personalizado", desc: "Cada pedido é único, com cuidado e atenção." },
-  { icon: ShieldCheck, title: "Preço direto",         desc: "Sem intermediários. Valor real do fornecedor." },
-  { icon: Truck,    title: "Entrega ou retirada",     desc: "Combinamos a melhor forma para você." },
+  { icon: Package,  title: "Mais variedade", desc: "Produtos para alimentação, passeio, higiene, conforto e diversão." },
+  { icon: Heart, title: "Experiência feita para pets", desc: "Uma compra simples, amigável e pensada para tutores." },
+  { icon: ShieldCheck, title: "Compra segura", desc: "Pagamento protegido, preços claros e acompanhamento do pedido." },
+  { icon: Truck, title: "Entrega prática", desc: "Escolha a melhor opção de entrega durante o checkout." },
 ] as const;
 
 /* ── Página ─────────────────────────────────────────────────── */
@@ -108,7 +108,7 @@ export function Home() {
             <span className="hidden h-3 w-px bg-white/20 sm:block" />
             <span>💳 Parcele em até 10x sem juros</span>
             <span className="hidden h-3 w-px bg-white/20 sm:block" />
-            <span>🐾 Produtos 100% sob encomenda</span>
+            <span>🔒 Compra segura e acompanhamento do pedido</span>
           </div>
         </div>
       )}
@@ -252,7 +252,7 @@ export function Home() {
                     <Gift size={18} /> Ver presentes
                   </Link>
                   <a href={whatsappLink("Olá! Quero saber mais sobre os presentes de Dia dos Pais para pets!", settings.whatsapp)} target="_blank" rel="noopener noreferrer" className="btn bg-white/15 px-6 py-3 font-bold text-white backdrop-blur-sm hover:-translate-y-0.5 hover:bg-white/25">
-                    <WhatsAppIcon size={18} /> Pedir agora
+                    <WhatsAppIcon size={18} /> Falar com a Wazoo
                   </a>
                 </div>
               </div>
@@ -302,14 +302,14 @@ export function Home() {
         </div>
       </section>
 
-      {/* ══ POR QUE SOB ENCOMENDA ══════════════════════ */}
+      {/* ══ POR QUE ESCOLHER A WAZOO ══════════════════════ */}
       <section className="section bg-white pattern-paws">
         <div className="container-app">
           <Reveal>
             <div className="mb-10 text-center">
               <span className="eyebrow mx-auto"><Heart size={16} /> Nosso diferencial</span>
               <h2 className="section-title mt-4">Por que escolher a Wazoo?</h2>
-              <p className="mt-3 text-navy-500 max-w-xl mx-auto">Trabalhamos sem estoque parado: você escolhe, verificamos disponibilidade e entregamos com praticidade.</p>
+              <p className="mt-3 text-navy-500 max-w-xl mx-auto">Tudo o que seu pet precisa em uma experiência de compra simples, segura e divertida.</p>
             </div>
           </Reveal>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -343,7 +343,7 @@ export function Home() {
                     <WhatsAppIcon size={14} /> Atendimento direto
                   </span>
                   <h2 className="mt-4 font-display text-3xl font-bold sm:text-4xl">Fale com a gente pelo WhatsApp! 💬</h2>
-                  <p className="mt-3 text-lg text-green-100">Monte seu pedido e verificamos disponibilidade, prazo e o melhor valor.</p>
+                  <p className="mt-3 text-lg text-green-100">Precisa de ajuda? Nosso atendimento está disponível para tirar dúvidas sobre produtos, pedidos e entregas.</p>
                   <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
                     <Link to="/produtos" className="btn bg-white px-8 py-4 text-lg text-green-700 shadow-soft hover:-translate-y-0.5 hover:bg-cream-50">
                       <ShoppingBag size={20} /> Ver produtos
@@ -367,7 +367,7 @@ export function Home() {
         <section className="section bg-cream-100">
           <div className="container-app">
             <Reveal>
-              <SectionHeader center eyebrow="Avaliações" icon={Star} title="Quem confia na Wazoo 🐾" subtitle="Histórias reais de tutores que já pediram com a gente." />
+              <SectionHeader center eyebrow="Avaliações" icon={Star} title="Quem confia na Wazoo 🐾" subtitle="Experiências de tutores que compram com a gente." />
             </Reveal>
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {topReviews.map((review, i) => (
