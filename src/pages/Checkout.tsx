@@ -354,6 +354,7 @@ export function Checkout() {
               },
         ),
         couponCode: couponCode.trim() || undefined,
+        paymentMethod: "pix",
         customerNote: cartNote.trim() || undefined,
       });
 
