@@ -60,11 +60,11 @@ model Product {
   audience         String   @default("ambos") // "cachorro" | "gato" | "ambos"
   size             String   @default("todos")
   leadTime         String   @default("5-7 dias úteis")
-  availability     String   @default("Disponível sob encomenda")
+  availability     String   @default("Em estoque")
   tags             String[]
   active           Boolean  @default(true)
   featured         Boolean  @default(false)
-  onDemand         Boolean  @default(true)
+  onDemand         Boolean  @default(false)
   stock            Int?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
