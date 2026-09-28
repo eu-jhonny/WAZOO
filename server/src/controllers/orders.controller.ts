@@ -8,6 +8,8 @@ const orderItemSchema = z.object({
   productId: z.string().optional(),
   kitId: z.string().optional(),
   quantity: z.number().int().positive().max(99),
+  variantKey: z.string().optional(),
+  variantLabel: z.string().optional(),
 }).refine((item) => Boolean(item.productId) !== Boolean(item.kitId), {
   message: "Informe exatamente um productId ou kitId",
 });
@@ -64,6 +66,43 @@ async function applyCoupon(code: string, subtotal: number) {
 export async function createOrder(req: Request, res: Response) {
   const data = createOrderSchema.parse(req.body);
 
+  const resolveVariantPrice = (
+    basePrice: number,
+    variants: unknown,
+    variantKey?: string,
+  ) => {
+    if (!Array.isArray(variants) || variants.length === 0) {
+      return { unitPrice: basePrice, variantLabel: undefined as string | undefined };
+    }
+
+    if (!variantKey) {
+      throw new AppError("Selecione as opções do produto", 400, "VARIANT_REQUIRED");
+    }
+
+    const selected = Object.fromEntries(
+      variantKey.split("|").map((part) => {
+        const [name, ...rest] = part.split("=");
+        return [name, rest.join("=")];
+      }),
+    );
+
+    let delta = 0;
+    const labels: string[] = [];
+
+    for (const group of variants as Array<{ name?: string; options?: Array<{ label?: string; priceDelta?: number }> }>) {
+      const groupName = String(group.name ?? "");
+      const desired = selected[groupName];
+      const option = (group.options ?? []).find((o) => o.label === desired);
+      if (!option) {
+        throw new AppError(`Opção inválida para ${groupName || "variação"}`, 400, "INVALID_VARIANT");
+      }
+      delta += Number(option.priceDelta ?? 0);
+      labels.push(`${groupName}: ${option.label}`);
+    }
+
+    return { unitPrice: basePrice + delta, variantLabel: labels.join(" · ") };
+  };
+
   // Nunca confie em nome ou preço enviados pelo navegador.
   // O servidor resolve os itens diretamente no banco.
   const normalizedItems = await Promise.all(
@@ -76,14 +115,17 @@ export async function createOrder(req: Request, res: Response) {
         if (typeof product.stock === "number" && product.stock < item.quantity) {
           throw new AppError(`Estoque insuficiente para ${product.name}`, 409, "INSUFFICIENT_STOCK");
         }
+        const variant = resolveVariantPrice(product.price, product.variants, item.variantKey);
         return {
           productId: product.id,
           kitId: undefined,
           name: product.name,
           quantity: item.quantity,
-          unitPrice: product.price,
+          unitPrice: variant.unitPrice,
           image: product.image,
           controlledStock: product.stock !== null,
+          variantKey: item.variantKey,
+          variantLabel: variant.variantLabel ?? item.variantLabel,
         };
       }
 
@@ -99,6 +141,8 @@ export async function createOrder(req: Request, res: Response) {
         unitPrice: kit.price,
         image: kit.image,
         controlledStock: false,
+        variantKey: undefined,
+        variantLabel: undefined,
       };
     }),
   );
@@ -165,6 +209,8 @@ export async function createOrder(req: Request, res: Response) {
             unitPrice: item.unitPrice,
             totalPrice: item.unitPrice * item.quantity,
             image: item.image ?? "",
+            variantKey: item.variantKey,
+            variantLabel: item.variantLabel,
           })),
         },
       },
