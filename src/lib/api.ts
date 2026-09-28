@@ -427,6 +427,18 @@ export interface ApiTrackingOrder {
   status: ApiOrderStatus;
   paymentStatus: "PENDING" | "APPROVED" | "REJECTED" | "REFUNDED" | "IN_PROCESS";
   deliveryMethod: "DELIVERY" | "PICKUP";
+  customerDoc?: string | null;
+  addressStreet?: string | null;
+  addressNumber?: string | null;
+  addressComplement?: string | null;
+  addressNeighborhood?: string | null;
+  addressCity?: string | null;
+  addressState?: string | null;
+  addressZip?: string | null;
+  paymentMethod?: string | null;
+  paidAt?: string | null;
+  customerNote?: string | null;
+  adminNote?: string | null;
   subtotal: number;
   discountAmount: number;
   shippingAmount: number;
