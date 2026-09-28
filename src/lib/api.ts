@@ -329,17 +329,30 @@ export interface ApiOrder {
   publicToken: string;
   status: string;
   paymentStatus: string;
+  paymentMethod?: string | null;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  customerDoc?: string | null;
   deliveryMethod: "DELIVERY" | "PICKUP";
+  addressStreet?: string | null;
+  addressNumber?: string | null;
+  addressComplement?: string | null;
+  addressNeighborhood?: string | null;
+  addressCity?: string | null;
+  addressState?: string | null;
+  addressZip?: string | null;
   subtotal: number;
   discountAmount: number;
   shippingAmount: number;
   total: number;
+  couponCode?: string | null;
+  customerNote?: string | null;
+  adminNote?: string | null;
   items: ApiOrderItem[];
   statusEvents?: Array<{ status: string; createdAt: string }>;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export function createApiOrder(input: CreateApiOrderInput) {
@@ -437,6 +450,35 @@ export function getApiOrderTracking(number: string) {
 
 export function listCustomerOrders() {
   return request<ApiOrder[]>("/customer/orders", { auth: "customer" });
+}
+
+export function listApiOrdersAdmin(params: {
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+} = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.search) query.set("search", params.search);
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return request<{ data: ApiOrder[]; total: number; page: number; pages: number }>(
+    `/orders${suffix}`,
+    { auth: "admin" },
+  );
+}
+
+export function updateApiOrderAdmin(
+  id: string,
+  input: { status?: ApiOrderStatus; adminNote?: string },
+) {
+  return request<ApiOrder>(`/orders/${encodeURIComponent(id)}/status`, {
+    method: "PUT",
+    auth: "admin",
+    body: JSON.stringify(input),
+  });
 }
 
 /* ── Catálogo ──────────────────────────────────────────────── */
