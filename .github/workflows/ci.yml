@@ -56,3 +56,95 @@ jobs:
 
       - name: Build
         run: npm run build
+
+
+  smoke:
+    name: Runtime smoke test
+    runs-on: ubuntu-latest
+    needs: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Chromium smoke runner
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/wazoo-preview.log 2>&1 &
+          echo $! > /tmp/wazoo-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/wazoo-preview.log
+          exit 1
+
+      - name: Smoke homepage in real browser
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium } from "playwright";
+
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({
+            viewport: { width: 390, height: 844 },
+            userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1",
+          });
+
+          const errors = [];
+          page.on("pageerror", (error) => errors.push("PAGEERROR: " + error.message));
+          page.on("console", (msg) => {
+            if (msg.type() === "error") errors.push("CONSOLE: " + msg.text());
+          });
+          page.on("requestfailed", (req) => errors.push("REQUEST FAILED: " + req.url() + " :: " + (req.failure()?.errorText || "")));
+
+          const response = await page.goto("http://127.0.0.1:4173/", {
+            waitUntil: "networkidle",
+            timeout: 30000,
+          });
+
+          const rootText = (await page.locator("#root").innerText()).trim();
+          const rootHtml = await page.locator("#root").innerHTML();
+
+          console.log("HTTP:", response?.status());
+          console.log("ROOT_TEXT_LENGTH:", rootText.length);
+          console.log("ROOT_HTML_LENGTH:", rootHtml.length);
+          if (errors.length) console.log(errors.join("\n"));
+
+          await page.screenshot({ path: "/tmp/wazoo-home.png", fullPage: true });
+
+          if (!response || !response.ok()) {
+            throw new Error("Homepage não retornou HTTP 2xx");
+          }
+          if (rootHtml.length < 200 || rootText.length < 20) {
+            throw new Error("React não renderizou conteúdo suficiente na homepage");
+          }
+          if (errors.some((line) => line.startsWith("PAGEERROR:"))) {
+            throw new Error("Erro de runtime detectado no navegador");
+          }
+
+          await browser.close();
+          EOF
+
+      - name: Upload smoke screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wazoo-home-smoke
+          path: /tmp/wazoo-home.png
