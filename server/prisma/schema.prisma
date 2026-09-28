@@ -144,11 +144,24 @@ model Order {
   customerNote String?  @db.Text
   adminNote    String?  @db.Text
 
-  items     OrderItem[]
+  items        OrderItem[]
+  statusEvents OrderStatusEvent[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
   @@map("orders")
+}
+
+model OrderStatusEvent {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  createdAt DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_events")
 }
 
 model OrderItem {
