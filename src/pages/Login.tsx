@@ -50,7 +50,7 @@ export function Login() {
       <div className="flex items-center justify-center bg-cream-50 px-4 py-12">
         <div className="w-full max-w-md">
           <h1 className="font-display text-3xl font-bold text-navy-700">Entrar</h1>
-          <p className="mt-1 text-navy-500">Acesse a sua conta Wazoo Pet Express.</p>
+          <p className="mt-1 text-navy-500">Acesse sua conta Wazoo.</p>
           <div className="card mt-6 p-6 sm:p-8">
             <LoginForm onSuccess={() => navigate(from ?? "/perfil", { replace: true })} />
           </div>
