@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  Wazoo Pet Express — API de e-mails (ponto de entrada)
+ *  Wazoo — API de e-mails (ponto de entrada)
  * ============================================================
  *
  * Funções de alto nível usadas pelo app. Cada uma monta a marca atual,
