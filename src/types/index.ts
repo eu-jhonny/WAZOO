@@ -1,5 +1,5 @@
 // ============================================================
-// Tipos do domínio — Wazoo Pet Express
+// Tipos do domínio — Wazoo
 // ============================================================
 
 export type PetAudience = "cachorro" | "gato" | "ambos";
@@ -22,7 +22,7 @@ export interface Product {
   id: string;
   name: string;
   category: string; // slug funcional: higiene, brinquedos, acessorios, petiscos, caminhas, racoes, saches
-  price: number; // preço estimado (R$)
+  price: number; // preço de venda (R$)
   comparePrice?: number; // preço "de" (riscado) — para mostrar desconto
   discountPct?: number;  // % calculado automaticamente se comparePrice existir
   promoLabel?: string;   // ex.: "50% OFF", "LEVE 2 PAGUE 1"
@@ -33,12 +33,12 @@ export interface Product {
   gallery?: string[];
   active: boolean;
   featured: boolean;
-  onDemand: boolean; // sob encomenda
+  onDemand: boolean; // campo legado; não define mais o fluxo de compra
   audience: PetAudience; // indicado para
   size: PetSize;
-  availability: string; // disponibilidade estimada
+  availability: string; // disponibilidade exibida ao cliente
   tags?: string[];       // para filtros: "diadospais", "novidade", "promo" etc.
-  stock?: number;        // null/undefined = sob encomenda ilimitado; 0 = esgotado
+  stock?: number;        // null/undefined = estoque não controlado; 0 = esgotado
   variants?: VariantGroup[]; // opções (tamanho, sabor...) — vazio = sem variação
   createdAt: number;
 }
@@ -123,14 +123,13 @@ export interface User {
 }
 
 export const ORDER_STATUSES = [
-  "Solicitação enviada",
-  "Verificando disponibilidade",
-  "Aguardando pagamento",
-  "Pedido confirmado",
+  "Pedido recebido",
+  "Pagamento pendente",
+  "Pagamento confirmado",
   "Em separação",
   "Pronto para retirada",
   "Saiu para entrega",
-  "Finalizado",
+  "Entregue",
   "Cancelado",
 ] as const;
 
