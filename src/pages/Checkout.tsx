@@ -148,7 +148,7 @@ export function Checkout() {
 
   /* Resgate de patinhas (fidelidade): usa o saldo até o valor restante. */
   const spendableBefore = Math.max(0, subtotal - couponDiscount - pixDiscount);
-  const redeemablePoints = usePoints && loyalty.enabled
+  const redeemablePoints = usePoints && !apiEnabled && loyalty.enabled
     ? Math.min(loyalty.balance, Math.floor(spendableBefore / BRL_PER_POINT))
     : 0;
   const pointsDiscount = Math.round(redeemablePoints * BRL_PER_POINT * 100) / 100;
@@ -212,6 +212,7 @@ export function Checkout() {
             variantLabel: i.variant,
           })),
           couponCode: couponCode.trim() || undefined,
+          paymentMethod,
           customerNote: cartNote || undefined,
         });
 
@@ -524,7 +525,7 @@ export function Checkout() {
                 </div>
 
                 {/* Patinhas Wazoo (fidelidade) */}
-                {loyalty.enabled && loyalty.balance > 0 && (
+                {!apiEnabled && loyalty.enabled && loyalty.balance > 0 && (
                   <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-cream-200 p-4 transition-all hover:border-orange-200">
                     <input
                       type="checkbox"
@@ -656,7 +657,7 @@ export function Checkout() {
             {step === "payment" && (
               <div className="animate-fade-in">
                 <h2 className="font-display text-xl font-bold text-navy-700">Forma de pagamento</h2>
-                <p className="mt-1 text-sm text-navy-400">Escolha como pagar. O pedido só é registrado depois do pagamento.</p>
+                <p className="mt-1 text-sm text-navy-400">Escolha como pagar. Com a API ativa, preço, estoque, cupom e frete são validados no servidor.</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   {methods.map((m) => {
                     const Icon = m.icon;
