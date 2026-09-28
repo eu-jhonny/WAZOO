@@ -33,7 +33,7 @@ const SLIDES = [
     badge: "🐕 Linha Cachorros",
     badgeColor: "bg-orange-400/25 text-orange-100 border-orange-400/30",
     title: "Para o seu\nmelhor amigo",
-    subtitle: "Coleiras, roupinhas, brinquedos e muito amor.\nTudo sob encomenda, com entrega garantida.",
+    subtitle: "Coleiras, roupinhas, brinquedos e muito amor.\nCompre online com segurança e acompanhe seu pedido.",
     ctas: [
       { to: "/cachorros", label: "Ver produtos para cães →", style: "bg-orange-500 text-white hover:bg-orange-600 shadow-lg" },
       { to: "/kits",      label: "Ver kits",                 style: "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm border border-white/30" },
