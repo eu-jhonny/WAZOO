@@ -35,6 +35,7 @@ import { AdminLogin } from "@/pages/admin/AdminLogin";
 import { AdminDashboard } from "@/pages/admin/AdminDashboard";
 import { AdminProducts } from "@/pages/admin/AdminProducts";
 import { AdminOrders } from "@/pages/admin/AdminOrders";
+import { AdminCustomers } from "@/pages/admin/AdminCustomers";
 import { AdminReviews } from "@/pages/admin/AdminReviews";
 import { AdminCoupons } from "@/pages/admin/AdminCoupons";
 import { AdminEmails } from "@/pages/admin/AdminEmails";
@@ -100,6 +101,7 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="produtos" element={<AdminProducts />} />
           <Route path="pedidos" element={<AdminOrders />} />
+          <Route path="clientes" element={<AdminCustomers />} />
           <Route path="avaliacoes" element={<AdminReviews />} />
           <Route path="cupons" element={<AdminCoupons />} />
           <Route path="emails" element={<AdminEmails />} />
