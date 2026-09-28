@@ -91,9 +91,14 @@ export function AdminProducts() {
                   <h3 className="font-display font-bold text-navy-700">{p.name}</h3>
                   {p.featured && <span className="badge bg-navy-700 text-white">Destaque</span>}
                   {!p.active && <span className="badge bg-red-100 text-red-600">Inativo</span>}
+                  {p.stock === 0 && <span className="badge bg-red-100 text-red-600">Esgotado</span>}
+                  {typeof p.stock === "number" && p.stock > 0 && p.stock <= 5 && (
+                    <span className="badge bg-amber-100 text-amber-700">Estoque baixo: {p.stock}</span>
+                  )}
                 </div>
                 <p className="text-sm text-navy-400">
                   {getCategoryName(p.category)} · {p.leadTime}
+                  {typeof p.stock === "number" ? ` · ${p.stock} em estoque` : ""}
                 </p>
               </div>
 
