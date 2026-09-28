@@ -38,7 +38,7 @@ services:
     env: node
     rootDir: server
     buildCommand: npm ci --include=dev && npx prisma generate && npm run build
-    startCommand: npx prisma db push --accept-data-loss && node dist/index.js
+    startCommand: npx prisma db push && node dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -58,6 +58,9 @@ services:
       - key: ALLOWED_ORIGINS
         sync: false   # ex: https://wazoo-frontend.onrender.com
       - key: FRONTEND_URL
+        sync: false
+      # Opcional: se vazio, a API usa RENDER_EXTERNAL_URL automaticamente.
+      - key: API_URL
         sync: false
       - key: ADMIN_EMAIL
         sync: false   # ex: admin@wazoo.com.br
