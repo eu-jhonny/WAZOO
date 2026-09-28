@@ -91,12 +91,12 @@ export function Products() {
         eyebrow="Catálogo"
         icon={PawPrint}
         title="Nossos produtos"
-        subtitle="Tudo para cães e gatos, sob encomenda. Use os filtros e encontre o ideal para o seu pet."
+        subtitle="Tudo para cães e gatos. Use os filtros e encontre o ideal para o seu pet."
         mascot={img.mascot.comendo}
         chips={[
           { label: "🐕 Cachorros" },
           { label: "🐈 Gatos" },
-          { label: "📦 Sob encomenda" },
+          { label: "🔒 Compra segura" },
           { label: "🚚 Entrega SP" },
         ]}
       />
