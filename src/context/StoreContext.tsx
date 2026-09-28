@@ -28,6 +28,7 @@ const defaultSettings: SiteSettings = {
   hours: site.hours,
   institutionalText: site.institutionalText,
   deliveryFee: site.deliveryFee,
+  freeShippingThreshold: site.freeShippingThreshold,
 };
 
 export interface NewOrderInput {
