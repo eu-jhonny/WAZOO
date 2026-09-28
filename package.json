@@ -1,9 +1,9 @@
 {
-  "name": "wazoo-pet-express",
+  "name": "wazoo-ecommerce",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Loja pet online sob encomenda - Wazoo Pet Express",
+  "description": "E-commerce Wazoo para produtos e bem-estar pet",
   "engines": {
     "node": ">=20"
   },
