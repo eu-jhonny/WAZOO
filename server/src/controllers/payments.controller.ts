@@ -47,11 +47,14 @@ function mpStatusToPaymentStatus(mpStatus: string) {
 
 function isValidMercadoPagoWebhook(req: Request) {
   const secret = process.env.MP_WEBHOOK_SECRET?.trim();
-  if (!secret) return true;
+  if (!secret) {
+    console.warn("[Webhook] MP_WEBHOOK_SECRET não configurado.");
+    return process.env.NODE_ENV !== "production";
+  }
 
   const signature = String(req.headers["x-signature"] ?? "");
   const requestId = String(req.headers["x-request-id"] ?? "");
-  const dataId = String(req.body?.data?.id ?? req.query?.["data.id"] ?? "");
+  const dataId = String(req.query?.["data.id"] ?? req.body?.data?.id ?? "").toLowerCase();
 
   const parts = Object.fromEntries(
     signature
@@ -182,7 +185,7 @@ export async function processPayment(req: Request, res: Response) {
 export async function paymentWebhook(req: Request, res: Response) {
   if (!isValidMercadoPagoWebhook(req)) {
     console.warn("[Webhook] Assinatura Mercado Pago inválida; evento ignorado.");
-    res.sendStatus(200);
+    res.sendStatus(401);
     return;
   }
 
