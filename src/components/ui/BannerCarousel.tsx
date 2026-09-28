@@ -1,10 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { apiEnabled, listApiBanners } from "@/lib/api";
 
 const INTERVAL_MS = 6000;
 
-const SLIDES = [
+type BannerSlide = {
+  id: string;
+  image: string;
+  fallbackColor: string;
+  badge: string;
+  badgeColor: string;
+  title: string;
+  subtitle: string;
+  ctas: Array<{ to: string; label: string; style: string }>;
+  extra: React.ReactNode | null;
+};
+
+const FALLBACK_SLIDES: BannerSlide[] = [
   {
     id: "diapais",
     image: "/images/modelo-homem-golden.webp",
@@ -79,10 +92,12 @@ function Anim({ children, delay = 0 }: { children: React.ReactNode; delay?: numb
 
 export function BannerCarousel() {
   const [current, setCurrent] = useState(0);
+  const [remoteSlides, setRemoteSlides] = useState<BannerSlide[] | null>(null);
   const [paused,  setPaused]  = useState(false);
   const [animKey, setAnimKey] = useState(0);
   const progressRef           = useRef<HTMLDivElement>(null);
-  const total                 = SLIDES.length;
+  const slides                = remoteSlides?.length ? remoteSlides : FALLBACK_SLIDES;
+  const total                 = slides.length;
 
   const go = useCallback((idx: number) => {
     setCurrent(idx);
@@ -103,7 +118,38 @@ export function BannerCarousel() {
     return () => clearInterval(t);
   }, [paused, next]);
 
-  const slide = SLIDES[current];
+  useEffect(() => {
+    if (!apiEnabled) return;
+    let active = true;
+    listApiBanners()
+      .then((banners) => {
+        if (!active || banners.length === 0) return;
+        setRemoteSlides(
+          banners.map((banner) => ({
+            id: banner.id,
+            image: banner.image ?? "",
+            fallbackColor: "#0F2A4A",
+            badge: banner.tag || "🐾 Wazoo",
+            badgeColor: "bg-orange-400/20 text-orange-100 border-orange-300/30",
+            title: banner.title,
+            subtitle: banner.subtitle ?? "",
+            ctas: [{
+              to: banner.link || "/produtos",
+              label: banner.cta || "Ver mais →",
+              style: banner.ctaStyle || "bg-orange-500 text-white hover:bg-orange-600 font-bold",
+            }],
+            extra: null,
+          })),
+        );
+        setCurrent(0);
+      })
+      .catch(() => {
+        // Mantém os banners locais como fallback.
+      });
+    return () => { active = false; };
+  }, []);
+
+  const slide = slides[current % total];
 
   return (
     <div
@@ -183,7 +229,7 @@ export function BannerCarousel() {
 
       {/* Dots */}
       <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => go(i)}
