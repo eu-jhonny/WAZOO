@@ -1,9 +1,8 @@
 /**
- * Checkout "sob encomenda" — 100% local (localStorage), sem backend.
+ * Checkout da loja — fluxo de compra, entrega e pagamento.
  *
- * O pedido é registrado na loja (aparece no admin e em "Meus pedidos") com
- * status inicial "Solicitação enviada". A confirmação de disponibilidade e o
- * pagamento são combinados pelo WhatsApp — coerente com o modelo da Wazoo.
+ * O pedido é registrado na loja e aparece em "Meus pedidos". O fluxo definitivo
+ * será persistido pela API; este componente mantém compatibilidade com o modo local.
  *
  * Configurações do admin que afetam esta página:
  *   • Loja → taxa de entrega (frete)
@@ -161,7 +160,7 @@ export function Checkout() {
         shippingAmount: shippingAmount || undefined,
         total,
         note: [
-          paymentMethod === "pix" ? "Pagamento: PIX (informado pelo cliente)" : paymentMethod === "credit_card" ? "Pagamento: Cartão (a combinar)" : "Pagamento: Boleto (a combinar)",
+          paymentMethod === "pix" ? "Pagamento: PIX (informado pelo cliente)" : paymentMethod === "credit_card" ? "Pagamento: Cartão" : "Pagamento: Boleto",
           couponCode ? `Cupom: ${couponCode.toUpperCase()}` : "",
           redeemablePoints > 0 ? `Resgate: ${redeemablePoints} patinhas (-${formatBRL(pointsDiscount)})` : "",
           deliveryMethod === "DELIVERY" && address.street
@@ -190,7 +189,7 @@ export function Checkout() {
     }
     return [
       `Olá! Acabei de enviar o pedido *${orderNumber}* pelo site. 🐾`,
-      `Total estimado: ${formatBRL(paidTotal)} (${paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
+      `Total: ${formatBRL(paidTotal)} (${paymentMethod === "credit_card" ? "Cartão" : "Boleto"})`,
       `Gostaria de confirmar a disponibilidade e o pagamento.`,
     ].join("\n");
   }, [orderNumber, paidTotal, paymentMethod]);
@@ -243,7 +242,7 @@ export function Checkout() {
             <Sparkles size={16} className="text-orange-500" /> Próximos passos
           </p>
           <ol className="mt-3 space-y-2">
-            <li>1. {paymentMethod === "pix" ? "Conferimos o recebimento do PIX." : "Vamos verificar a disponibilidade dos itens."}</li>
+            <li>1. {paymentMethod === "pix" ? "Confirmamos o recebimento do PIX." : "Seu pagamento será processado conforme a opção escolhida."}</li>
             <li>2. Confirmamos o valor final e o prazo com você.</li>
             <li>3. {paymentMethod === "pix"
               ? "Enviamos o seu pedido."
@@ -562,7 +561,7 @@ export function Checkout() {
                       </div>
                     )}
                     <button onClick={handleFinalize} disabled={loading} className="btn-primary mt-4 w-full disabled:opacity-60">
-                      {loading ? <><Loader2 size={18} className="animate-spin" /> Enviando...</> : <>🐾 Enviar solicitação de pedido</>}
+                      {loading ? <><Loader2 size={18} className="animate-spin" /> Enviando...</> : <>Finalizar compra</>}
                     </button>
                     <p className="mt-2 text-center text-xs text-navy-400">Sem cobrança agora — combinamos o pagamento pelo WhatsApp.</p>
                   </div>
@@ -607,7 +606,7 @@ export function Checkout() {
               </div>
             </div>
             <div className="mt-5 rounded-2xl bg-cream-50 p-3 text-xs text-navy-500">
-              <p>🐾 <strong>Sob encomenda</strong> — prazo médio de 5–7 dias úteis após a confirmação.</p>
+              <p>🚚 <strong>Entrega</strong> — o prazo e o valor são informados conforme a opção escolhida no checkout.</p>
             </div>
           </div>
         </div>
