@@ -758,3 +758,52 @@ export function deleteApiReviewAdmin(id: string) {
     auth: "admin",
   });
 }
+
+
+/* ── Banners ──────────────────────────────────────────────── */
+export interface ApiBanner {
+  id: string;
+  image?: string | null;
+  fallback: string;
+  tag?: string | null;
+  title: string;
+  subtitle?: string | null;
+  cta: string;
+  ctaStyle?: string | null;
+  link: string;
+  category: string;
+  order: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export function listApiBanners() {
+  return request<ApiBanner[]>("/banners");
+}
+
+export function listApiBannersAdmin() {
+  return request<ApiBanner[]>("/banners", { auth: "admin" });
+}
+
+export function createApiBanner(input: Omit<ApiBanner, "id" | "createdAt">) {
+  return request<ApiBanner>("/banners", {
+    method: "POST",
+    auth: "admin",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateApiBanner(id: string, input: Partial<Omit<ApiBanner, "id" | "createdAt">>) {
+  return request<ApiBanner>(`/banners/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    auth: "admin",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteApiBanner(id: string) {
+  return request<{ message: string }>(`/banners/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    auth: "admin",
+  });
+}
