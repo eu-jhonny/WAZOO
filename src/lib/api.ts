@@ -232,7 +232,10 @@ export interface ApiProduct {
   active: boolean;
   featured: boolean;
   stock?: number | null;
-  variants?: unknown;
+  variants?: Array<{
+    name: string;
+    options: Array<{ label: string; priceDelta?: number }>;
+  }> | null;
   createdAt: string;
 }
 
