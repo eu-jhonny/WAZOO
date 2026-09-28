@@ -35,7 +35,7 @@ export function Kits() {
           </div>
 
           <div className="mt-10">
-            <OnDemandNotice text="Os kits são vendidos sob encomenda. Itens e valores podem variar conforme a disponibilidade — confirmamos tudo com você antes de fechar o pedido." />
+            <OnDemandNotice text="Confira os itens, o valor e a disponibilidade do kit antes de adicionar ao carrinho." />
           </div>
 
           <div className="mt-12 rounded-[2.5rem] bg-cream-100 p-8 text-center sm:p-12">
