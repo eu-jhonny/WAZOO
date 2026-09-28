@@ -32,6 +32,22 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
   }
 }
 
+export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) {
+    next();
+    return;
+  }
+
+  try {
+    req.user = jwt.verify(header.slice(7), process.env.JWT_SECRET!) as JWTPayload;
+  } catch {
+    // Token inválido em uma rota pública: tratamos como visitante.
+    req.user = undefined;
+  }
+  next();
+}
+
 export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
   if (!req.user) throw new AppError("Não autenticado", 401);
   if (!["ADMIN", "SUPER_ADMIN"].includes(req.user.role)) {
