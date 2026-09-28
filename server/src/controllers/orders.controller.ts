@@ -283,7 +283,38 @@ export async function listOrders(req: Request, res: Response) {
   res.json({ data: orders, total, page: parseInt(String(page)), pages: Math.ceil(total / take) });
 }
 
-/* ── Buscar pedido ───────────────────────────────────── */
+/* ── Rastreio público seguro ─────────────────────────── */
+export async function trackOrder(req: Request, res: Response) {
+  const order = await prisma.order.findUnique({
+    where: { number: req.params.number },
+    select: {
+      number: true,
+      status: true,
+      paymentStatus: true,
+      deliveryMethod: true,
+      subtotal: true,
+      discountAmount: true,
+      shippingAmount: true,
+      total: true,
+      createdAt: true,
+      updatedAt: true,
+      items: {
+        select: {
+          name: true,
+          quantity: true,
+          unitPrice: true,
+          totalPrice: true,
+          image: true,
+          variantLabel: true,
+        },
+      },
+    },
+  });
+  if (!order) throw new AppError("Pedido não encontrado", 404);
+  res.json(order);
+}
+
+/* ── Buscar pedido completo (admin) ──────────────────── */
 export async function getOrder(req: Request, res: Response) {
   const order = await prisma.order.findFirst({
     where: { OR: [{ id: req.params.id }, { number: req.params.id }] },
