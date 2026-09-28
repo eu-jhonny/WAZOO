@@ -275,6 +275,7 @@ model Coupon {
   code       String    @unique
   type       CouponType
   value      Float
+  description String?
   minOrder   Float?
   maxUses    Int?
   usedCount  Int       @default(0)
