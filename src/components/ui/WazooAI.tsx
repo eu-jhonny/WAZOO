@@ -38,7 +38,7 @@ function getResponse(
     const h = new Date().getHours();
     const g = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
     return {
-      text: `${g}! 🐾 Eu sou a Wazy, assistente virtual da Wazoo Pet Express! Posso te ajudar a encontrar produtos, tirar dúvidas sobre entrega, pagamento e muito mais. O que você precisa?`,
+      text: `${g}! 🐾 Eu sou a Wazy, assistente virtual da Wazoo! Posso te ajudar a encontrar produtos, tirar dúvidas sobre entrega, pagamento e muito mais. O que você precisa?`,
     };
   }
 
@@ -46,7 +46,7 @@ function getResponse(
   if (match(m, ["cachorro", "cão", "cao", "dog", "caes", "filhote"])) {
     const dogs = active.filter((p) => p.audience === "cachorro" || p.audience === "ambos").slice(0, 3);
     return {
-      text: `🐕 Temos uma linha completa para cachorros! Roupinhas, coleiras, brinquedos, petiscos e muito mais — tudo sob encomenda. Aqui estão alguns produtos:`,
+      text: `🐕 Temos uma linha completa para cachorros! Roupinhas, coleiras, brinquedos, petiscos e muito mais — tudo em um só lugar. Aqui estão alguns produtos:`,
       links: [
         ...dogs.map((p) => ({ label: `${p.name} — ${formatBRL(p.price)}`, to: `/produtos/${p.id}` })),
         { label: "Ver todos para cães →", to: "/cachorros" },
@@ -106,15 +106,15 @@ function getResponse(
   /* Troca / Devolução */
   if (match(m, ["troca", "trocar", "devolver", "devolução", "devolucao", "cancelar", "cancelamento", "prazo de troca"])) {
     return {
-      text: `🔄 Nossa política de troca é simples: produtos com defeito de fabricação têm troca garantida em até 7 dias. Como trabalhamos sob encomenda, pedimos que verifique bem o tamanho e especificações antes de finalizar.`,
+      text: `🔄 Nossa política de troca é simples. Confira tamanho e especificações antes de finalizar e, se precisar, consulte as condições de troca da Wazoo.`,
       links: [{ label: "Política de troca →", to: "/politica-troca" }],
     };
   }
 
   /* Como funciona */
-  if (match(m, ["como funciona", "como comprar", "encomenda", "sob encomenda", "processo", "passo"])) {
+  if (match(m, ["como funciona", "como comprar", "compra", "checkout", "processo", "passo"])) {
     return {
-      text: `📦 É simples!\n\n1️⃣ Escolha os produtos e adicione ao carrinho\n2️⃣ Finalize o pedido e confirme o pagamento\n3️⃣ Recebemos e confirmamos a disponibilidade com você via WhatsApp\n4️⃣ Fazemos o pedido ao fornecedor\n5️⃣ Entregamos na sua casa ou você retira na loja! 🐾`,
+      text: `📦 É simples!\n\n1️⃣ Escolha os produtos e adicione ao carrinho\n2️⃣ Informe seus dados e escolha a entrega\n3️⃣ Finalize o pagamento no checkout\n4️⃣ Acompanhe a separação pela sua conta\n5️⃣ Receba em casa ou retire quando estiver pronto! 🐾`,
       links: [{ label: "Saiba mais →", to: "/como-funciona" }],
     };
   }
@@ -143,7 +143,7 @@ function getResponse(
     const minPrice = Math.min(...active.map((p) => p.price));
     const maxPrice = Math.max(...active.map((p) => p.price));
     return {
-      text: `💰 Nossos produtos vão de ${formatBRL(minPrice)} a ${formatBRL(maxPrice)}. Trabalhamos com preço direto do fornecedor, sem intermediários! Acesse o catálogo e use o filtro de preço.`,
+      text: `💰 Nossos produtos vão de ${formatBRL(minPrice)} a ${formatBRL(maxPrice)}. Acesse o catálogo, compare opções e use o filtro de preço para encontrar o ideal.`,
       links: [{ label: "Ver catálogo com filtros →", to: "/produtos" }],
     };
   }
@@ -210,7 +210,7 @@ const QUICK_REPLIES: QuickReply[] = [
 const WELCOME_MSG: Message = {
   id: "welcome",
   from: "ai",
-  text: "Olá! 🐾 Eu sou a **Wazy**, assistente da Wazoo Pet Express! Estou aqui para te ajudar a encontrar o melhor para o seu pet. Como posso te ajudar hoje?",
+  text: "Olá! 🐾 Eu sou a **Wazy**, assistente da Wazoo! Estou aqui para te ajudar a encontrar o melhor para o seu pet. Como posso te ajudar hoje?",
   time: Date.now(),
 };
 
@@ -301,7 +301,7 @@ export function WazooAI() {
             </div>
             <div className="flex-1">
               <p className="font-display font-bold text-white text-sm leading-none">Wazy ✨</p>
-              <p className="text-teal-200 text-xs mt-0.5">Assistente Wazoo Pet Express</p>
+              <p className="text-teal-200 text-xs mt-0.5">Assistente Wazoo</p>
             </div>
             <span className="flex items-center gap-1 text-[10px] font-bold text-teal-200">
               <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
