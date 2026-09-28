@@ -3,7 +3,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useEffect,
   type ReactNode,
 } from "react";
 import { usePersistentState } from "@/hooks/usePersistentState";
@@ -13,7 +12,6 @@ import { seedOrders } from "@/data/orders";
 import { seedReviews } from "@/data/reviews";
 import { uid } from "@/lib/format";
 import { emails } from "@/lib/email";
-import { apiEnabled, getApiSettings, listApiProducts } from "@/lib/api";
 import {
   apiEnabled,
   createApiProduct,
@@ -153,32 +151,6 @@ function nextOrderId(orders: Order[]): string {
     .filter((n) => !Number.isNaN(n));
   const max = numbers.length ? Math.max(...numbers) : 1042;
   return `WZ-${max + 1}`;
-}
-
-function fromApiProduct(p: Awaited<ReturnType<typeof listApiProducts>>["data"][number]): Product {
-  return {
-    id: p.id,
-    name: p.name,
-    category: p.categorySlug,
-    price: p.price,
-    comparePrice: p.comparePrice ?? undefined,
-    promoLabel: p.promoLabel ?? undefined,
-    leadTime: p.leadTime,
-    shortDescription: p.shortDescription,
-    description: p.description,
-    image: p.image,
-    gallery: p.gallery,
-    active: p.active,
-    featured: p.featured,
-    onDemand: false,
-    audience: p.audience,
-    size: p.size,
-    availability: p.availability,
-    tags: p.tags,
-    stock: p.stock ?? undefined,
-    variants: p.variants ?? undefined,
-    createdAt: new Date(p.createdAt).getTime(),
-  };
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
