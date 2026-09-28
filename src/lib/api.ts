@@ -251,3 +251,84 @@ export async function listApiProducts(params: Record<string, string | number | b
 export function apiRequestAdmin<T>(path: string, options: RequestInit = {}) {
   return request<T>(path, { ...options, auth: true });
 }
+
+
+export interface ApiProductInput {
+  name: string;
+  categorySlug: string;
+  shortDescription: string;
+  description: string;
+  price: number;
+  comparePrice?: number;
+  promoLabel?: string;
+  image?: string;
+  gallery?: string[];
+  audience?: "cachorro" | "gato" | "ambos";
+  size?: "pequeno" | "medio" | "grande" | "todos";
+  leadTime?: string;
+  availability?: string;
+  tags?: string[];
+  active?: boolean;
+  featured?: boolean;
+  onDemand?: boolean;
+  stock?: number;
+  variants?: Array<{
+    name: string;
+    options: Array<{ label: string; priceDelta?: number }>;
+  }>;
+}
+
+export function createApiProduct(input: ApiProductInput) {
+  return request<ApiProduct>("/products", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateApiProduct(id: string, input: Partial<ApiProductInput>) {
+  return request<ApiProduct>(`/products/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    auth: true,
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteApiProduct(id: string) {
+  return request<{ message: string }>(`/products/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+export function getApiSettings() {
+  return request<Record<string, string>>("/settings");
+}
+
+export function updateApiSettings(input: Record<string, string>) {
+  return request<{ message: string; data: Record<string, string> }>("/settings", {
+    method: "PUT",
+    auth: true,
+    body: JSON.stringify(input),
+  });
+}
+
+export interface ApiReview {
+  id: string;
+  name: string;
+  email?: string | null;
+  petName?: string | null;
+  rating: number;
+  text: string;
+  approved: boolean;
+  featured: boolean;
+  productId?: string | null;
+  createdAt: string;
+}
+
+export function listApiReviews(params: { featured?: boolean } = {}) {
+  const query = new URLSearchParams();
+  if (params.featured !== undefined) query.set("featured", String(params.featured));
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return request<ApiReview[]>(`/reviews${suffix}`);
+}
