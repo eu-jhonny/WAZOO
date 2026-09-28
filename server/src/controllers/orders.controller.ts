@@ -29,6 +29,7 @@ const createOrderSchema = z.object({
   addressZip: z.string().optional(),
   items: z.array(orderItemSchema).min(1),
   couponCode: z.string().optional(),
+  paymentMethod: z.enum(["pix", "credit_card", "boleto"]).optional(),
   customerNote: z.string().optional(),
 });
 
@@ -151,7 +152,7 @@ export async function createOrder(req: Request, res: Response) {
   let discountAmount = 0;
 
   const storeSettings = await prisma.setting.findMany({
-    where: { key: { in: ["deliveryFee", "freeShippingThreshold"] } },
+    where: { key: { in: ["deliveryFee", "freeShippingThreshold", "pixDiscount"] } },
   });
   const settingMap = new Map(storeSettings.map((s) => [s.key, s.value]));
   const deliveryFee = Math.max(0, Number(settingMap.get("deliveryFee") ?? 15) || 0);
@@ -166,6 +167,16 @@ export async function createOrder(req: Request, res: Response) {
     discountAmount = Math.min(subtotal, discount);
     couponRef = coupon;
   }
+
+  const pixDiscountPct =
+    data.paymentMethod === "pix"
+      ? Math.max(0, Number(settingMap.get("pixDiscount") ?? 0) || 0)
+      : 0;
+  const pixDiscountAmount = Math.min(
+    Math.max(0, subtotal - discountAmount),
+    Math.round(Math.max(0, subtotal - discountAmount) * (pixDiscountPct / 100) * 100) / 100,
+  );
+  discountAmount += pixDiscountAmount;
 
   const afterDiscount = Math.max(0, subtotal - discountAmount);
   const qualifiesForFreeShipping =
@@ -214,6 +225,7 @@ export async function createOrder(req: Request, res: Response) {
         addressState: data.addressState,
         addressZip: data.addressZip,
         couponCode: data.couponCode?.toUpperCase(),
+        paymentMethod: data.paymentMethod,
         customerNote: data.customerNote,
         subtotal,
         discountAmount,
