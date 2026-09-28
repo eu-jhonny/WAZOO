@@ -89,7 +89,7 @@ export function Cachorros() {
             <Reveal delay={140}>
               <p className="mt-4 text-lg text-orange-100 sm:text-xl">
                 Coleiras, roupinhas, brinquedos, petiscos e muito mais.<br className="hidden sm:block" />
-                Produtos sob encomenda, com amor e carinho.
+                Produtos para deixar a rotina do seu cão ainda melhor.
               </p>
             </Reveal>
             <Reveal delay={200}>
