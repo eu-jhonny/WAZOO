@@ -11,23 +11,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── Usuários / Admins ────────────────────────────────────────
+// ── Clientes / Administradores ───────────────────────────────
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(ADMIN)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String
+  phone      String   @default("")
+  avatar     String?
+  preference String   @default("DELIVERY") // DELIVERY | PICKUP
+  role       Role     @default(CUSTOMER)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  addresses Address[]
+  pets      Pet[]
+  orders    Order[]
 
   @@map("users")
 }
 
 enum Role {
+  CUSTOMER
   ADMIN
   SUPER_ADMIN
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  label        String   @default("Casa")
+  recipientName String?
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String
+  zip          String
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Pet {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  type         String
+  breed        String   @default("")
+  size         String   @default("todos")
+  age          String   @default("")
+  weight       String   @default("")
+  restrictions String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("pets")
 }
 
 // ── Categorias ───────────────────────────────────────────────
@@ -67,7 +117,6 @@ model Product {
   featured         Boolean  @default(false)
   onDemand         Boolean  @default(false)
   stock            Int?
-  variants         Json?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -110,6 +159,8 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
 
   // Cliente
+  userId        String?
+  user          User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   customerName  String
   customerEmail String
   customerPhone String
