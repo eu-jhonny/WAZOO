@@ -80,10 +80,10 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
     image:            initial?.image            ?? "",
     active:           initial?.active           ?? true,
     featured:         initial?.featured         ?? false,
-    onDemand:         initial?.onDemand         ?? true,
+    onDemand:         initial?.onDemand         ?? false,
     audience:         (initial?.audience        ?? "ambos") as PetAudience,
     size:             (initial?.size            ?? "todos")  as PetSize,
-    availability:     initial?.availability     ?? "Sob consulta",
+    availability:     initial?.availability     ?? "Em estoque",
     promoLabel:       initial?.promoLabel       ?? "",
     stock:            (initial?.stock ?? undefined) as number | undefined,
     variants:         (initial?.variants ?? []) as VariantGroup[],
@@ -233,7 +233,7 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
         </div>
         <div>
           <label className="label">
-            Estoque <span className="font-normal text-navy-400">— vazio = sob encomenda (ilimitado)</span>
+            Estoque <span className="font-normal text-navy-400">— vazio = estoque não controlado</span>
           </label>
           <input type="number" min={0} step={1} className="input"
             placeholder="Ex.: 12"
@@ -406,7 +406,7 @@ export function ProductForm({ initial, onSubmit, onCancel, submitLabel = "Salvar
       <div className="grid gap-2 sm:grid-cols-3">
         <Toggle checked={f.active}   onChange={(v) => set("active", v)}   label="Ativo"         hint="Visível no site" />
         <Toggle checked={f.featured} onChange={(v) => set("featured", v)} label="Destaque"      hint="Aparece na home" />
-        <Toggle checked={f.onDemand} onChange={(v) => set("onDemand", v)} label="Sob encomenda" hint="Exibe selo" />
+        <Toggle checked={f.onDemand} onChange={(v) => set("onDemand", v)} label="Venda especial" hint="Campo legado; mantenha desligado para produtos comuns" />
       </div>
 
       {/* Ações */}
