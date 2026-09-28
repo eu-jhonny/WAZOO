@@ -212,6 +212,7 @@ export async function createOrder(req: Request, res: Response) {
     const created = await tx.order.create({
       data: {
         number,
+        userId: req.user?.role === "CUSTOMER" ? req.user.userId : undefined,
         customerName: data.customerName,
         customerEmail: data.customerEmail,
         customerPhone: data.customerPhone,
