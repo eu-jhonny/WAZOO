@@ -66,7 +66,7 @@ export function Header() {
         <Link to="/" className="flex shrink-0 items-center" aria-label="Página inicial">
           <img
             src={customLogo ?? img.logo}
-            alt="Wazoo Pet Express"
+            alt="Wazoo"
             className="h-10 w-auto sm:h-12"
           />
         </Link>
