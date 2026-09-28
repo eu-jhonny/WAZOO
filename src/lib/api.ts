@@ -669,3 +669,64 @@ export function setApiCustomerActive(id: string, active: boolean) {
     },
   );
 }
+
+
+/* ── Cupons (admin) ───────────────────────────────────────── */
+export interface ApiCoupon {
+  id: string;
+  code: string;
+  type: "PERCENTAGE" | "FIXED" | "FREE_SHIPPING";
+  value: number;
+  description?: string | null;
+  minOrder?: number | null;
+  maxUses?: number | null;
+  usedCount: number;
+  active: boolean;
+  expiresAt?: string | null;
+  createdAt: string;
+}
+
+export function listApiCouponsAdmin() {
+  return request<ApiCoupon[]>("/coupons", { auth: "admin" });
+}
+
+export function createApiCoupon(input: {
+  code: string;
+  type: ApiCoupon["type"];
+  value: number;
+  description?: string;
+  minOrder?: number;
+  maxUses?: number;
+  active?: boolean;
+  expiresAt?: string;
+}) {
+  return request<ApiCoupon>("/coupons", {
+    method: "POST",
+    auth: "admin",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateApiCoupon(id: string, input: Partial<{
+  code: string;
+  type: ApiCoupon["type"];
+  value: number;
+  description?: string;
+  minOrder?: number;
+  maxUses?: number;
+  active: boolean;
+  expiresAt?: string;
+}>) {
+  return request<ApiCoupon>(`/coupons/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    auth: "admin",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteApiCoupon(id: string) {
+  return request<{ message: string }>(`/coupons/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    auth: "admin",
+  });
+}
