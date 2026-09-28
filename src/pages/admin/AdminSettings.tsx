@@ -309,6 +309,7 @@ export function AdminSettings() {
   const savePayment = (e: FormEvent) => {
     e.preventDefault();
     setCfg({ payPix: cfg.payPix, payCard: cfg.payCard, payBoleto: cfg.payBoleto, pixDiscount: cfg.pixDiscount, maxInstall: cfg.maxInstall, minInstall: cfg.minInstall, pixChave: cfg.pixChave });
+    updateSettings({ pixDiscount: cfg.pixDiscount, maxInstall: cfg.maxInstall });
     if (apiEnabled) {
       void saveApiSettings({
         pixDiscount: String(cfg.pixDiscount),
