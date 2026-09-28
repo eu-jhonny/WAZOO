@@ -32,7 +32,8 @@ async function main() {
     ["hours", "Seg–Sex 9h–18h | Sáb 9h–13h"],
     ["institutionalText", "Tudo para o bem-estar do seu pet, com compra online segura e prática."],
     ["deliveryFee", "15"],
-    ["freeShippingThreshold", "200"],
+    ["freeShippingThreshold", "199"],
+    ["pixDiscount", "5"],
   ];
   for (const [key, value] of defaultSettings) {
     await prisma.setting.upsert({ where: { key }, update: {}, create: { key, value } });
