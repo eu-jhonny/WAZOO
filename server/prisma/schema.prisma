@@ -27,7 +27,8 @@ model User {
 
   addresses Address[]
   pets      Pet[]
-  orders    Order[]
+  orders        Order[]
+  wishlistItems WishlistItem[]
 
   @@map("users")
 }
@@ -121,7 +122,8 @@ model Product {
   updatedAt        DateTime @updatedAt
 
   orderItems  OrderItem[]
-  promotions  ProductPromotion[]
+  promotions   ProductPromotion[]
+  wishlistItems WishlistItem[]
 
   @@map("products")
 }
@@ -252,6 +254,21 @@ enum PaymentStatus {
   REJECTED
   REFUNDED
   IN_PROCESS
+}
+
+// ── Favoritos ─────────────────────────────────────────────────
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+  @@map("wishlist_items")
 }
 
 // ── Avaliações ───────────────────────────────────────────────
