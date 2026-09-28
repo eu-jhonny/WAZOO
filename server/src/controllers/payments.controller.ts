@@ -100,16 +100,23 @@ export async function processPayment(req: Request, res: Response) {
   const pixCode = result.point_of_interaction?.transaction_data?.qr_code ?? undefined;
   const boletoUrl = result.transaction_details?.external_resource_url ?? undefined;
 
-  await prisma.order.update({
-    where: { id: order.id },
-    data: {
-      paymentMethod: input.method,
-      mpPaymentId: String(result.id),
-      paymentStatus: paymentStatus as any,
-      pixCode,
-      boletoUrl,
-      ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED" }),
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        paymentMethod: input.method,
+        mpPaymentId: String(result.id),
+        paymentStatus: paymentStatus as any,
+        pixCode,
+        boletoUrl,
+        ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED" }),
+      },
+    });
+    if (paymentStatus === "APPROVED" && order.status !== "CONFIRMED") {
+      await tx.orderStatusEvent.create({
+        data: { orderId: order.id, status: "CONFIRMED" },
+      });
+    }
   });
 
   res.json({
@@ -139,15 +146,35 @@ export async function paymentWebhook(req: Request, res: Response) {
     const paymentStatus = mpStatusToPaymentStatus(payment.status ?? "pending");
     const pixCode = payment.point_of_interaction?.transaction_data?.qr_code ?? undefined;
 
-    await prisma.order.updateMany({
+    const order = await prisma.order.findUnique({
       where: { id: payment.external_reference },
-      data: {
-        paymentStatus: paymentStatus as any,
-        mpPaymentId: String(payment.id),
-        pixCode,
-        ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED" }),
-        ...(paymentStatus === "REJECTED" && { status: "CANCELLED" }),
-      },
+      select: { id: true, status: true },
+    });
+    if (!order) return;
+
+    const nextStatus =
+      paymentStatus === "APPROVED"
+        ? "CONFIRMED"
+        : paymentStatus === "REJECTED"
+          ? "CANCELLED"
+          : undefined;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: paymentStatus as any,
+          mpPaymentId: String(payment.id),
+          pixCode,
+          ...(paymentStatus === "APPROVED" && { paidAt: new Date(), status: "CONFIRMED" }),
+          ...(paymentStatus === "REJECTED" && { status: "CANCELLED" }),
+        },
+      });
+      if (nextStatus && nextStatus !== order.status) {
+        await tx.orderStatusEvent.create({
+          data: { orderId: order.id, status: nextStatus },
+        });
+      }
     });
 
     console.log(`[Webhook] Pagamento ${payment.id} → ${paymentStatus}`);
