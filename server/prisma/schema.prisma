@@ -102,7 +102,8 @@ model Kit {
 // ── Pedidos ──────────────────────────────────────────────────
 model Order {
   id     String @id @default(cuid())
-  number String @unique // ex: WZ-2024-001
+  number      String @unique // ex: WZ-2024-001
+  publicToken String @unique @default(cuid())
 
   // Status
   status        OrderStatus   @default(PENDING)
