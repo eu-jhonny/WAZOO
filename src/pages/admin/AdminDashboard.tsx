@@ -148,6 +148,7 @@ export function AdminDashboard() {
       waiting,
       active:   products.filter((p) => p.active).length,
       inactive: products.filter((p) => !p.active).length,
+      lowStock: products.filter((p) => p.active && typeof p.stock === "number" && p.stock <= 5).length,
       finished,
       cancelled,
       estimated,
@@ -220,6 +221,15 @@ export function AdminDashboard() {
               {stats.pendingReviews} avaliação{stats.pendingReviews !== 1 ? "ões" : ""} para aprovar
             </span>
             <ArrowRight size={15} className="text-amber-500" />
+          </Link>
+        )}
+        {stats.lowStock > 0 && (
+          <Link to="/admin/produtos" className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 transition-colors hover:bg-red-100">
+            <span className="flex items-center gap-2 text-sm font-bold text-red-700">
+              <PackageX size={16} className="text-red-500" />
+              {stats.lowStock} produto{stats.lowStock !== 1 ? "s" : ""} com estoque baixo
+            </span>
+            <ArrowRight size={15} className="text-red-500" />
           </Link>
         )}
         {stats.inactive > 0 && (
