@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, PawPrint, Phone, Save, Search, Store, User } from "lucide-react";
+import { Loader2, MapPin, PawPrint, Phone, Save, Search, Store, User } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import { useToast } from "@/context/ToastContext";
-import { ORDER_STATUSES, type Order } from "@/types";
+import { ORDER_STATUSES, type Order, type OrderStatus, type StatusEvent } from "@/types";
 import { formatBRL, formatDateTime } from "@/lib/format";
 import { statusStyle } from "@/lib/orderStatus";
 import { whatsappLink, buildOrderContactMessage } from "@/lib/whatsapp";
@@ -10,9 +10,86 @@ import { OrderTable } from "@/components/admin/OrderTable";
 import { OrderStatusTimeline } from "@/components/OrderStatusTimeline";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { Modal } from "@/components/ui/Modal";
+import {
+  apiEnabled,
+  listApiOrdersAdmin,
+  updateApiOrderAdmin,
+  type ApiOrder,
+  type ApiOrderStatus,
+} from "@/lib/api";
+
+function mapApiStatus(status: string, paymentStatus?: string, paymentMethod?: string | null): OrderStatus {
+  if (status === "CANCELLED") return "Cancelado";
+  if (status === "DELIVERED") return "Entregue";
+  if (status === "SHIPPED") return "Saiu para entrega";
+  if (status === "READY") return "Pronto para retirada";
+  if (status === "PROCESSING") return "Em separação";
+  if (status === "CONFIRMED" || paymentStatus === "APPROVED") return "Pagamento confirmado";
+  if (status === "PENDING" && paymentMethod) return "Pagamento pendente";
+  return "Pedido recebido";
+}
+
+function toApiStatus(status: OrderStatus): ApiOrderStatus {
+  switch (status) {
+    case "Pagamento confirmado": return "CONFIRMED";
+    case "Em separação": return "PROCESSING";
+    case "Pronto para retirada": return "READY";
+    case "Saiu para entrega": return "SHIPPED";
+    case "Entregue": return "DELIVERED";
+    case "Cancelado": return "CANCELLED";
+    default: return "PENDING";
+  }
+}
+
+function apiOrderToAdminOrder(order: ApiOrder): Order {
+  const createdAt = new Date(order.createdAt).getTime();
+  const current = mapApiStatus(order.status, order.paymentStatus, order.paymentMethod);
+  const history: StatusEvent[] = [{ status: "Pedido recebido", at: createdAt }];
+
+  if (order.paymentMethod && order.paymentStatus !== "APPROVED") {
+    history.push({ status: "Pagamento pendente", at: createdAt + 1 });
+  }
+  for (const event of order.statusEvents ?? []) {
+    const mapped = mapApiStatus(
+      event.status,
+      event.status === "CONFIRMED" ? "APPROVED" : order.paymentStatus,
+      order.paymentMethod,
+    );
+    if (!history.some((item) => item.status === mapped)) {
+      history.push({ status: mapped, at: new Date(event.createdAt).getTime() });
+    }
+  }
+  if (!history.some((item) => item.status === current)) {
+    history.push({ status: current, at: new Date(order.updatedAt ?? order.createdAt).getTime() });
+  }
+
+  return {
+    id: order.number,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    customerEmail: order.customerEmail,
+    fulfillment: order.deliveryMethod === "PICKUP" ? "retirada" : "entrega",
+    items: order.items.map((item) => ({
+      name: item.variantLabel ? `${item.name} (${item.variantLabel})` : item.name,
+      quantity: item.quantity,
+      price: item.unitPrice,
+    })),
+    subtotal: order.subtotal,
+    discountAmount: order.discountAmount,
+    shippingAmount: order.shippingAmount,
+    total: order.total,
+    note: order.customerNote ?? undefined,
+    internalNote: order.adminNote ?? undefined,
+    status: current,
+    history,
+    createdAt,
+  };
+}
 
 export function AdminOrders() {
   const { orders, updateOrderStatus, setOrderInternalNote } = useStore();
+  const [apiOrders, setApiOrders] = useState<ApiOrder[] | null>(null);
+  const [loadingApi, setLoadingApi] = useState(apiEnabled);
   const { showToast } = useToast();
 
   const [search, setSearch] = useState("");
@@ -20,7 +97,35 @@ export function AdminOrders() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
 
-  const current = orders.find((o) => o.id === selectedId) ?? null;
+  useEffect(() => {
+    if (!apiEnabled) {
+      setLoadingApi(false);
+      return;
+    }
+
+    let active = true;
+    setLoadingApi(true);
+    listApiOrdersAdmin({ limit: 200 })
+      .then(({ data }) => {
+        if (active) setApiOrders(data);
+      })
+      .catch((error) => {
+        console.error("[Wazoo API] falha ao carregar pedidos do admin:", error);
+        if (active) setApiOrders(null);
+      })
+      .finally(() => {
+        if (active) setLoadingApi(false);
+      });
+
+    return () => { active = false; };
+  }, []);
+
+  const displayOrders = useMemo(
+    () => apiOrders ? apiOrders.map(apiOrderToAdminOrder) : orders,
+    [apiOrders, orders],
+  );
+
+  const current = displayOrders.find((o) => o.id === selectedId) ?? null;
 
   useEffect(() => {
     setNoteDraft(current?.internalNote ?? "");
@@ -28,7 +133,7 @@ export function AdminOrders() {
 
   const filtered = useMemo(
     () =>
-      orders
+      displayOrders
         .filter((o) => (statusFilter === "todos" ? true : o.status === statusFilter))
         .filter(
           (o) =>
@@ -36,28 +141,61 @@ export function AdminOrders() {
             o.customerName.toLowerCase().includes(search.toLowerCase())
         )
         .sort((a, b) => b.createdAt - a.createdAt),
-    [orders, statusFilter, search]
+    [displayOrders, statusFilter, search]
   );
 
   const summary = useMemo(() => {
     const waiting = ["Pedido recebido", "Pagamento pendente"];
     const running = ["Pagamento confirmado", "Em separação", "Pronto para retirada", "Saiu para entrega"];
     return {
-      waiting:   orders.filter((o) => waiting.includes(o.status)).length,
-      running:   orders.filter((o) => running.includes(o.status)).length,
-      done:      orders.filter((o) => o.status === "Entregue").length,
-      cancelled: orders.filter((o) => o.status === "Cancelado").length,
-      revenue:   orders.filter((o) => o.status !== "Cancelado").reduce((s, o) => s + o.total, 0),
+      waiting:   displayOrders.filter((o) => waiting.includes(o.status)).length,
+      running:   displayOrders.filter((o) => running.includes(o.status)).length,
+      done:      displayOrders.filter((o) => o.status === "Entregue").length,
+      cancelled: displayOrders.filter((o) => o.status === "Cancelado").length,
+      revenue:   displayOrders
+        .filter((o) => ["Pagamento confirmado", "Em separação", "Pronto para retirada", "Saiu para entrega", "Entregue"].includes(o.status))
+        .reduce((s, o) => s + o.total, 0),
     };
-  }, [orders]);
+  }, [displayOrders]);
 
-  const changeStatus = (order: Order, status: string) => {
-    updateOrderStatus(order.id, status as Order["status"]);
+  const changeStatus = async (order: Order, status: string) => {
+    const nextStatus = status as OrderStatus;
+
+    if (apiEnabled && apiOrders) {
+      const raw = apiOrders.find((item) => item.number === order.id);
+      if (!raw) return;
+
+      try {
+        const updated = await updateApiOrderAdmin(raw.id, { status: toApiStatus(nextStatus) });
+        setApiOrders((prev) => prev?.map((item) => item.id === raw.id ? { ...item, ...updated } : item) ?? prev);
+        showToast("Status atualizado com sucesso! ✅", "success");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Não foi possível atualizar o status.", "error");
+      }
+      return;
+    }
+
+    updateOrderStatus(order.id, nextStatus);
     showToast("Status atualizado com sucesso! ✅", "success");
   };
 
-  const saveNote = () => {
+  const saveNote = async () => {
     if (!current) return;
+
+    if (apiEnabled && apiOrders) {
+      const raw = apiOrders.find((item) => item.number === current.id);
+      if (!raw) return;
+
+      try {
+        const updated = await updateApiOrderAdmin(raw.id, { adminNote: noteDraft });
+        setApiOrders((prev) => prev?.map((item) => item.id === raw.id ? { ...item, ...updated } : item) ?? prev);
+        showToast("Observação interna salva.", "success");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Não foi possível salvar a observação.", "error");
+      }
+      return;
+    }
+
     setOrderInternalNote(current.id, noteDraft);
     showToast("Observação interna salva.", "success");
   };
@@ -65,7 +203,7 @@ export function AdminOrders() {
   return (
     <div>
       <h1 className="font-display text-2xl font-bold text-navy-800 sm:text-3xl">Pedidos</h1>
-      <p className="mt-1 text-sm text-navy-500">{orders.length} pedidos recebidos no total.</p>
+      <p className="mt-1 text-sm text-navy-500">{displayOrders.length} pedidos recebidos no total.</p>
 
       {/* Resumo por status */}
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -104,7 +242,14 @@ export function AdminOrders() {
       </div>
 
       <div className="mt-6">
-        <OrderTable orders={filtered} onView={(o) => setSelectedId(o.id)} />
+        {loadingApi ? (
+          <div className="card flex items-center justify-center gap-2 py-14 text-sm font-semibold text-navy-500">
+            <Loader2 size={18} className="animate-spin text-orange-500" />
+            Sincronizando pedidos com a loja...
+          </div>
+        ) : (
+          <OrderTable orders={filtered} onView={(o) => setSelectedId(o.id)} />
+        )}
       </div>
 
       {/* Detalhe do pedido */}
