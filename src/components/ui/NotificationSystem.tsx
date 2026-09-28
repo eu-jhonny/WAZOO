@@ -39,18 +39,36 @@ export interface Notification extends StoredNotification {
 }
 
 /* ── Helpers de storage ─────────────────────────── */
-const STORAGE_KEY    = "wazoo_notifs_v2"; // v2 → limpa dados corrompidos da v1
+const STORAGE_KEY    = "wazoo_notifs_v3"; // v3 → descarta notificações antigas incompatíveis
 const TIMESTAMP_PFX  = "wazoo_notif_ts_";
 
 function getStored(): Notification[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY) ?? "[]";
-    const stored: StoredNotification[] = JSON.parse(raw);
-    // Hidrata o campo `icon` que não veio do JSON
-    return stored.map((n) => ({
-      ...n,
-      icon: ICON_MAP[n.iconKey] ?? <PawPrint size={16} />,
-    }));
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((n): n is Partial<StoredNotification> & { id: string } =>
+        Boolean(n && typeof n === "object" && typeof n.id === "string"),
+      )
+      .map((n) => {
+        const iconKey: IconKey =
+          n.iconKey && ICON_MAP[n.iconKey as IconKey] ? n.iconKey as IconKey : "PawPrint";
+        return {
+          id: n.id,
+          type: n.type ?? "tip",
+          iconKey,
+          title: typeof n.title === "string" ? n.title : "Wazoo",
+          message: typeof n.message === "string" ? n.message : "",
+          action: n.action && typeof n.action === "object" ? n.action as StoredNotification["action"] : undefined,
+          color: typeof n.color === "string" ? n.color : "text-orange-600",
+          bg: typeof n.bg === "string" ? n.bg : "bg-orange-50",
+          createdAt: typeof n.createdAt === "number" ? n.createdAt : Date.now(),
+          read: Boolean(n.read),
+          icon: ICON_MAP[iconKey] ?? <PawPrint size={16} />,
+        } satisfies Notification;
+      });
   } catch {
     return [];
   }
@@ -65,12 +83,20 @@ function save(notifs: Notification[]) {
 }
 
 function wasShownRecently(key: string, hours = 4): boolean {
-  const ts = localStorage.getItem(`${TIMESTAMP_PFX}${key}`);
-  if (!ts) return false;
-  return Date.now() - Number(ts) < hours * 3_600_000;
+  try {
+    const ts = localStorage.getItem(`${TIMESTAMP_PFX}${key}`);
+    if (!ts) return false;
+    return Date.now() - Number(ts) < hours * 3_600_000;
+  } catch {
+    return false;
+  }
 }
 function markShown(key: string) {
-  localStorage.setItem(`${TIMESTAMP_PFX}${key}`, String(Date.now()));
+  try {
+    localStorage.setItem(`${TIMESTAMP_PFX}${key}`, String(Date.now()));
+  } catch {
+    // storage indisponível: notificação continua funcionando em memória
+  }
 }
 function greeting(): string {
   const h = new Date().getHours();
