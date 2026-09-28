@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
-import { Ticket, Plus, Trash2, Power, Pencil, Percent, DollarSign, Truck } from "lucide-react";
+import { Ticket, Plus, Trash2, Power, Pencil, Percent, DollarSign, Truck, Loader2 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { Modal } from "@/components/ui/Modal";
 import {
   readCoupons, saveCoupons, type AdminCoupon, type CouponType,
 } from "@/lib/coupons";
 import { formatBRL } from "@/lib/format";
+import {
+  apiEnabled,
+  createApiCoupon,
+  deleteApiCoupon,
+  listApiCouponsAdmin,
+  updateApiCoupon,
+} from "@/lib/api";
 
 const TYPE_META: Record<CouponType, { label: string; icon: typeof Percent; hint: string }> = {
   PERCENTAGE: { label: "Percentual (%)", icon: Percent, hint: "Desconto em % sobre o subtotal" },
@@ -90,24 +97,131 @@ export function AdminCoupons() {
   const { showToast } = useToast();
   const [list, setList] = useState<AdminCoupon[]>([]);
   const [modal, setModal] = useState<{ mode: "add" | "edit"; coupon: AdminCoupon } | null>(null);
+  const [loading, setLoading] = useState(apiEnabled);
 
-  useEffect(() => { setList(readCoupons()); }, []);
+  useEffect(() => {
+    if (!apiEnabled) {
+      setList(readCoupons());
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    listApiCouponsAdmin()
+      .then((remote) => {
+        if (!active) return;
+        setList(remote.map((coupon) => ({
+          id: coupon.id,
+          code: coupon.code,
+          type: coupon.type,
+          value: coupon.value,
+          description: coupon.description ?? undefined,
+          minOrder: coupon.minOrder ?? undefined,
+          maxUses: coupon.maxUses ?? undefined,
+          usedCount: coupon.usedCount,
+          expiresAt: coupon.expiresAt ? new Date(coupon.expiresAt).getTime() : undefined,
+          active: coupon.active,
+          createdAt: new Date(coupon.createdAt).getTime(),
+        })));
+      })
+      .catch((error) => {
+        showToast(error instanceof Error ? error.message : "Não foi possível carregar os cupons.", "error");
+        if (active) setList(readCoupons());
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, []);
 
   const persist = (next: AdminCoupon[]) => { setList(next); saveCoupons(next); };
 
-  const save = (c: AdminCoupon) => {
-    const others = list.filter((x) => x.code !== (modal?.coupon.code ?? ""));
-    persist([...others.filter((x) => x.code !== c.code), c].sort((a, b) => a.code.localeCompare(b.code)));
+  const save = async (coupon: AdminCoupon) => {
+    if (apiEnabled) {
+      try {
+        const payload = {
+          code: coupon.code,
+          type: coupon.type,
+          value: coupon.value,
+          description: coupon.description || undefined,
+          minOrder: coupon.minOrder,
+          maxUses: coupon.maxUses,
+          active: coupon.active,
+          expiresAt: coupon.expiresAt ? new Date(coupon.expiresAt).toISOString() : undefined,
+        };
+
+        const remote = modal?.mode === "edit" && modal.coupon.id
+          ? await updateApiCoupon(modal.coupon.id, payload)
+          : await createApiCoupon(payload);
+
+        const saved: AdminCoupon = {
+          id: remote.id,
+          code: remote.code,
+          type: remote.type,
+          value: remote.value,
+          description: remote.description ?? undefined,
+          minOrder: remote.minOrder ?? undefined,
+          maxUses: remote.maxUses ?? undefined,
+          usedCount: remote.usedCount,
+          expiresAt: remote.expiresAt ? new Date(remote.expiresAt).getTime() : undefined,
+          active: remote.active,
+          createdAt: new Date(remote.createdAt).getTime(),
+        };
+
+        setList((prev) => [
+          ...prev.filter((item) => item.id !== saved.id && item.code !== saved.code),
+          saved,
+        ].sort((a, b) => a.code.localeCompare(b.code)));
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Não foi possível salvar o cupom.", "error");
+        return;
+      }
+    } else {
+      const others = list.filter((item) => item.code !== (modal?.coupon.code ?? ""));
+      persist([...others.filter((item) => item.code !== coupon.code), coupon].sort((a, b) => a.code.localeCompare(b.code)));
+    }
+
     showToast(modal?.mode === "edit" ? "Cupom atualizado! 🎟️" : "Cupom criado! 🎟️", "success");
     setModal(null);
   };
-  const toggle = (code: string) =>
-    persist(list.map((c) => (c.code === code ? { ...c, active: !c.active } : c)));
-  const remove = (code: string) => {
-    if (confirm(`Excluir o cupom ${code}?`)) {
-      persist(list.filter((c) => c.code !== code));
-      showToast("Cupom excluído.", "info");
+
+  const toggle = async (code: string) => {
+    const coupon = list.find((item) => item.code === code);
+    if (!coupon) return;
+
+    if (apiEnabled && coupon.id) {
+      try {
+        const remote = await updateApiCoupon(coupon.id, { active: !coupon.active });
+        setList((prev) => prev.map((item) =>
+          item.id === coupon.id ? { ...item, active: remote.active } : item,
+        ));
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Não foi possível atualizar o cupom.", "error");
+      }
+      return;
     }
+
+    persist(list.map((item) => item.code === code ? { ...item, active: !item.active } : item));
+  };
+
+  const remove = async (code: string) => {
+    const coupon = list.find((item) => item.code === code);
+    if (!coupon || !confirm(`Excluir o cupom ${code}?`)) return;
+
+    if (apiEnabled && coupon.id) {
+      try {
+        await deleteApiCoupon(coupon.id);
+        setList((prev) => prev.filter((item) => item.id !== coupon.id));
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Não foi possível excluir o cupom.", "error");
+        return;
+      }
+    } else {
+      persist(list.filter((item) => item.code !== code));
+    }
+
+    showToast("Cupom excluído.", "info");
   };
 
   const editCodes = (skip?: string) => list.map((c) => c.code).filter((c) => c !== skip);
@@ -124,7 +238,11 @@ export function AdminCoupons() {
         </button>
       </div>
 
-      {list.length === 0 ? (
+      {loading ? (
+        <div className="card mt-6 flex items-center justify-center gap-2 py-14 text-navy-500">
+          <Loader2 size={18} className="animate-spin text-orange-500" /> Carregando cupons...
+        </div>
+      ) : list.length === 0 ? (
         <div className="card mt-6 flex flex-col items-center p-12 text-center">
           <Ticket className="text-orange-400" size={40} />
           <p className="mt-3 font-semibold text-navy-600">Nenhum cupom cadastrado.</p>
